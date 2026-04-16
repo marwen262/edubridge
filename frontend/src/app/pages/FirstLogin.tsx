@@ -1,0 +1,179 @@
+import React from 'react';
+import { useNavigate } from 'react-router';
+import { GraduationCap, Eye, EyeOff, Check, X } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { toast } from 'sonner';
+
+export function FirstLogin() {
+  const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = React.useState('');
+  const [newPassword, setNewPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [showCurrent, setShowCurrent] = React.useState(false);
+  const [showNew, setShowNew] = React.useState(false);
+  const [showConfirm, setShowConfirm] = React.useState(false);
+
+  const passwordChecks = [
+    { label: '8+ characters', met: newPassword.length >= 8 },
+    { label: 'Uppercase letter', met: /[A-Z]/.test(newPassword) },
+    { label: 'Number', met: /[0-9]/.test(newPassword) },
+    { label: 'Special character', met: /[!@#$%^&*]/.test(newPassword) },
+  ];
+
+  const allChecksMet = passwordChecks.every((check) => check.met);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (!allChecksMet) {
+      toast.error('Password does not meet all requirements');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    toast.success('Password updated successfully!');
+    navigate('/dashboard/institution');
+  };
+
+  return (
+    <div className="min-h-screen dotted-bg flex items-center justify-center p-6">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <GraduationCap className="w-10 h-10 text-[var(--edu-blue)]" />
+          <span className="text-2xl font-bold text-[var(--edu-text-primary)]">EduBridge</span>
+        </div>
+
+        {/* Card */}
+        <div className="glass-card rounded-3xl p-8 shadow-2xl">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 rounded-full bg-[var(--edu-warning)]/10 flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">🔐</span>
+            </div>
+            <h1 className="text-3xl font-bold text-[var(--edu-text-primary)] mb-2">Set your new password</h1>
+            <p className="text-[var(--edu-text-secondary)]">
+              For security reasons, please change the temporary password provided by the administrator.
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <Label htmlFor="currentPassword">Current (Temporary) Password *</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="currentPassword"
+                  type={showCurrent ? 'text' : 'password'}
+                  placeholder="Enter temporary password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="rounded-xl pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--edu-text-tertiary)] hover:text-[var(--edu-text-primary)]"
+                >
+                  {showCurrent ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="newPassword">New Password *</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="newPassword"
+                  type={showNew ? 'text' : 'password'}
+                  placeholder="Create a strong password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="rounded-xl pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--edu-text-tertiary)] hover:text-[var(--edu-text-primary)]"
+                >
+                  {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirm ? 'text' : 'password'}
+                  placeholder="Confirm your new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="rounded-xl pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--edu-text-tertiary)] hover:text-[var(--edu-text-primary)]"
+                >
+                  {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Password Requirements Checklist */}
+            {newPassword && (
+              <div className="bg-[var(--edu-surface)] rounded-xl p-4">
+                <p className="text-sm font-medium text-[var(--edu-text-primary)] mb-3">Password Requirements:</p>
+                <div className="space-y-2">
+                  {passwordChecks.map((check, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      {check.met ? (
+                        <div className="w-5 h-5 rounded-full bg-[var(--edu-success)] flex items-center justify-center">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border-2 border-[var(--edu-border)] flex items-center justify-center">
+                          <X className="w-3 h-3 text-[var(--edu-text-tertiary)]" />
+                        </div>
+                      )}
+                      <span
+                        className={`text-sm ${
+                          check.met ? 'text-[var(--edu-success)]' : 'text-[var(--edu-text-secondary)]'
+                        }`}
+                      >
+                        {check.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 font-medium"
+            >
+              Update password
+            </Button>
+          </form>
+        </div>
+
+        <p className="text-center text-xs text-[var(--edu-text-secondary)] mt-6">
+          After updating your password, you will be redirected to your dashboard.
+        </p>
+      </div>
+    </div>
+  );
+}
