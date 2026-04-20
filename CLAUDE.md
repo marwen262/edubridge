@@ -12,8 +12,10 @@ backend est la prochaine étape.
 ### Backend (`backend/`)
 - Node.js + **Express 4.19**
 - **Sequelize 6.37** + **PostgreSQL** (via `pg` 8.12 / `pg-hstore`)
+- Migrations : **sequelize-cli** 6.6 (dev)
 - Auth : **JWT** (`jsonwebtoken` 9) + **bcryptjs** 2.4
 - Upload fichiers : **Multer** 1.4
+- HTTP client (seeders externes) : **axios** 1.x
 - Dev : **nodemon** 3.1
 
 ### Frontend (`frontend/`)
@@ -32,7 +34,15 @@ backend est la prochaine étape.
 |---|---|
 | `npm run dev` | Lance le serveur avec nodemon (hot reload) |
 | `npm start` | Lance le serveur en prod (`node index.js`) |
-| `npm run seed` | Exécute `seeders/seed.js` pour peupler la BDD |
+| `npm run migrate` | Applique les migrations (`sequelize-cli db:migrate`) |
+| `npm run migrate:undo` | Annule la dernière migration |
+| `npm run migrate:undo:all` | Annule toutes les migrations |
+| `npm run migrate:status` | Liste les migrations et leur état (`up` / `down`) |
+| `npm run seed` | Applique tous les seeders CLI (idempotent via `SequelizeData`) |
+| `npm run seed:undo:all` | Annule tous les seeders CLI |
+| `npm run seed:geo` | Peuple `Governorates` / `Cities` via APIs publiques (≈ 40 min) |
+| `npm run db:reset-schema` | ⚠️ DROP CASCADE du schéma `public` puis recréation (dev uniquement) |
+| `npm run db:reset` | `migrate:undo:all` + `migrate` + `seed` en une commande |
 
 Le serveur démarre sur `PORT` (défaut `5000`). Requiert un `.env` avec
 `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_HOST`, `DB_PORT`, `JWT_SECRET`,
@@ -50,16 +60,32 @@ Le serveur démarre sur `PORT` (défaut `5000`). Requiert un `.env` avec
 ```
 edubridge/
 ├── backend/
-│   ├── config/database.js        # Connexion Sequelize / PostgreSQL
-│   ├── controllers/              # Logique métier (1 fichier / ressource)
+│   ├── .sequelizerc              # Chemins config/models/migrations/seeders pour sequelize-cli
+│   ├── config/
+│   │   ├── database.js           # Connexion Sequelize (runtime app)
+│   │   └── config.js             # Config utilisée par sequelize-cli (lit le même .env)
+│   ├── controllers/              # Couche HTTP mince (1 fichier / ressource)
+│   │   └── applicationController.js  # Endpoints candidatures (délègue au workflow)
+│   ├── docs/
+│   │   └── WORKFLOW_CANDIDATURE.md   # Guide de test du workflow (exemples curl)
+│   ├── lib/
+│   │   └── seed-fixtures.js      # Données partagées par les seeders (UUIDs déterministes)
 │   ├── middleware/
-│   │   ├── authMiddleware.js     # Vérif JWT
+│   │   ├── authMiddleware.js     # Vérif JWT + résolution profil (candidatId, institutId)
+│   │   ├── candidatureGuards.js  # Garde-fous : statut terminal + propriété dossier
 │   │   └── upload.js             # Config Multer
-│   ├── models/                   # Sequelize (User, Institute, Program,
-│   │   │                           Application, Favorite, Country, Historique)
+│   ├── migrations/               # 12 migrations (ordre FK respecté)
+│   ├── models/                   # 38 modèles Sequelize (schéma FR complet)
 │   │   └── index.js              # Charge tous les modèles + associations
 │   ├── routes/                   # Mount sous /api/<resource>
-│   ├── seeders/seed.js           # Seed BDD
+│   ├── scripts/                  # Scripts utilitaires Node (hors CLI sequelize)
+│   │   ├── reset-schema.js       # DROP SCHEMA public CASCADE + CREATE (destructif)
+│   │   └── seed-geo-data.js      # Seed géographique via APIs externes (idempotent)
+│   ├── seeders/                  # Seeders CLI tracés dans `SequelizeData`
+│   ├── services/                 # Logique métier (découplée des controllers)
+│   │   ├── candidatureWorkflow.js    # Moteur de workflow : transitions, validations, horodatage
+│   │   ├── auditService.js           # Journalisation JournalAudit (actions admin)
+│   │   └── notificationService.js    # Notifications automatiques (table + console)
 │   ├── uploads/                  # Fichiers uploadés (servi sur /uploads)
 │   └── index.js                  # Point d'entrée Express
 │
@@ -113,8 +139,27 @@ Routes montées dans `backend/index.js`, toutes préfixées `/api/` :
 - Controllers : `exports.methodName = async (req, res) => { ... }`
 - Retour d'erreur : `res.status(4xx).json({ message: '...' })` en français
 - Modèles Sequelize : UUID en PK, `timestamps: true`, `underscored: false`
+  (exceptions : `Country`, `Governorate`, `City` utilisent un `INTEGER` auto-incrémenté)
 - Associations centralisées dans `models/index.js`
 - Imports CommonJS (`require`), pas d'ESM
+- **Schéma BDD géré UNIQUEMENT par migrations** : ne JAMAIS appeler
+  `sequelize.sync()` / `sync({ force: true })`. Tout changement de schéma
+  passe par une nouvelle migration Sequelize CLI.
+- **Seeders au format sequelize-cli** (`queryInterface.bulkInsert`) : tracés
+  dans `SequelizeData` (config `seederStorage: 'sequelize'`) donc idempotents.
+  UUIDs déterministes (`uuidv5`) via `lib/seed-fixtures.js` pour que les
+  références croisées (User ↔ Institute ↔ Program ↔ Application) soient
+  reproductibles entre exécutions.
+- **Données géographiques** : hiérarchie `Pays` → `Gouvernorat` → `Ville`
+  (FK `paysId`, `gouvernoratId`). **Architecture hybride** :
+  - Pays : seedés en BDD (6 pays de base + 250 via `seed:geo` optionnel)
+  - Gouvernorats / Villes : chargés **à la demande** depuis les APIs
+    `restcountries.com` et `countriesnow.space`, puis **cachés en BDD**.
+  - Service : `services/geoService.js` — routes : `GET /api/geo/pays`,
+    `GET /api/geo/pays/:id/gouvernorats`, `GET /api/geo/gouvernorats/:id/villes`,
+    `GET /api/geo/pays/:id/villes` (liste plate).
+  - Ne PAS insérer d'`id` explicite : laisser l'auto-increment.
+
 
 ### Frontend
 - Import alias `@/` pour `src/` (ex: `import { Button } from '@/app/components/ui/button'`)
@@ -145,6 +190,11 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
 
 - Toujours proposer un plan avant un changement non trivial (nouvelle feature,
   refactor, branchement front/back).
+- **Setup BDD depuis zéro** (dev) :
+  1. `npm run db:reset-schema` (si DB pas vierge)
+  2. `npm run migrate`
+  3. `npm run seed`
+  4. (optionnel, long) `npm run seed:geo`
 - Pour toute modification backend : vérifier que `npm run dev` démarre sans
   erreur et que `/api/health` répond.
 - Pour toute modification frontend : vérifier que `npm run build` passe

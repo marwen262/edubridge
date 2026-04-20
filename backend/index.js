@@ -1,4 +1,4 @@
-// index.js – Point d'entrée EduBridge Backend
+// index.js — Point d'entrée EduBridge Backend
 require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
@@ -19,13 +19,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Routes ────────────────────────────────────────────────────────────
 app.use('/api/auth',         require('./routes/authRoutes'));
-app.use('/api/users',        require('./routes/userRoutes'));
-app.use('/api/institutes',   require('./routes/instituteRoutes'));
-app.use('/api/programs',     require('./routes/programRoutes'));
-app.use('/api/applications', require('./routes/applicationRoutes'));
-app.use('/api/favorites',    require('./routes/favoriteRoutes'));
-app.use('/api/countries',    require('./routes/countryRoutes'));
-app.use('/api/historiques',  require('./routes/historiqueRoutes'));
+app.use('/api/utilisateurs', require('./routes/utilisateurRoutes'));
+app.use('/api/instituts',    require('./routes/institutRoutes'));
+app.use('/api/programmes',   require('./routes/programmeRoutes'));
+app.use('/api/candidatures', require('./routes/candidatureRoutes'));
+app.use('/api/favoris',      require('./routes/favoriRoutes'));
 
 // ── Route de santé ────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', app: 'EduBridge' }));
@@ -33,10 +31,9 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok', app: 'EduBridge' 
 // ── Démarrage ─────────────────────────────────────────────────────────
 const start = async () => {
   try {
-    // Synchronise les modèles sans écraser les données existantes
+    // Vérifie la connexion à PostgreSQL (le schéma est géré par les migrations)
     await sequelize.authenticate();
-    await sequelize.sync({ alter: false });
-    console.log('✅ Connexion PostgreSQL établie et modèles synchronisés.');
+    console.log('✅ Connexion PostgreSQL établie.');
     app.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));
   } catch (err) {
     console.error('❌ Erreur de démarrage :', err.message);

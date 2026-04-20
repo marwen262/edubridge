@@ -6,9 +6,19 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "seed": "node seeders/seed.js"
+    "db:create": "sequelize-cli db:create",
+    "db:drop": "sequelize-cli db:drop",
+    "db:reset-schema": "node scripts/reset-schema.js",
+    "migrate": "sequelize-cli db:migrate",
+    "migrate:undo": "sequelize-cli db:migrate:undo",
+    "migrate:undo:all": "sequelize-cli db:migrate:undo:all",
+    "migrate:status": "sequelize-cli db:migrate:status",
+    "seed": "sequelize-cli db:seed:all",
+    "seed:undo:all": "sequelize-cli db:seed:undo:all",
+    "db:reset": "npm run db:reset-schema && npm run migrate"
   },
   "dependencies": {
+    "axios": "^1.15.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -21,6 +31,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "sequelize-cli": "^6.6.2"
   }
 }

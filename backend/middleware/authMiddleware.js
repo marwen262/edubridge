@@ -1,11 +1,8 @@
-// middleware/authMiddleware.js
-const jwt  = require('jsonwebtoken');
-const { User } = require('../models');
+// middleware/authMiddleware.js — vérifie le JWT et résout le profil lié (candidat ou institut)
+const jwt = require('jsonwebtoken');
+const { Utilisateur, Institut, Candidat } = require('../models');
 
-/**
- * authMiddleware – vérifie le token JWT dans l'en-tête Authorization
- * Injecte req.user = { id, role, instituteId }
- */
+// Injecte req.user = { id, role, institut_id?, candidat_id? }
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -16,28 +13,46 @@ const authMiddleware = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Vérifie que l'utilisateur existe toujours en base
-    const user = await User.findByPk(decoded.id, {
-      attributes: ['id', 'role', 'instituteId'],
+    const utilisateur = await Utilisateur.findByPk(decoded.id, {
+      attributes: ['id', 'role', 'est_actif'],
     });
-    if (!user) {
+    if (!utilisateur) {
       return res.status(401).json({ message: 'Utilisateur introuvable.' });
     }
+    if (!utilisateur.est_actif) {
+      return res.status(403).json({ message: 'Compte désactivé.' });
+    }
 
-    req.user = {
-      id:          user.id,
-      role:        user.role,
-      instituteId: user.instituteId,
+    const user = {
+      id: utilisateur.id,
+      role: utilisateur.role,
+      institut_id: null,
+      candidat_id: null,
     };
+
+    // Résolution du profil selon le rôle (requête ciblée)
+    if (utilisateur.role === 'institut') {
+      const institut = await Institut.findOne({
+        where: { utilisateur_id: utilisateur.id },
+        attributes: ['id'],
+      });
+      user.institut_id = institut ? institut.id : null;
+    } else if (utilisateur.role === 'candidat') {
+      const candidat = await Candidat.findOne({
+        where: { utilisateur_id: utilisateur.id },
+        attributes: ['id'],
+      });
+      user.candidat_id = candidat ? candidat.id : null;
+    }
+
+    req.user = user;
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Token invalide ou expiré.', error: err.message });
   }
 };
 
-/**
- * isAdmin – middleware qui s'utilise APRÈS authMiddleware
- */
+// Garde-fou admin — à utiliser APRÈS authMiddleware
 const isAdmin = (req, res, next) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ message: 'Accès réservé aux administrateurs.' });
@@ -45,10 +60,7 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-/**
- * restrictTo(...roles) – autorise uniquement les rôles spécifiés
- * Usage : restrictTo('admin', 'institute')
- */
+// restrictTo(...roles) — autorise uniquement les rôles fournis
 const restrictTo = (...roles) => (req, res, next) => {
   if (!roles.includes(req.user?.role)) {
     return res.status(403).json({
@@ -59,5 +71,5 @@ const restrictTo = (...roles) => (req, res, next) => {
 };
 
 module.exports = authMiddleware;
-module.exports.isAdmin    = isAdmin;
+module.exports.isAdmin = isAdmin;
 module.exports.restrictTo = restrictTo;

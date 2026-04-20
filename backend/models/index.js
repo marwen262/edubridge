@@ -1,60 +1,55 @@
-// models/index.js – Chargement de tous les modèles + déclaration des associations
+// models/index.js — Chargement des 8 modèles MVP et déclaration des associations
 const sequelize = require('../config/database');
+const { DataTypes } = require('sequelize');
 
-const Country     = require('./Country');
-const User        = require('./User');
-const Institute   = require('./Institute');
-const Program     = require('./Program');
-const Application = require('./Application');
-const Favorite    = require('./Favorite');
-const Historique  = require('./Historique');
+// ── Chargement des modèles (factory pattern) ──────────────────────────
+const Utilisateur  = require('./Utilisateur')(sequelize, DataTypes);
+const Candidat     = require('./Candidat')(sequelize, DataTypes);
+const Institut     = require('./Institut')(sequelize, DataTypes);
+const Programme    = require('./Programme')(sequelize, DataTypes);
+const Candidature  = require('./Candidature')(sequelize, DataTypes);
+const Notification = require('./Notification')(sequelize, DataTypes);
+const Media        = require('./Media')(sequelize, DataTypes);
+const Favori       = require('./Favori')(sequelize, DataTypes);
 
 // ── Associations ──────────────────────────────────────────────────────
 
-// User ↔ Country
-User.belongsTo(Country, { foreignKey: 'countryId', as: 'country' });
-Country.hasMany(User,   { foreignKey: 'countryId' });
+// --- Utilisateur ↔ Candidat / Institut ---
+Utilisateur.hasOne(Candidat, { foreignKey: 'utilisateur_id', as: 'candidat', onDelete: 'CASCADE' });
+Candidat.belongsTo(Utilisateur, { foreignKey: 'utilisateur_id', as: 'utilisateur' });
 
-// User ↔ Institute (l'utilisateur propriétaire de l'établissement)
-User.belongsTo(Institute, { foreignKey: 'instituteId', as: 'institute', constraints: false });
+Utilisateur.hasOne(Institut, { foreignKey: 'utilisateur_id', as: 'institut', onDelete: 'CASCADE' });
+Institut.belongsTo(Utilisateur, { foreignKey: 'utilisateur_id', as: 'utilisateur' });
 
-// Institute ↔ User (creator/owner)
-Institute.belongsTo(User,    { foreignKey: 'userId', as: 'owner' });
-Institute.belongsTo(Country, { foreignKey: 'countryId', as: 'country' });
-Country.hasMany(Institute,   { foreignKey: 'countryId' });
+// --- Institut → Programme ---
+Institut.hasMany(Programme, { foreignKey: 'institut_id', as: 'programmes', onDelete: 'CASCADE' });
+Programme.belongsTo(Institut, { foreignKey: 'institut_id', as: 'institut' });
 
-// Institute ↔ Programs
-Institute.hasMany(Program, { foreignKey: 'instituteId', as: 'programs', onDelete: 'CASCADE' });
-Program.belongsTo(Institute, { foreignKey: 'instituteId', as: 'institute' });
+// --- Candidat → Candidature ← Programme ---
+Candidat.hasMany(Candidature, { foreignKey: 'candidat_id', as: 'candidatures', onDelete: 'CASCADE' });
+Programme.hasMany(Candidature, { foreignKey: 'programme_id', as: 'candidatures', onDelete: 'CASCADE' });
+Candidature.belongsTo(Candidat, { foreignKey: 'candidat_id', as: 'candidat' });
+Candidature.belongsTo(Programme, { foreignKey: 'programme_id', as: 'programme' });
 
-// Program ↔ Applications
-Program.hasMany(Application, { foreignKey: 'programId', as: 'applications', onDelete: 'CASCADE' });
-Application.belongsTo(Program, { foreignKey: 'programId', as: 'program' });
+// --- Utilisateur → Notification ---
+Utilisateur.hasMany(Notification, { foreignKey: 'utilisateur_id', as: 'notifications', onDelete: 'CASCADE' });
+Notification.belongsTo(Utilisateur, { foreignKey: 'utilisateur_id', as: 'utilisateur' });
 
-// Application ↔ User
-User.hasMany(Application,       { foreignKey: 'userId', as: 'applications' });
-Application.belongsTo(User,     { foreignKey: 'userId', as: 'user' });
+// --- Candidat ↔ Programme (via Favori) ---
+Candidat.hasMany(Favori, { foreignKey: 'candidat_id', as: 'favoris', onDelete: 'CASCADE' });
+Programme.hasMany(Favori, { foreignKey: 'programme_id', as: 'favorisPar', onDelete: 'CASCADE' });
+Favori.belongsTo(Candidat, { foreignKey: 'candidat_id', as: 'candidat' });
+Favori.belongsTo(Programme, { foreignKey: 'programme_id', as: 'programme' });
 
-// Application ↔ Institute
-Institute.hasMany(Application,      { foreignKey: 'instituteId', as: 'applications' });
-Application.belongsTo(Institute,    { foreignKey: 'instituteId', as: 'institute' });
-
-// Favorite ↔ User & Program
-User.hasMany(Favorite,      { foreignKey: 'userId', as: 'favorites' });
-Favorite.belongsTo(User,    { foreignKey: 'userId', as: 'user' });
-
-Program.hasMany(Favorite,   { foreignKey: 'programId', as: 'favorites' });
-Favorite.belongsTo(Program, { foreignKey: 'programId', as: 'program' });
-
-// ─────────────────────────────────────────────────────────────────────
-
+// ── Export ─────────────────────────────────────────────────────────────
 module.exports = {
   sequelize,
-  Country,
-  User,
-  Institute,
-  Program,
-  Application,
-  Favorite,
-  Historique,
+  Utilisateur,
+  Candidat,
+  Institut,
+  Programme,
+  Candidature,
+  Notification,
+  Media,
+  Favori,
 };
