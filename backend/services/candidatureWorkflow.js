@@ -6,6 +6,11 @@ const notif = require('./notificationService');
 // Statuts terminaux : aucune transition sortante
 const STATUTS_TERMINAUX = ['acceptee', 'refusee'];
 
+// Liste exhaustive des valeurs ENUM acceptées côté BDD
+const STATUTS_VALIDES = [
+  'brouillon', 'soumise', 'en_examen', 'acceptee', 'refusee', 'liste_attente',
+];
+
 // Matrice des transitions autorisées par rôle
 const TRANSITIONS = {
   candidat: {
@@ -71,10 +76,16 @@ async function _fichiersEnDocuments(files, user_id, transaction) {
 
 // Vérifie qu'une transition de statut est autorisée pour un rôle donné
 function validerTransition(role, statut_actuel, statut_cible) {
+  if (!STATUTS_VALIDES.includes(statut_cible)) {
+    throw {
+      status: 400,
+      message: `Statut « ${statut_cible} » invalide. Valeurs autorisées : ${STATUTS_VALIDES.join(', ')}.`,
+    };
+  }
   if (STATUTS_TERMINAUX.includes(statut_actuel)) {
     throw { status: 400, message: `Statut terminal « ${statut_actuel} » : aucune transition autorisée.` };
   }
-  if (role === 'admin') return; // admin peut tout
+  if (role === 'admin') return; // admin peut tout (sauf valeur ENUM invalide, déjà rejetée)
   const permises = TRANSITIONS[role]?.[statut_actuel] || [];
   if (!permises.includes(statut_cible)) {
     throw {
