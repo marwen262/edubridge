@@ -41,6 +41,30 @@ Programme.hasMany(Favori, { foreignKey: 'programme_id', as: 'favorisPar', onDele
 Favori.belongsTo(Candidat, { foreignKey: 'candidat_id', as: 'candidat' });
 Favori.belongsTo(Programme, { foreignKey: 'programme_id', as: 'programme' });
 
+// --- Media (polymorphique : Candidat ou Institut) ---
+Candidat.hasMany(Media, {
+  foreignKey: 'proprietaire_id',
+  constraints: false,
+  scope: { type_proprietaire: 'Candidat' },
+  as: 'medias',
+});
+Institut.hasMany(Media, {
+  foreignKey: 'proprietaire_id',
+  constraints: false,
+  scope: { type_proprietaire: 'Institut' },
+  as: 'medias',
+});
+Media.belongsTo(Candidat, {
+  foreignKey: 'proprietaire_id',
+  constraints: false,
+  as: 'candidatProprietaire',
+});
+Media.belongsTo(Institut, {
+  foreignKey: 'proprietaire_id',
+  constraints: false,
+  as: 'institutProprietaire',
+});
+
 // ── Export ─────────────────────────────────────────────────────────────
 module.exports = {
   sequelize,
