@@ -123,11 +123,15 @@ module.exports = {
         allowNull: true,
       },
       niveau: {
-        type: Sequelize.ENUM('licence', 'master', 'ingenieur', 'doctorat'),
+        type: Sequelize.ENUM(
+          'cycle_preparatoire', 'licence', 'master', 'ingenieur'
+        ),
         allowNull: true,
       },
       mode: {
-        type: Sequelize.ENUM('presentiel', 'distanciel', 'hybride'),
+        type: Sequelize.ENUM(
+          'cours_du_jour', 'cours_du_soir', 'alternance', 'formation_continue'
+        ),
         allowNull: true,
       },
       duree_annees: { type: Sequelize.INTEGER, allowNull: true },

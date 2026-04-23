@@ -4,11 +4,15 @@ const { Utilisateur, Candidat, Institut } = require('../models');
 const EXCLUDE_SENSIBLE = { exclude: ['mot_de_passe', 'jeton_rafraichissement'] };
 
 // Champs autorisés en mise à jour côté Candidat
+// NB : `type_piece_identite` est volontairement absent —
+// il est forcé automatiquement par le hook beforeValidate du modèle
+// Candidat selon la nationalité (cin / passeport).
 const CHAMPS_CANDIDAT = [
   'prenom', 'nom', 'date_naissance', 'genre', 'telephone',
   'adresse', 'situation_familiale', 'type_bac', 'moyenne_bac',
   'annee_bac', 'langues', 'parcours_academique', 'niveau_actuel',
   'photo_profil',
+  'nationalite', 'cin', 'numero_passeport',
 ];
 
 // Champs autorisés en mise à jour côté Institut
@@ -110,6 +114,30 @@ exports.updateUser = async (req, res) => {
     return res.status(200).json({ message: 'Profil mis à jour.', utilisateur: updated });
   } catch (error) {
     console.error(error);
+
+    // Erreur métier hook — CIN ou Passeport manquant selon la nationalité
+    if (
+      error.message &&
+      (error.message.includes('CIN') || error.message.includes('passeport'))
+    ) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    // Erreur unicité PostgreSQL — CIN ou Passeport déjà utilisé
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({
+        message: 'Ce numéro de CIN ou passeport est déjà utilisé.',
+      });
+    }
+
+    // Erreur validation Sequelize — format CIN ou Passeport invalide
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        message: 'Données invalides.',
+        details: error.errors.map((e) => e.message),
+      });
+    }
+
     return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
   }
 };

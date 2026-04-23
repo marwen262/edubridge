@@ -20,11 +20,15 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     niveau: {
-      type: DataTypes.ENUM('licence', 'master', 'ingenieur', 'doctorat'),
+      type: DataTypes.ENUM(
+        'cycle_preparatoire', 'licence', 'master', 'ingenieur'
+      ),
       allowNull: true,
     },
     mode: {
-      type: DataTypes.ENUM('presentiel', 'distanciel', 'hybride'),
+      type: DataTypes.ENUM(
+        'cours_du_jour', 'cours_du_soir', 'alternance', 'formation_continue'
+      ),
       allowNull: true,
     },
     duree_annees: { type: DataTypes.INTEGER, allowNull: true },

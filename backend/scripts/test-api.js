@@ -139,7 +139,7 @@ async function main() {
       titre: 'Master Test IA',
       domaine: 'informatique',
       niveau: 'master',
-      mode: 'presentiel',
+      mode: 'cours_du_jour',
       description: 'Programme de test',
     },
   });

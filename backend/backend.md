@@ -288,8 +288,8 @@ backend/
 
 **Énumérés :**
 - **Domaine :** informatique, génie civil, électrique, mécanique, chimie, agronomie, finance, management
-- **Niveau :** licence, master, ingénieur, doctorat
-- **Mode :** présentiel, distanciel, hybride
+- **Niveau :** cycle préparatoire, licence, master, ingénieur
+- **Mode :** cours du jour, cours du soir, alternance, formation continue
 
 ---
 
@@ -566,8 +566,8 @@ Toutes les relations utilisent **DELETE CASCADE** → suppression automatique de
 - `candidats.type_bac` : `mathematiques`, `sciences`, `technique`, `economie`, `lettres`, `sport`
 - `candidats.niveau_actuel` : `terminale`, `bac`, `licence`, `master`
 - `programmes.domaine` : `informatique`, `genie_civil`, `electrique`, `mecanique`, `chimie`, `agronomie`, `finance`, `management`
-- `programmes.niveau` : `licence`, `master`, `ingenieur`, `doctorat`
-- `programmes.mode` : `presentiel`, `distanciel`, `hybride`
+- `programmes.niveau` : `cycle_preparatoire`, `licence`, `master`, `ingenieur`
+- `programmes.mode` : `cours_du_jour`, `cours_du_soir`, `alternance`, `formation_continue`
 - `candidatures.statut` : `brouillon`, `soumise`, `en_examen`, `acceptee`, `refusee`, `liste_attente`
 - `notifications.type` : `statut_candidature`, `nouveau_programme`, `document_manquant`, `rappel_echeance`, `systeme`
 
@@ -678,8 +678,8 @@ Toutes les relations utilisent **DELETE CASCADE** → suppression automatique de
 | `institut_id` | UUID | ✗ | FK → instituts |
 | `titre` | STRING | ✗ | Nom du programme |
 | `domaine` | ENUM | ✓ | informatique\|genie_civil\|... |
-| `niveau` | ENUM | ✓ | licence\|master\|ingenieur\|doctorat |
-| `mode` | ENUM | ✓ | presentiel\|distanciel\|hybride |
+| `niveau` | ENUM | ✓ | cycle_preparatoire\|licence\|master\|ingenieur |
+| `mode` | ENUM | ✓ | cours_du_jour\|cours_du_soir\|alternance\|formation_continue |
 | `duree_annees` | INTEGER | ✓ | |
 | `description` | TEXT | ✓ | |
 | `documents_requis` | JSONB | ✓ | [{nom, obligatoire}] |
@@ -900,8 +900,8 @@ curl "http://localhost:5000/api/instituts?nom=ENIS&est_verifie=true"
 
 **Filtres GET / :**
 - `domaine=informatique|genie_civil|...`
-- `niveau=licence|master|ingenieur|doctorat`
-- `mode=presentiel|distanciel|hybride`
+- `niveau=cycle_preparatoire|licence|master|ingenieur`
+- `mode=cours_du_jour|cours_du_soir|alternance|formation_continue`
 - `institut_id=<uuid>`
 - `est_actif=true|false`
 - `titre=<string>` — Recherche case-insensitive
@@ -1766,6 +1766,51 @@ curl http://localhost:5000/api/instituts
 # Listing programmes filtrés
 curl "http://localhost:5000/api/programmes?domaine=informatique&niveau=master"
 ```
+
+---
+
+## 12. Gestion des pièces d'identité
+
+### Règle métier
+
+| Nationalité    | Pièce requise | Champ              |
+|----------------|---------------|--------------------|
+| `tunisienne`   | CIN           | `cin`              |
+| (autre)        | Passeport     | `numero_passeport` |
+
+### Implémentation
+
+Champs ajoutés à la table `candidats` (migration `20260421000000-add-identite-candidat`) :
+
+| Champ                 | Type    | Note                                              |
+|-----------------------|---------|---------------------------------------------------|
+| `nationalite`         | STRING  | NOT NULL, default `'tunisienne'`. Une API pays externe est prévue en future. |
+| `cin`                 | STRING  | UNIQUE. Validation : exactement 8 chiffres (`/^[0-9]{8}$/`). |
+| `numero_passeport`    | STRING  | UNIQUE. Validation : 6-20 caractères alphanumériques. |
+| `type_piece_identite` | ENUM    | `'cin'` ou `'passeport'`. **Forcé backend**, jamais modifiable via API. |
+
+### Règles importantes
+
+- **`type_piece_identite` n'est JAMAIS dans la whitelist d'update** du
+  controller — il est forcé automatiquement par le hook `beforeValidate`
+  du modèle `Candidat` selon la nationalité.
+- La comparaison de la nationalité utilise `.toLowerCase().trim()` pour
+  absorber les variations futures de l'API pays externe
+  (`'Tunisienne'`, `'TUNISIENNE'`, `' tunisienne '` → match correct).
+- Le hook ne se déclenche **que si** un des trois champs `nationalite`,
+  `cin` ou `numero_passeport` est modifié — les updates partiels sans
+  rapport (ex: changer le prénom) ne sont pas bloqués.
+- **CIN et passeport ne sont JAMAIS dupliqués dans `candidatures`** ;
+  le dossier candidature accède à ces données via `candidat_id`.
+
+### Codes HTTP renvoyés (controller `updateUser`)
+
+| Cas | Code | Message |
+|-----|------|---------|
+| CIN/passeport manquant pour la nationalité | 400 | message du hook (`CIN obligatoire ...` / `Numéro de passeport obligatoire ...`) |
+| Format CIN ou passeport invalide | 400 | `Données invalides.` + détails |
+| CIN ou passeport déjà utilisé | 409 | `Ce numéro de CIN ou passeport est déjà utilisé.` |
+| Erreur serveur | 500 | `Erreur serveur.` |
 
 ---
 

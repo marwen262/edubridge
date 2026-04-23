@@ -5,7 +5,6 @@
 ```
 services/
 ├── candidatureWorkflow.js   # Moteur de workflow (transitions, validations, horodatage)
-├── auditService.js          # Journalisation JournalAudit
 └── notificationService.js   # Notifications automatiques (table + console)
 
 middleware/
