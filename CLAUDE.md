@@ -56,7 +56,7 @@ Le repo contient trois composants indépendants :
 | `npm run migrate:undo` | Annule la dernière migration |
 | `npm run migrate:undo:all` | Annule toutes les migrations |
 | `npm run migrate:status` | Liste les migrations et leur état (`up` / `down`) |
-| `npm run seed` | Applique tous les seeders CLI (aucun seeder pour l'instant) |
+| `npm run seed` | Applique tous les seeders CLI |
 | `npm run seed:undo:all` | Annule tous les seeders CLI |
 | `npm run db:reset-schema` | ⚠️ DROP CASCADE du schéma `public` puis recréation (dev uniquement) |
 | `npm run db:reset` | `db:reset-schema` + `migrate` en une commande |
@@ -108,8 +108,9 @@ edubridge/
 │   │   ├── authMiddleware.js     # Vérif JWT + résolution profil (candidat_id, institut_id)
 │   │   ├── candidatureGuards.js  # Garde-fous : statut terminal + propriété dossier
 │   │   └── upload.js             # Config Multer (5 Mo, jpeg/png/pdf)
-│   ├── migrations/               # 1 migration MVP (création des 8 tables)
-│   │   └── 20260420120000-creation-tables-edubridge.js
+│   ├── migrations/               # Migrations Sequelize CLI
+│   │   ├── 20260420120000-creation-tables-edubridge.js
+│   │   └── 20260421000000-add-identite-candidat.js
 │   ├── models/                   # 8 modèles Sequelize MVP (schéma FR)
 │   │   ├── index.js              # Charge tous les modèles + associations
 │   │   ├── Utilisateur.js        # Compte auth (candidat|institut|admin)
@@ -124,7 +125,14 @@ edubridge/
 │   ├── scripts/
 │   │   ├── reset-schema.js       # DROP SCHEMA public CASCADE + CREATE (destructif)
 │   │   └── test-api.js           # Script de test API
-│   ├── seeders/                  # (vide — seeders CLI à créer)
+│   ├── seeders/                  # Seeders CLI pour données initiales
+│   │   ├── 20260001000000-admin.js
+│   │   ├── 20260002000000-instituts.js
+│   │   ├── 20260003000000-programmes.js
+│   │   ├── 20260004000000-candidats.js
+│   │   ├── 20260005000000-candidatures.js
+│   │   ├── 20260006000000-favoris.js
+│   │   └── 20260007000000-notifications.js
 │   ├── services/                 # Logique métier (découplée des controllers)
 │   │   ├── candidatureWorkflow.js    # Moteur de workflow : transitions, validations, horodatage
 │   │   └── notificationService.js    # Notifications automatiques (table + console)
@@ -226,9 +234,16 @@ automatiques (candidat + institut) à chaque événement.
 - **Schéma BDD géré UNIQUEMENT par migrations** : ne JAMAIS appeler
   `sequelize.sync()` / `sync({ force: true })`. Tout changement de schéma
   passe par une nouvelle migration Sequelize CLI.
-- **Seeders** (à venir) : format sequelize-cli (`queryInterface.bulkInsert`),
-  tracés dans `SequelizeData` (config `seederStorage: 'sequelize'`) pour être
-  idempotents.
+- **Seeders** : 7 fichiers CLI (`queryInterface.bulkInsert`) avec UUIDs v4
+  hardcodés pour la reproductibilité ; tracés dans `SequelizeData` (config
+  `seederStorage: 'sequelize'`). ⚠️ `bulkInsert` ne déclenche **pas** les
+  hooks Sequelize — fournir des valeurs cohérentes directement (cf. champs
+  identité `type_piece_identite` / `cin` / `numero_passeport`). Voir
+  `backend/backend.md` §13.
+- **Hooks Sequelize sur identité Candidat** : le hook `beforeValidate`
+  ré-injecte ses champs mutés dans `options.fields` car Sequelize fige cette
+  liste *avant* le hook (`save()` n'écrirait sinon que les champs envoyés
+  par le contrôleur). Voir `backend/backend.md` §12.
 - **Transactions ACID** obligatoires pour toute opération multi-tables
   (création compte + profil, workflow candidature, upload avec création
   Media).
@@ -290,9 +305,10 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   refactor, branchement front/back, modification de schéma BDD).
 - **Setup BDD depuis zéro** (dev) :
   1. `npm run db:create` (si la base n'existe pas)
-  2. `npm run db:reset-schema` (si la base existe mais pas vierge)
-  3. `npm run migrate`
-  4. `npm run seed` (quand des seeders existeront)
+  2. `npm run db:reset` (drop schéma + recrée + applique les 2 migrations)
+  3. `npm run seed` (applique les 7 seeders : 1 admin, 3 instituts,
+     11 programmes, 3 candidats, 6 candidatures, 5 favoris, 6 notifs).
+     Mot de passe commun : `Password123!`
 - Pour toute modification backend : vérifier que `npm run dev` démarre sans
   erreur et que `/api/health` répond `{ status: 'ok' }`.
 - Pour toute modification frontend : vérifier que `npm run build` passe

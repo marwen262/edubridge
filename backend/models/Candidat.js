@@ -99,7 +99,7 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: 'cree_le',
     updatedAt: 'mis_a_jour_le',
     hooks: {
-      beforeValidate: (candidat) => {
+      beforeValidate: (candidat, options) => {
         // Ne déclencher la validation identité QUE si
         // un des champs concernés est modifié.
         // Évite de bloquer les updates partiels sans rapport
@@ -139,6 +139,16 @@ module.exports = (sequelize, DataTypes) => {
           // Forcer cohérence — jamais modifiable via API
           candidat.type_piece_identite = 'passeport';
           candidat.cin = null;
+        }
+
+        // save() fige options.fields depuis this.changed() AVANT beforeValidate.
+        // Les champs que ce hook mute (type_piece_identite, cin, numero_passeport)
+        // seraient donc exclus du UPDATE SQL. On les ré-injecte ici pour
+        // garantir leur persistance, quel que soit l'appelant.
+        if (options && Array.isArray(options.fields)) {
+          for (const f of ['type_piece_identite', 'cin', 'numero_passeport']) {
+            if (!options.fields.includes(f)) options.fields.push(f);
+          }
         }
       },
     },

@@ -20,6 +20,8 @@
 9. [Logique métier principale](#9-logique-métier-principale)
 10. [Points forts et problèmes](#10-points-forts-et-problèmes)
 11. [Suggestions d'amélioration](#11-suggestions-damélioration)
+12. [Gestion des pièces d'identité](#12-gestion-des-pièces-didentité)
+13. [Seeders (données de démonstration)](#13-seeders-données-de-démonstration)
 
 ---
 
@@ -176,10 +178,17 @@ backend/
 │   └── notificationService.js # Création de notifications automatiques
 │
 ├── migrations/                # Migrations Sequelize (schéma BD)
-│   └── 20260420120000-creation-tables-edubridge.js # Migration unique MVP
+│   ├── 20260420120000-creation-tables-edubridge.js  # 8 tables MVP
+│   └── 20260421000000-add-identite-candidat.js      # CIN/Passeport candidat
 │
-├── seeders/                   # Seeders (données initiales)
-│   └── (vide pour MVP)
+├── seeders/                   # Seeders (données de démonstration)
+│   ├── 20260001000000-admin.js          # 1 admin
+│   ├── 20260002000000-instituts.js      # 3 instituts (ESPRIT, MedTech, Polytechnique)
+│   ├── 20260003000000-programmes.js     # 11 programmes
+│   ├── 20260004000000-candidats.js      # 3 candidats (2 tunisiens, 1 international)
+│   ├── 20260005000000-candidatures.js   # 6 dossiers (couvre les 6 statuts)
+│   ├── 20260006000000-favoris.js        # 5 favoris
+│   └── 20260007000000-notifications.js  # 6 notifications
 │
 ├── scripts/
 │   └── reset-schema.js        # Utilitaire de reset BD
@@ -629,6 +638,10 @@ Toutes les relations utilisent **DELETE CASCADE** → suppression automatique de
 | `parcours_academique` | JSONB | ✓ | [{diplome, etablissement, annee, mention}] |
 | `niveau_actuel` | ENUM | ✓ | terminale\|bac\|licence\|master |
 | `photo_profil` | STRING | ✓ | URL ou chemin fichier |
+| `nationalite` | STRING | ✗ | default `'tunisienne'` — voir §12 |
+| `cin` | STRING | ✓ | UNIQUE, 8 chiffres — requis si tunisien |
+| `numero_passeport` | STRING | ✓ | UNIQUE, 6-20 alphanum — requis si international |
+| `type_piece_identite` | ENUM | ✓ | `cin`\|`passeport` — **forcé par hook**, jamais via API |
 | `cree_le` | DATE | ✗ | |
 | `mis_a_jour_le` | DATE | ✗ | |
 
@@ -1802,6 +1815,14 @@ Champs ajoutés à la table `candidats` (migration `20260421000000-add-identite-
   rapport (ex: changer le prénom) ne sont pas bloqués.
 - **CIN et passeport ne sont JAMAIS dupliqués dans `candidatures`** ;
   le dossier candidature accède à ces données via `candidat_id`.
+- **Le hook `beforeValidate` mute `options.fields`** pour y ré-injecter
+  `cin`, `numero_passeport` et `type_piece_identite`. Sans cela, Sequelize
+  fige `options.fields` depuis `this.changed()` *avant* `beforeValidate`
+  (cf. `model.js:2370-2377` et `model.js:2592-2596`), ce qui exclurait
+  silencieusement du `UPDATE SQL` les champs mutés par le hook.
+  ⚠️ Si tu déplaces cette logique dans un autre hook (`beforeUpdate` /
+  `beforeSave`), supprime cette ré-injection — elle est spécifique au cas
+  `beforeValidate`.
 
 ### Codes HTTP renvoyés (controller `updateUser`)
 
@@ -1811,6 +1832,59 @@ Champs ajoutés à la table `candidats` (migration `20260421000000-add-identite-
 | Format CIN ou passeport invalide | 400 | `Données invalides.` + détails |
 | CIN ou passeport déjà utilisé | 409 | `Ce numéro de CIN ou passeport est déjà utilisé.` |
 | Erreur serveur | 500 | `Erreur serveur.` |
+
+---
+
+## 13. Seeders (données de démonstration)
+
+Sept seeders ordonnés par préfixe numérique pour respecter les FK
+(parents avant enfants). Tous utilisent **des UUID v4 fixes** déclarés en
+constantes en tête de fichier — la reproductibilité est garantie : chaque
+exécution produit le même jeu de données.
+
+| Seeder | Insère |
+|--------|--------|
+| `20260001000000-admin.js`         | 1 utilisateur admin (`admin@edubridge.tn`) |
+| `20260002000000-instituts.js`     | 3 utilisateurs (role=`institut`) + 3 instituts (ESPRIT, MedTech, Polytechnique Sousse) |
+| `20260003000000-programmes.js`    | 11 programmes (couvre les 4 valeurs ENUM `mode`) |
+| `20260004000000-candidats.js`     | 3 utilisateurs (role=`candidat`) + 3 candidats (Ali/Sarra tunisiens, Yassine français) |
+| `20260005000000-candidatures.js`  | 6 candidatures (couvre les 6 valeurs ENUM `statut`) |
+| `20260006000000-favoris.js`       | 5 favoris |
+| `20260007000000-notifications.js` | 6 notifications (5 candidat + 1 institut) |
+
+**Mot de passe commun :** `Password123!` (hashé bcrypt 10 rounds).
+
+### Conventions appliquées
+
+- UUIDs hardcodés en haut du fichier — partagés entre seeders pour les FK.
+- JSONB → `JSON.stringify(...)` ; ARRAY(STRING) → array JS natif.
+- Dates → `new Date()` ou string `'YYYY-MM-DD'` (DATEONLY).
+- `down()` supprime via `bulkDelete('table', { id: [...] }, {})` dans
+  l'ordre **inverse** des FK (table fille → table parente).
+- ⚠️ `bulkInsert` **ne déclenche pas** les hooks Sequelize. Les valeurs
+  cohérentes pour les champs identité (`type_piece_identite`, nullification
+  croisée CIN ↔ passeport) sont fournies directement dans le seeder.
+
+### Démarrage depuis zéro
+
+```bash
+cd backend
+npm run db:reset       # drop schéma + recrée + applique les 2 migrations
+npm run seed           # applique les 7 seeders
+```
+
+Vérification rapide :
+
+```sql
+SELECT
+  (SELECT COUNT(*) FROM utilisateurs) AS u,   -- 7
+  (SELECT COUNT(*) FROM instituts)    AS i,   -- 3
+  (SELECT COUNT(*) FROM programmes)   AS p,   -- 11
+  (SELECT COUNT(*) FROM candidats)    AS c,   -- 3
+  (SELECT COUNT(*) FROM candidatures) AS d,   -- 6
+  (SELECT COUNT(*) FROM favoris)      AS f,   -- 5
+  (SELECT COUNT(*) FROM notifications) AS n;  -- 6
+```
 
 ---
 
