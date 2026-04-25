@@ -339,7 +339,24 @@ backend/
 
 ---
 
-### 3.6 Module favoris (Favorites)
+### 3.6 Module notifications (Notifications)
+
+**Rôle :** Consultation et gestion des notifications de l'utilisateur connecté
+
+**Endpoints :**
+- `GET /api/notifications/mine` — Mes notifications (50 dernières, DESC)
+- `GET /api/notifications/non-lues/count` — Nombre de notifications non lues
+- `PATCH /api/notifications/:id/lire` — Marquer une notification comme lue
+- `PATCH /api/notifications/lire-tout` — Marquer toutes comme lues
+
+**Responsabilités :**
+- Accès strictement restreint à ses propres notifications (filtre `utilisateur_id`)
+- Toutes les routes requièrent JWT
+- Retour d'erreur 404 si la notification n'appartient pas à l'utilisateur
+
+---
+
+### 3.7 Module favoris (Favorites)
 
 **Rôle :** Gestion des programmes favoris des candidats (N:N)
 
@@ -355,7 +372,7 @@ backend/
 
 ---
 
-### 3.7 Services utilitaires
+### 3.8 Services utilitaires
 
 #### **candidatureWorkflow.js** — Moteur de workflow
 
@@ -1007,6 +1024,19 @@ curl -X POST http://localhost:5000/api/favoris \
   -H "Content-Type: application/json" \
   -d '{ "programme_id": "<UUID>" }'
 ```
+
+---
+
+#### **Module Notifications** : `GET|PATCH /api/notifications`
+
+| Méthode | Route | Auth | Rôle | Réponse |
+|---------|-------|------|------|---------|
+| GET | `/mine` | JWT | tout rôle | `{ notifications: [...] }` (200) — 50 dernières, tri DESC |
+| GET | `/non-lues/count` | JWT | tout rôle | `{ count: N }` (200) |
+| PATCH | `/lire-tout` | JWT | tout rôle | `{ message }` (200) |
+| PATCH | `/:id/lire` | JWT | tout rôle | `{ message, notification }` (200) |
+
+⚠️ **Attention :** Le client frontend (`notificationService.markAsRead`) appelle `/notifications/:id/lue` au lieu de `/notifications/:id/lire` — désynchronisation à corriger.
 
 ---
 

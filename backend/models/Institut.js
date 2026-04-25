@@ -24,6 +24,9 @@ module.exports = (sequelize, DataTypes) => {
     contact: { type: DataTypes.JSONB, allowNull: true },
     est_verifie: { type: DataTypes.BOOLEAN, defaultValue: false },
     note: { type: DataTypes.FLOAT, allowNull: true },
+    image_couverture: { type: DataTypes.STRING, allowNull: true },
+    taux_acceptation: { type: DataTypes.FLOAT, allowNull: true },
+    nombre_etudiants: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     tableName: 'instituts',
     timestamps: true,

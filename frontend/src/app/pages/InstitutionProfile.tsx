@@ -1,40 +1,85 @@
 import React from 'react';
-import { useParams, Link } from 'react-router';
-import { MapPin, Globe, Star, CheckCircle, ChevronRight } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router';
+import { MapPin, Globe, Star, CheckCircle } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { ProgramCard } from '../components/ProgramCard';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
-import { mockInstitutions, mockPrograms } from '../data/mockData';
+import { useInstitut } from '@/hooks/useInstitut';
+import { usePrograms } from '@/hooks/usePrograms';
+import type { Institut } from '@/types/api';
 import { motion } from 'motion/react';
 
 export function InstitutionProfile() {
-  const { slug } = useParams();
-  const institution = mockInstitutions.find((i) => i.slug === slug);
+  // La route est /institution/:slug mais les liens de l'app passent l'UUID de l'institut
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const { institut: institutData, loading, error } = useInstitut(slug);
+  const institut = institutData as Institut | null;
 
-  if (!institution) {
+  // Fallback : charger les programmes via filtre si le backend ne les inclut pas
+  const hasEmbeddedPrograms = !!(institut?.programmes && institut.programmes.length > 0);
+  const { programs: programsFallback } = usePrograms(
+    institut && !hasEmbeddedPrograms ? { institut_id: institut.id } : undefined
+  );
+
+  const programmes = hasEmbeddedPrograms
+    ? (institut!.programmes ?? [])
+    : programsFallback;
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-[#1D1D1F] flex items-center justify-center">
-        <p>Institution not found</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-t-2 border-[var(--edu-blue)] animate-spin" />
       </div>
     );
   }
 
-  const institutionPrograms = mockPrograms.filter((p) => p.institution.id === institution.id);
+  if (error || !institut) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[var(--edu-danger)]">{error ?? 'Institution introuvable'}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="mt-4 px-4 py-2 bg-[var(--edu-blue)] text-white rounded-lg"
+          >
+            Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Image de couverture : préférer image_couverture, sinon logo
+  const coverSrc = institut.image_couverture ?? institut.logo;
+
+  // Localisation
+  const localisation = [institut.adresse?.ville, institut.adresse?.pays]
+    .filter(Boolean)
+    .join(', ');
+
+  // Taux d'acceptation formaté en pourcentage
+  const tauxAcceptation =
+    institut.taux_acceptation != null
+      ? `${(institut.taux_acceptation * 100).toFixed(0)}%`
+      : null;
 
   return (
     <div className="min-h-screen bg-[var(--edu-surface)]">
       <Navbar />
 
-      {/* Cover */}
+      {/* Couverture */}
       <div className="relative h-[400px] overflow-hidden">
-        <img src={institution.cover} alt={institution.name} className="w-full h-full object-cover" />
+        {coverSrc && (
+          <img src={coverSrc} alt={institut.nom} className="w-full h-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
       </div>
 
-      {/* Header */}
+      {/* En-tête avec carte en surimpression */}
       <div className="max-w-[1440px] mx-auto px-6 -mt-20 relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -43,71 +88,90 @@ export function InstitutionProfile() {
           className="glass-card rounded-3xl p-8"
         >
           <div className="flex items-start gap-6">
-            <img
-              src={institution.logo}
-              alt={institution.name}
-              className="w-32 h-32 rounded-2xl object-cover shadow-lg"
-            />
+            {institut.logo && (
+              <img
+                src={institut.logo}
+                alt={institut.nom}
+                className="w-32 h-32 rounded-2xl object-cover shadow-lg"
+              />
+            )}
             <div className="flex-1">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-4xl font-bold text-[var(--edu-text-primary)]">{institution.name}</h1>
-                    {institution.verified && (
+                    <h1 className="text-4xl font-bold text-[var(--edu-text-primary)]">
+                      {institut.nom}
+                    </h1>
+                    {institut.est_verifie && (
                       <CheckCircle className="w-8 h-8 text-[var(--edu-blue)]" />
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-[var(--edu-text-secondary)]">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      <span>{institution.city}, {institution.country}</span>
-                    </div>
-                    <span>•</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-[var(--edu-accent)]" />
-                      <span>{institution.rating} rating</span>
-                    </div>
+                    {localisation && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        <span>{localisation}</span>
+                      </div>
+                    )}
+                    {institut.note != null && (
+                      <>
+                        {localisation && <span>•</span>}
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-[var(--edu-accent)]" />
+                          <span>{institut.note} rating</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Button variant="outline" className="rounded-full">
-                    Follow
-                  </Button>
-                  <Button variant="outline" className="rounded-full">
-                    Share
-                  </Button>
-                  <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
-                    <Globe className="w-5 h-5 mr-2" />
-                    Visit website
-                  </Button>
+                  <Button variant="outline" className="rounded-full">Follow</Button>
+                  <Button variant="outline" className="rounded-full">Share</Button>
+                  {institut.site_web && (
+                    <a href={institut.site_web} target="_blank" rel="noopener noreferrer">
+                      <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
+                        <Globe className="w-5 h-5 mr-2" />
+                        Visit website
+                      </Button>
+                    </a>
+                  )}
                 </div>
               </div>
 
+              {/* Statistiques */}
               <div className="grid grid-cols-4 gap-6">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-[var(--edu-blue)]">{institution.programsCount}</p>
+                  <p className="text-3xl font-bold text-[var(--edu-blue)]">{programmes.length}</p>
                   <p className="text-sm text-[var(--edu-text-secondary)]">Programs</p>
                 </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-[var(--edu-blue)]">{institution.studentsCount.toLocaleString()}</p>
-                  <p className="text-sm text-[var(--edu-text-secondary)]">Students</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-[var(--edu-blue)]">{institution.acceptanceRate}</p>
-                  <p className="text-sm text-[var(--edu-text-secondary)]">Acceptance Rate</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-[var(--edu-blue)]">{institution.rating}</p>
-                  <p className="text-sm text-[var(--edu-text-secondary)]">Average Rating</p>
-                </div>
+                {institut.nombre_etudiants != null && (
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-[var(--edu-blue)]">
+                      {institut.nombre_etudiants.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-[var(--edu-text-secondary)]">Students</p>
+                  </div>
+                )}
+                {tauxAcceptation && (
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-[var(--edu-blue)]">{tauxAcceptation}</p>
+                    <p className="text-sm text-[var(--edu-text-secondary)]">Acceptance Rate</p>
+                  </div>
+                )}
+                {institut.note != null && (
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-[var(--edu-blue)]">{institut.note}</p>
+                    <p className="text-sm text-[var(--edu-text-secondary)]">Average Rating</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Tabs */}
+      {/* Onglets */}
       <div className="max-w-[1440px] mx-auto px-6 py-8">
         <Tabs defaultValue="programs" className="w-full">
           <TabsList className="glass-card rounded-full p-1 mb-8">
@@ -117,99 +181,153 @@ export function InstitutionProfile() {
             <TabsTrigger value="admissions" className="rounded-full">Admissions</TabsTrigger>
           </TabsList>
 
+          {/* Onglet À propos */}
           <TabsContent value="about">
             <div className="glass-card rounded-2xl p-8">
-              <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">About {institution.name}</h2>
-              <p className="text-[var(--edu-text-secondary)] leading-relaxed mb-8">{institution.description}</p>
-
-              <h3 className="text-xl font-bold text-[var(--edu-text-primary)] mb-4">Accreditations</h3>
-              <div className="flex flex-wrap gap-2">
-                {institution.accreditations.map((acc) => (
-                  <Badge key={acc} variant="secondary" className="rounded-full">
-                    {acc}
-                  </Badge>
-                ))}
-              </div>
+              <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
+                About {institut.nom}
+              </h2>
+              {institut.description && (
+                <p className="text-[var(--edu-text-secondary)] leading-relaxed mb-8">
+                  {institut.description}
+                </p>
+              )}
+              {institut.accreditations && institut.accreditations.length > 0 && (
+                <>
+                  <h3 className="text-xl font-bold text-[var(--edu-text-primary)] mb-4">
+                    Accreditations
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {institut.accreditations.map((acc) => (
+                      <Badge key={acc} variant="secondary" className="rounded-full">
+                        {acc}
+                      </Badge>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </TabsContent>
 
+          {/* Onglet Programmes */}
           <TabsContent value="programs">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
-                {institutionPrograms.length} Programs Available
+                {programmes.length} Programs Available
               </h2>
               <p className="text-[var(--edu-text-secondary)]">
-                Explore all programs offered by {institution.name}
+                Explore all programs offered by {institut.nom}
               </p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {institutionPrograms.map((program) => (
-                <ProgramCard key={program.id} program={program} view="grid" />
-              ))}
-            </div>
+            {programmes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {programmes.map((programme) => (
+                  <ProgramCard key={programme.id} programme={programme} view="grid" />
+                ))}
+              </div>
+            ) : (
+              <p className="text-[var(--edu-text-secondary)]">
+                Aucun programme disponible pour l'instant.
+              </p>
+            )}
           </TabsContent>
 
+          {/* Onglet Localisation */}
           <TabsContent value="location">
             <div className="glass-card rounded-2xl p-8">
               <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Location</h2>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Map Placeholder */}
+                {/* Placeholder carte interactive */}
                 <div className="h-[400px] rounded-2xl overflow-hidden bg-[var(--edu-surface)] flex items-center justify-center">
                   <div className="text-center">
                     <MapPin className="w-16 h-16 text-[var(--edu-text-tertiary)] mx-auto mb-4" />
-                    <p className="text-[var(--edu-text-secondary)]">Interactive map would appear here</p>
+                    <p className="text-[var(--edu-text-secondary)]">
+                      Interactive map would appear here
+                    </p>
                   </div>
                 </div>
 
-                {/* Address */}
+                {/* Adresse */}
                 <div className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold text-[var(--edu-text-primary)] mb-3">Address</h3>
-                    <p className="text-[var(--edu-text-secondary)]">{institution.location.address}</p>
-                    <p className="text-[var(--edu-text-secondary)]">
-                      {institution.city}, {institution.location.postalCode}
-                    </p>
-                    <p className="text-[var(--edu-text-secondary)]">{institution.country}</p>
-                  </div>
-
+                  {institut.adresse && (
+                    <div>
+                      <h3 className="font-semibold text-[var(--edu-text-primary)] mb-3">Address</h3>
+                      {institut.adresse.rue && (
+                        <p className="text-[var(--edu-text-secondary)]">{institut.adresse.rue}</p>
+                      )}
+                      {(institut.adresse.ville || institut.adresse.code_postal) && (
+                        <p className="text-[var(--edu-text-secondary)]">
+                          {[institut.adresse.ville, institut.adresse.code_postal]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </p>
+                      )}
+                      {institut.adresse.gouvernorat && (
+                        <p className="text-[var(--edu-text-secondary)]">
+                          {institut.adresse.gouvernorat}
+                        </p>
+                      )}
+                      {institut.adresse.pays && (
+                        <p className="text-[var(--edu-text-secondary)]">{institut.adresse.pays}</p>
+                      )}
+                    </div>
+                  )}
                   <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
                     Get directions
                   </Button>
-
-                  <div>
-                    <h3 className="font-semibold text-[var(--edu-text-primary)] mb-3">Nearby</h3>
-                    <ul className="space-y-2 text-sm text-[var(--edu-text-secondary)]">
-                      <li>• City center: 2.5 km</li>
-                      <li>• Airport: 15 km</li>
-                      <li>• Train station: 1.2 km</li>
-                    </ul>
-                  </div>
                 </div>
               </div>
             </div>
           </TabsContent>
 
+          {/* Onglet Admissions */}
           <TabsContent value="admissions">
             <div className="glass-card rounded-2xl p-8">
-              <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Admissions Information</h2>
+              <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
+                Admissions Information
+              </h2>
               <div className="space-y-6">
                 <div>
-                  <h3 className="font-semibold text-[var(--edu-text-primary)] mb-3">Application Process</h3>
+                  <h3 className="font-semibold text-[var(--edu-text-primary)] mb-3">
+                    Application Process
+                  </h3>
                   <p className="text-[var(--edu-text-secondary)]">
-                    Applications to {institution.name} are submitted through the EduBridge platform.
+                    Applications to {institut.nom} are submitted through the EduBridge platform.
                     Select a program to begin your application.
                   </p>
                 </div>
-
-                <div>
-                  <h3 className="font-semibold text-[var(--edu-text-primary)] mb-3">Contact Admissions</h3>
-                  <p className="text-[var(--edu-text-secondary)]">
-                    Email: admissions@{institution.id}.edu<br />
-                    Phone: +1 (555) 123-4567
-                  </p>
-                </div>
+                {(institut.contact?.email || institut.contact?.telephone) && (
+                  <div>
+                    <h3 className="font-semibold text-[var(--edu-text-primary)] mb-3">
+                      Contact Admissions
+                    </h3>
+                    <div className="space-y-1 text-[var(--edu-text-secondary)]">
+                      {institut.contact.email && (
+                        <p>
+                          Email:{' '}
+                          <a
+                            href={`mailto:${institut.contact.email}`}
+                            className="text-[var(--edu-blue)] hover:underline"
+                          >
+                            {institut.contact.email}
+                          </a>
+                        </p>
+                      )}
+                      {institut.contact.telephone && (
+                        <p>
+                          Phone:{' '}
+                          <a
+                            href={`tel:${institut.contact.telephone}`}
+                            className="text-[var(--edu-blue)] hover:underline"
+                          >
+                            {institut.contact.telephone}
+                          </a>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>

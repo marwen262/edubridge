@@ -41,6 +41,8 @@ module.exports = (sequelize, DataTypes) => {
     date_limite_candidature: { type: DataTypes.DATEONLY, allowNull: true },
     capacite: { type: DataTypes.INTEGER, allowNull: true },
     est_actif: { type: DataTypes.BOOLEAN, defaultValue: true },
+    langue: { type: DataTypes.STRING, allowNull: true },
+    date_debut: { type: DataTypes.DATEONLY, allowNull: true },
   }, {
     tableName: 'programmes',
     timestamps: true,

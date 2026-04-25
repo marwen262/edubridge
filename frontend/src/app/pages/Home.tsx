@@ -7,13 +7,20 @@ import { ProgramCard } from '../components/ProgramCard';
 import { InstitutionCard } from '../components/InstitutionCard';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { mockPrograms, mockInstitutions, fields } from '../data/mockData';
+import { fields } from '../data/staticData';
+import { usePrograms } from '@/hooks/usePrograms';
+import { useInstituts } from '@/hooks/useInstituts';
+import type { Institut } from '@/types/api';
 import { motion } from 'motion/react';
 
 export function Home() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [searchCountry, setSearchCountry] = React.useState('');
+
+  const { programs } = usePrograms({ est_actif: true });
+  const { instituts: institutsRaw } = useInstituts();
+  const instituts = institutsRaw as Institut[];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +93,7 @@ export function Home() {
 
             {/* Quick Filters */}
             <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
-              {['Bachelor', 'Master', 'PhD', 'Online', 'English-taught'].map((filter) => (
+              {['Licence', 'Master', 'Ingénieur', 'Cours du soir', 'En ligne'].map((filter) => (
                 <Badge
                   key={filter}
                   variant="secondary"
@@ -105,10 +112,10 @@ export function Home() {
         <div className="max-w-[1440px] mx-auto px-6 py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { value: '5,000+', label: 'Programs' },
-              { value: '800+', label: 'Institutions' },
-              { value: '150+', label: 'Countries' },
-              { value: '50,000+', label: 'Students' },
+              { value: '5 000+', label: 'Programmes' },
+              { value: '800+', label: 'Établissements' },
+              { value: '150+', label: 'Domaines' },
+              { value: '50 000+', label: 'Étudiants' },
             ].map((stat, i) => (
               <motion.div
                 key={stat.label}
@@ -129,8 +136,8 @@ export function Home() {
       <section className="py-16 bg-[var(--edu-surface)]">
         <div className="max-w-[1440px] mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">Explore by Field</h2>
-            <p className="text-[var(--edu-text-secondary)] text-lg">Find programs in your area of interest</p>
+            <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">Explorer par domaine</h2>
+            <p className="text-[var(--edu-text-secondary)] text-lg">Trouvez des programmes dans votre domaine d'intérêt</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -145,7 +152,7 @@ export function Home() {
                   <div className="glass-card rounded-2xl p-6 hover-lift cursor-pointer text-center">
                     <div className="text-5xl mb-3">{field.icon}</div>
                     <h3 className="font-semibold text-[var(--edu-text-primary)] mb-2">{field.name}</h3>
-                    <p className="text-sm text-[var(--edu-text-secondary)]">{field.count} programs</p>
+                    <p className="text-sm text-[var(--edu-text-secondary)]">{field.count} programmes</p>
                   </div>
                 </Link>
               </motion.div>
@@ -159,29 +166,39 @@ export function Home() {
         <div className="max-w-[1440px] mx-auto px-6">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-2">Featured Programs</h2>
-              <p className="text-[var(--edu-text-secondary)] text-lg">Top programs from leading institutions</p>
+              <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-2">Programmes à la une</h2>
+              <p className="text-[var(--edu-text-secondary)] text-lg">Les meilleurs programmes des principaux instituts</p>
             </div>
             <Link to="/search">
               <Button variant="ghost" className="text-[var(--edu-blue)]">
-                View all
+                Voir tout
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {mockPrograms.slice(0, 6).map((program, i) => (
-              <motion.div
-                key={program.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.4 }}
-              >
-                <ProgramCard program={program} view="grid" />
-              </motion.div>
-            ))}
-          </div>
+          {programs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {programs.slice(0, 6).map((programme, i) => (
+                <motion.div
+                  key={programme.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1, duration: 0.4 }}
+                >
+                  <ProgramCard programme={programme} view="grid" />
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-[var(--edu-text-secondary)]">
+              <Link to="/search">
+                <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
+                  Parcourir les programmes
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -190,29 +207,35 @@ export function Home() {
         <div className="max-w-[1440px] mx-auto px-6">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-2">Top Institutions</h2>
-              <p className="text-[var(--edu-text-secondary)] text-lg">World-class universities and colleges</p>
+              <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-2">Meilleurs instituts</h2>
+              <p className="text-[var(--edu-text-secondary)] text-lg">Écoles d'ingénieurs et universités de référence</p>
             </div>
             <Link to="/search">
               <Button variant="ghost" className="text-[var(--edu-blue)]">
-                View all
+                Voir tout
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {mockInstitutions.map((institution, i) => (
-              <motion.div
-                key={institution.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1, duration: 0.4 }}
-              >
-                <InstitutionCard institution={institution} />
-              </motion.div>
-            ))}
-          </div>
+          {instituts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {instituts.slice(0, 4).map((institution, i) => (
+                <motion.div
+                  key={institution.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1, duration: 0.4 }}
+                >
+                  <InstitutionCard institution={institution} />
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-[var(--edu-text-secondary)] py-8">
+              Chargement des instituts…
+            </p>
+          )}
         </div>
       </section>
 
@@ -220,28 +243,28 @@ export function Home() {
       <section id="how-it-works" className="py-16">
         <div className="max-w-[1440px] mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">How It Works</h2>
-            <p className="text-[var(--edu-text-secondary)] text-lg">Your journey to admission in three simple steps</p>
+            <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">Comment ça marche</h2>
+            <p className="text-[var(--edu-text-secondary)] text-lg">Votre parcours vers l'admission en trois étapes simples</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {[
               {
                 step: '01',
-                title: 'Explore',
-                description: 'Browse thousands of programs from institutions worldwide. Use filters to find the perfect match for your goals.',
+                title: 'Explorer',
+                description: 'Parcourez des milliers de programmes dans les meilleurs instituts tunisiens. Utilisez les filtres pour trouver la formation idéale.',
                 icon: '🔍',
               },
               {
                 step: '02',
-                title: 'Apply',
-                description: 'Submit your application through our streamlined process. Track your progress every step of the way.',
+                title: 'Candidater',
+                description: 'Soumettez votre dossier via notre processus simplifié. Suivez votre candidature à chaque étape.',
                 icon: '📝',
               },
               {
                 step: '03',
-                title: 'Get Admitted',
-                description: 'Receive decisions and communicate with institutions. Start your academic journey with confidence.',
+                title: 'Être admis',
+                description: 'Recevez les décisions et échangez avec les instituts. Démarrez votre parcours académique en toute sérénité.',
                 icon: '🎓',
               },
             ].map((item, i) => (
@@ -253,7 +276,7 @@ export function Home() {
                 className="text-center"
               >
                 <div className="text-6xl mb-6">{item.icon}</div>
-                <div className="text-sm font-bold text-[var(--edu-blue)] mb-2">STEP {item.step}</div>
+                <div className="text-sm font-bold text-[var(--edu-blue)] mb-2">ÉTAPE {item.step}</div>
                 <h3 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-3">{item.title}</h3>
                 <p className="text-[var(--edu-text-secondary)]">{item.description}</p>
               </motion.div>
@@ -266,29 +289,29 @@ export function Home() {
       <section className="py-16 bg-[var(--edu-surface)]">
         <div className="max-w-[1440px] mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">What Students Say</h2>
-            <p className="text-[var(--edu-text-secondary)] text-lg">Success stories from our community</p>
+            <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">Ce que disent nos étudiants</h2>
+            <p className="text-[var(--edu-text-secondary)] text-lg">Témoignages de notre communauté</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                quote: "EduBridge made finding and applying to my dream program so easy. The platform is intuitive and the support was excellent.",
-                author: "Sarah Johnson",
-                program: "Master's in Computer Science, MIT",
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
+                quote: "EduBridge m'a facilité la découverte et la candidature à mon programme idéal. La plateforme est intuitive et le suivi excellent.",
+                author: 'Sarah J.',
+                program: 'Master Informatique, INSAT',
+                avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
               },
               {
-                quote: "I compared multiple programs side-by-side and found the perfect fit for my career goals. Highly recommended!",
-                author: "Michael Chen",
-                program: "MBA, Harvard Business School",
-                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
+                quote: "J'ai comparé plusieurs programmes côte à côte et trouvé celui qui correspondait parfaitement à mes objectifs professionnels.",
+                author: 'Mohamed C.',
+                program: 'Ingénieur Génie Civil, ENIT',
+                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
               },
               {
-                quote: "The application process was straightforward, and I received my admission decision quickly. Thank you EduBridge!",
-                author: "Emma Williams",
-                program: "PhD in Biomedical Engineering, Stanford",
-                avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
+                quote: "Le processus de candidature était simple et j'ai reçu ma réponse rapidement. Merci EduBridge !",
+                author: 'Emma W.',
+                program: 'Master Finance, IHEC',
+                avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
               },
             ].map((testimonial, i) => (
               <motion.div

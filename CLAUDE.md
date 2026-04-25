@@ -3,9 +3,10 @@
 ## Objectif
 Plateforme de mise en relation entre candidats et écoles d'ingénieurs tunisiennes.
 Trois rôles métier : `candidat` (étudiants cherchant une formation), `institut`
-(écoles qui publient leurs programmes) et `admin`. Le frontend consomme
-actuellement des données simulées (`mockData.ts`) — l'intégration avec l'API
-backend est la prochaine étape.
+(écoles qui publient leurs programmes) et `admin`. Le frontend est connecté à
+l'API backend via un client axios centralisé et un AuthContext JWT — la phase
+d'intégration initiale est complète (auth, programmes, instituts, candidatures,
+favoris, notifications, utilisateurs).
 
 Le repo contient trois composants indépendants :
 - `backend/` — API REST Node.js / Express / PostgreSQL (cœur métier)
@@ -30,8 +31,11 @@ Le repo contient trois composants indépendants :
 - **Tailwind CSS v4** (via `@tailwindcss/vite`)
 - **shadcn/ui** + **Radix UI** (composants dans `src/app/components/ui/`)
 - **react-router 7** (`createBrowserRouter`)
+- **axios 1.15** (client HTTP centralisé `src/services/api.ts`)
 - **motion** (animations), **lucide-react** (icônes), **sonner** (toasts)
-- **react-hook-form** 7 (importé mais peu utilisé ; formulaires actuels en `useState`)
+- **react-hook-form** 7 + **zod 4** + **@hookform/resolvers 5** (formulaires Login/Signup)
+- **AuthContext** (`src/context/AuthContext.tsx`) — JWT + localStorage + intercepteurs
+- **ProtectedRoute** (`src/components/ProtectedRoute.tsx`) — garde routes dashboard
 - Scaffold d'origine : **Figma Make** (d'où le `name` `@figma/my-make-file`)
 
 ### Diploma Verifier (`diploma-verifier/`)
@@ -141,18 +145,38 @@ edubridge/
 │
 ├── frontend/
 │   ├── frontend.md               # Documentation architecturale détaillée
+│   ├── .env.local                # VITE_API_URL=http://localhost:5000/api
 │   ├── index.html
 │   ├── vite.config.ts            # Alias @ → src/
 │   ├── src/
 │   │   ├── main.tsx              # Bootstrap React + import global CSS
+│   │   ├── config.ts             # Constante VITE_API_URL
+│   │   ├── services/
+│   │   │   └── api.ts            # Client axios + 7 services (auth, programmes, instituts…)
+│   │   ├── types/
+│   │   │   ├── api.ts            # Types TS entités backend (RegisterData, filtres…)
+│   │   │   └── auth.ts           # User, AuthContextType
+│   │   ├── context/
+│   │   │   └── AuthContext.tsx   # AuthProvider + useAuth (JWT, localStorage)
+│   │   ├── components/
+│   │   │   └── ProtectedRoute.tsx # Redirection si non auth ou mauvais rôle
+│   │   ├── hooks/                 # Hooks de fetch (loading/error/refetch)
+│   │   │   ├── usePrograms.ts
+│   │   │   ├── useProgramDetail.ts
+│   │   │   ├── useInstituts.ts
+│   │   │   ├── useInstitut.ts
+│   │   │   ├── useCandidatures.ts
+│   │   │   ├── useFavoris.ts
+│   │   │   ├── useNotifications.ts
+│   │   │   └── useUtilisateurs.ts
 │   │   ├── app/
-│   │   │   ├── App.tsx           # RouterProvider + Toaster
-│   │   │   ├── routes.tsx        # 11 routes (Home, Search, dashboards, auth…)
+│   │   │   ├── App.tsx           # AuthProvider > RouterProvider > Toaster
+│   │   │   ├── routes.tsx        # 12 routes (3 dashboards protégés par ProtectedRoute)
 │   │   │   ├── pages/            # Pages de haut niveau (1 fichier / route)
 │   │   │   ├── components/       # Composants applicatifs (Navbar, MultiStepDialog, …)
 │   │   │   │   ├── ui/           # Composants shadcn/ui (NE PAS ÉDITER)
 │   │   │   │   └── figma/        # Helpers Figma Make (NE PAS ÉDITER)
-│   │   │   └── data/mockData.ts  # Données simulées (à remplacer par API)
+│   │   │   └── data/mockData.ts  # Données mock résiduelles (Compare, InstitutionProfile)
 │   │   └── styles/
 │   │       ├── index.css         # Point d'entrée (importe les 4 autres)
 │   │       ├── tailwind.css
@@ -189,7 +213,7 @@ Routes montées dans `backend/index.js`, toutes préfixées `/api/` :
 | `/api/programmes` | `programmeRoutes.js` | Formations |
 | `/api/candidatures` | `candidatureRoutes.js` | Workflow candidatures (cœur métier) |
 | `/api/favoris` | `favoriRoutes.js` | Favoris candidat |
-| `/api/notifications` | `notificationRoutes.js` | Notifications utilisateur |
+| `/api/notifications` | `notificationRoutes.js` | Notifications (mine, count, lire, lire-tout) |
 | `/api/health` | (inline) | Ping de santé |
 
 **Workflow candidature** (`services/candidatureWorkflow.js`) — machine à états :
@@ -260,14 +284,20 @@ automatiques (candidat + institut) à chaque événement.
 - Styles : préférer les vars CSS `--edu-*` (design system Apple-inspired :
   `--edu-blue`, `--edu-success`, `--edu-danger`, `--edu-text-primary`…)
   plutôt que des couleurs en dur.
-- Forms : `react-hook-form` (à privilégier pour les nouveaux formulaires ;
-  migrer progressivement les formulaires `useState` existants).
+- Forms : `react-hook-form` + `zod` pour les nouveaux formulaires ; migrer
+  progressivement les formulaires `useState` existants (MultiStepDialog en attente).
 - Toasts : `sonner`
 - Dark mode : toggle via `Navbar`, persisté en `localStorage`, classe `.dark`
   sur `<html>`.
-- **Pas de protection de routes actuellement** — tout `/dashboard/*` est
-  accessible sans auth. À ajouter avec l'intégration API (wrapper
-  `ProtectedRoute` + `AuthContext`).
+- **Auth** : `useAuth()` depuis `@/context/AuthContext` pour accéder à
+  `user`, `token`, `login`, `logout`, `register`, `updateUser`.
+- **Routes protégées** : utiliser `<ProtectedRoute requiredRole="...">` dans
+  `routes.tsx` — la redirection et la vérification de rôle sont gérées
+  automatiquement.
+- **Appels API** : toujours passer par les services de `@/services/api.ts` ou
+  les hooks `@/hooks/` — ne jamais faire d'appels axios directs dans les pages.
+- **Variables d'env** : `VITE_API_URL` dans `.env.local` (jamais `.env`
+  versionné pour les secrets).
 
 ### Diploma Verifier
 - Code Python en anglais (convention Python standard).
@@ -287,6 +317,7 @@ automatiques (candidat + institut) à chaque événement.
 | `**/node_modules/` | Dépendances installées |
 | `**/package-lock.json` | Géré par npm |
 | `backend/.env` | Secrets (non versionné) |
+| `frontend/.env.local` | Config locale (non versionné) |
 | `backend/uploads/` | Contenu uploadé par les utilisateurs |
 | `frontend/dist/` | Build généré |
 | `frontend/src/app/components/ui/` | Composants shadcn — régénérables, ne pas éditer manuellement |
@@ -318,16 +349,33 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   répond. Tests Python dans `diploma-verifier/tests/`.
 - **Documentations détaillées** par composant (à lire avant gros changements) :
   - `backend/backend.md` — architecture, modèles, API, workflow, sécurité
-  - `frontend/frontend.md` — pages, composants, design system, état actuel
-    mock
+  - `frontend/frontend.md` — pages, composants, design system, intégration API
   - `diploma-verifier/microservices.md` — pipeline d'analyse, services, déploiement
-- **Prochaine étape majeure** : remplacer `frontend/src/app/data/mockData.ts`
-  par des appels vers l'API backend. Prévoir :
-  - Client HTTP centralisé (`src/services/api.ts` avec axios/fetch)
-  - `AuthContext` + gestion du token JWT (localStorage + header
-    `Authorization: Bearer ...`)
-  - `ProtectedRoute` wrapper avec vérification de rôle
-  - Hooks `usePrograms`, `useApplication`, etc.
-  - Migration progressive vers `react-hook-form` + `zod`
+- **Intégration API frontend — Phase 1 complète (mai 2026)** :
+  - [x] Client HTTP centralisé (`src/services/api.ts`)
+  - [x] AuthContext + JWT (login / register / logout)
+  - [x] ProtectedRoute par rôle
+  - [x] Hooks métier (usePrograms, useCandidatures, useFavoris,
+        useNotifications, useInstituts, useUtilisateurs)
+  - [x] Formulaires RHF + Zod (Login, Signup, FirstLogin)
+  - [x] SearchResults → GET /api/programmes
+  - [x] ProgramDetail → GET /api/programmes/:id
+  - [x] InstitutionProfile → GET /api/instituts/:id
+  - [x] CandidatDashboard → candidatures, favoris, notifications
+  - [x] InstitutionDashboard → pipeline kanban, transitions statut
+  - [x] AdminDashboard → utilisateurs, candidatures, création instituts
+  - [x] Compare → localStorage + programmeService.getById
+  - [x] Favoris synchronisés (useFavoriStatus transversal)
+  - [x] MultiStepDialog → POST /api/candidatures + upload Multer
+  - [x] Notifications Navbar → badge + dropdown temps réel
+  - [x] mockData.ts supprimé (staticData.ts pour données statiques)
+- **Améliorations futures (hors scope MVP)** :
+  - Pagination sur SearchResults (infinite scroll ou pages)
+  - Refresh token (actuellement expire après 7j sans reconnexion)
+  - Tests unitaires (RTL + Jest)
+  - Optimisation images (lazy loading, WebP)
+  - i18n (stratégie à décider)
+  - Scan antivirus fichiers uploadés
+  - Rate limiting frontend
 - Commits descriptifs en **français**, format court style :
   `feat(auth): ajouter endpoint /me` ou `fix(front): corriger navigation sidebar`.

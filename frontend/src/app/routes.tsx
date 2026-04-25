@@ -10,6 +10,7 @@ import { FirstLogin } from './pages/FirstLogin';
 import { CandidateDashboard } from './pages/CandidateDashboard';
 import { InstitutionDashboard } from './pages/InstitutionDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -46,15 +47,27 @@ export const router = createBrowserRouter([
   },
   {
     path: '/dashboard/candidate',
-    Component: CandidateDashboard,
+    element: (
+      <ProtectedRoute requiredRole="candidat">
+        <CandidateDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/dashboard/institution',
-    Component: InstitutionDashboard,
+    element: (
+      <ProtectedRoute requiredRole="institut">
+        <InstitutionDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/dashboard/admin',
-    Component: AdminDashboard,
+    element: (
+      <ProtectedRoute requiredRole="admin">
+        <AdminDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '*',

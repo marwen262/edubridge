@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router';
+import { useAuth } from '@/context/AuthContext';
 import {
   GraduationCap,
   Home,
@@ -34,6 +35,7 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const location = useLocation();
+  const { logout } = useAuth();
 
   const candidateNav: NavItem[] = [
     { label: 'Home', icon: <Home className="w-5 h-5" />, href: '/dashboard/candidate' },
@@ -127,13 +129,13 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
 
       {/* Logout */}
       <div className="px-3 py-4 border-t border-[var(--edu-border)]">
-        <Link
-          to="/login"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--edu-text-secondary)] hover:bg-[var(--edu-surface)] hover:text-[var(--edu-danger)] transition-colors"
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--edu-text-secondary)] hover:bg-[var(--edu-surface)] hover:text-[var(--edu-danger)] transition-colors w-full text-left"
         >
           <LogOut className="w-5 h-5" />
           <span className="text-[15px]">Log out</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );

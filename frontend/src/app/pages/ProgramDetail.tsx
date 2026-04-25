@@ -1,42 +1,84 @@
 import React from 'react';
-import { useParams, Link } from 'react-router';
-import { Heart, Share2, MapPin, Clock, Globe, Calendar, DollarSign, ChevronRight, Star } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router';
+import { Heart, Share2, MapPin, Clock, Globe, Calendar, ChevronRight, Star } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { ProgramCard } from '../components/ProgramCard';
 import { MultiStepDialog } from '../components/MultiStepDialog';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
-import { mockPrograms } from '../data/mockData';
+import { useProgramDetail } from '@/hooks/useProgramDetail';
+import { useFavoriStatus } from '@/hooks/useFavoriStatus';
+import { useAuth } from '@/context/AuthContext';
+import type { Programme } from '@/types/api';
+import { toast } from 'sonner';
 import { motion } from 'motion/react';
 
 export function ProgramDetail() {
-  const { id } = useParams();
-  const program = mockPrograms.find((p) => p.id === id);
-  const [saved, setSaved] = React.useState(false);
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { program: programData, loading, error } = useProgramDetail(id);
+  const program = programData as Programme | null;
+  const { isFavori, loading: favoriLoading, handleToggle: handleSave } = useFavoriStatus(
+    program?.id ?? ''
+  );
   const [applyDialogOpen, setApplyDialogOpen] = React.useState(false);
 
-  if (!program) {
+  // Protection : exiger l'authentification avant d'ouvrir le dialogue de candidature
+  const handleApply = () => {
+    if (!isAuthenticated) {
+      toast.error('Connectez-vous pour candidater');
+      navigate('/login');
+      return;
+    }
+    setApplyDialogOpen(true);
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-[#1D1D1F] flex items-center justify-center">
-        <p>Program not found</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-t-2 border-[var(--edu-blue)] animate-spin" />
       </div>
     );
   }
 
-  const deadline = new Date(program.deadline);
-  const today = new Date();
-  const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (error || !program) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[var(--edu-danger)]">{error ?? 'Programme introuvable'}</p>
+          <button
+            onClick={() => navigate('/search')}
+            className="mt-4 px-4 py-2 bg-[var(--edu-blue)] text-white rounded-lg"
+          >
+            Retour à la recherche
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  const similarPrograms = mockPrograms.filter((p) => p.field === program.field && p.id !== program.id).slice(0, 3);
+  // Image de couverture : préférer image_couverture de l'institut, sinon son logo
+  const coverSrc = program.institut?.image_couverture ?? program.institut?.logo;
+
+  // Calcul des jours restants avant la deadline
+  const deadlineDate = program.date_limite_candidature
+    ? new Date(program.date_limite_candidature)
+    : null;
+  const daysLeft = deadlineDate
+    ? Math.ceil((deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // Localisation de l'institut
+  const localisation = [program.institut?.adresse?.ville, program.institut?.adresse?.pays]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <div className="min-h-screen bg-[var(--edu-surface)]">
       <Navbar />
 
-      {/* Breadcrumb */}
+      {/* Fil d'Ariane */}
       <div className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)]">
         <div className="max-w-[1440px] mx-auto px-6 py-4">
           <div className="flex items-center gap-2 text-sm text-[var(--edu-text-secondary)]">
@@ -44,65 +86,90 @@ export function ProgramDetail() {
             <ChevronRight className="w-4 h-4" />
             <Link to="/search" className="hover:text-[var(--edu-blue)]">Search</Link>
             <ChevronRight className="w-4 h-4" />
-            <Link to={`/institution/${program.institution.id}`} className="hover:text-[var(--edu-blue)]">
-              {program.institution.name}
-            </Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-[var(--edu-text-primary)]">{program.title}</span>
+            {program.institut && (
+              <>
+                <Link
+                  to={`/institution/${program.institut.id}`}
+                  className="hover:text-[var(--edu-blue)]"
+                >
+                  {program.institut.nom}
+                </Link>
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
+            <span className="text-[var(--edu-text-primary)]">{program.titre}</span>
           </div>
         </div>
       </div>
 
       {/* Hero */}
       <div className="relative h-[400px] overflow-hidden">
-        <img
-          src={program.cover}
-          alt={program.title}
-          className="w-full h-full object-cover"
-        />
+        {coverSrc && (
+          <img src={coverSrc} alt={program.titre} className="w-full h-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
         <div className="absolute bottom-0 left-0 right-0">
           <div className="max-w-[1440px] mx-auto px-6 py-8">
             <div className="flex items-start justify-between gap-8">
               <div className="flex items-start gap-6 flex-1">
-                <img
-                  src={program.institution.logo}
-                  alt={program.institution.name}
-                  className="w-20 h-20 rounded-2xl object-cover glass-card"
-                />
+                {program.institut?.logo && (
+                  <img
+                    src={program.institut.logo}
+                    alt={program.institut.nom}
+                    className="w-20 h-20 rounded-2xl object-cover glass-card"
+                  />
+                )}
                 <div className="flex-1">
-                  <h1 className="text-4xl font-bold text-white mb-3">{program.title}</h1>
+                  <h1 className="text-4xl font-bold text-white mb-3">{program.titre}</h1>
                   <div className="flex items-center gap-4 text-white/90">
-                    <span className="font-medium">{program.institution.name}</span>
-                    <span>•</span>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      <span>{program.institution.city}, {program.institution.country}</span>
-                    </div>
-                    <span>•</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-[var(--edu-accent)] text-[var(--edu-accent)]" />
-                      <span>{program.rating}</span>
-                    </div>
+                    {program.institut?.nom && (
+                      <span className="font-medium">{program.institut.nom}</span>
+                    )}
+                    {localisation && (
+                      <>
+                        <span>•</span>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          <span>{localisation}</span>
+                        </div>
+                      </>
+                    )}
+                    {program.institut?.note != null && (
+                      <>
+                        <span>•</span>
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-[var(--edu-accent)] text-[var(--edu-accent)]" />
+                          <span>{program.institut.note}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setSaved(!saved)}
-                  className={`glass-card p-3 rounded-full ${saved ? 'heart-bounce' : ''}`}
+                  onClick={handleSave}
+                  disabled={favoriLoading}
+                  aria-label={isFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  className={`glass-card p-3 rounded-full disabled:opacity-50 ${
+                    isFavori ? 'heart-bounce' : ''
+                  }`}
                 >
                   <Heart
-                    className={`w-6 h-6 ${saved ? 'fill-[var(--edu-accent)] text-[var(--edu-accent)]' : 'text-white'}`}
+                    className={`w-6 h-6 ${
+                      isFavori
+                        ? 'fill-[var(--edu-accent)] text-[var(--edu-accent)]'
+                        : 'text-white'
+                    }`}
                   />
                 </button>
                 <button className="glass-card p-3 rounded-full">
                   <Share2 className="w-6 h-6 text-white" />
                 </button>
                 <Button
-                  onClick={() => setApplyDialogOpen(true)}
+                  onClick={handleApply}
                   className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white px-8 h-12 text-lg"
                 >
                   Apply now
@@ -113,149 +180,179 @@ export function ProgramDetail() {
         </div>
       </div>
 
-      {/* Sticky Tab Bar */}
+      {/* Barre d'onglets fixe */}
       <div className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)] sticky top-[73px] z-40">
         <div className="max-w-[1440px] mx-auto px-6">
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="w-full justify-start h-auto p-0 bg-transparent border-none">
-              <TabsTrigger
-                value="overview"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--edu-blue)] data-[state=active]:bg-transparent px-6 py-4"
-              >
-                Overview
-              </TabsTrigger>
-              <TabsTrigger
-                value="requirements"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--edu-blue)] data-[state=active]:bg-transparent px-6 py-4"
-              >
-                Requirements
-              </TabsTrigger>
-              <TabsTrigger
-                value="curriculum"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--edu-blue)] data-[state=active]:bg-transparent px-6 py-4"
-              >
-                Curriculum
-              </TabsTrigger>
-              <TabsTrigger
-                value="tuition"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--edu-blue)] data-[state=active]:bg-transparent px-6 py-4"
-              >
-                Tuition
-              </TabsTrigger>
-              <TabsTrigger
-                value="institution"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--edu-blue)] data-[state=active]:bg-transparent px-6 py-4"
-              >
-                Institution
-              </TabsTrigger>
+              {[
+                { value: 'overview', label: 'Overview' },
+                { value: 'requirements', label: 'Requirements' },
+                { value: 'curriculum', label: 'Curriculum' },
+                { value: 'tuition', label: 'Tuition' },
+                { value: 'institution', label: 'Institution' },
+              ].map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--edu-blue)] data-[state=active]:bg-transparent px-6 py-4"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Contenu principal */}
       <div className="max-w-[1440px] mx-auto px-6 py-8">
         <div className="flex gap-8">
-          {/* Main */}
+          {/* Colonne principale */}
           <div className="flex-1">
             <Tabs defaultValue="overview">
               <TabsContent value="overview" className="space-y-8">
-                {/* Key Facts */}
+                {/* Faits clés */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
                 >
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Key Facts</h2>
+                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
+                    Key Facts
+                  </h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {[
-                      { label: 'Level', value: program.level, icon: <Star className="w-5 h-5" /> },
-                      { label: 'Duration', value: program.duration, icon: <Clock className="w-5 h-5" /> },
-                      { label: 'Start Date', value: program.startDate, icon: <Calendar className="w-5 h-5" /> },
-                      { label: 'Deadline', value: new Date(program.deadline).toLocaleDateString(), icon: <Calendar className="w-5 h-5" /> },
-                      { label: 'Language', value: program.language, icon: <Globe className="w-5 h-5" /> },
-                      { label: 'Mode', value: program.mode, icon: <MapPin className="w-5 h-5" /> },
-                    ].map((fact, i) => (
-                      <div key={fact.label} className="glass-card rounded-2xl p-6">
-                        <div className="text-[var(--edu-blue)] mb-3">{fact.icon}</div>
-                        <p className="text-sm text-[var(--edu-text-secondary)] mb-1">{fact.label}</p>
-                        <p className="font-semibold text-[var(--edu-text-primary)]">{fact.value}</p>
-                      </div>
-                    ))}
+                      {
+                        label: 'Level',
+                        value: program.niveau ?? null,
+                        icon: <Star className="w-5 h-5" />,
+                      },
+                      {
+                        label: 'Duration',
+                        value:
+                          program.duree_annees != null
+                            ? `${program.duree_annees} ans`
+                            : null,
+                        icon: <Clock className="w-5 h-5" />,
+                      },
+                      {
+                        label: 'Start Date',
+                        value: program.date_debut ?? null,
+                        icon: <Calendar className="w-5 h-5" />,
+                      },
+                      {
+                        label: 'Deadline',
+                        value: deadlineDate ? deadlineDate.toLocaleDateString() : null,
+                        icon: <Calendar className="w-5 h-5" />,
+                      },
+                      {
+                        label: 'Language',
+                        value: program.langue ?? null,
+                        icon: <Globe className="w-5 h-5" />,
+                      },
+                      {
+                        label: 'Mode',
+                        value: program.mode ?? null,
+                        icon: <MapPin className="w-5 h-5" />,
+                      },
+                    ]
+                      .filter((fact) => fact.value != null)
+                      .map((fact) => (
+                        <div key={fact.label} className="glass-card rounded-2xl p-6">
+                          <div className="text-[var(--edu-blue)] mb-3">{fact.icon}</div>
+                          <p className="text-sm text-[var(--edu-text-secondary)] mb-1">
+                            {fact.label}
+                          </p>
+                          <p className="font-semibold text-[var(--edu-text-primary)]">
+                            {fact.value}
+                          </p>
+                        </div>
+                      ))}
                   </div>
                 </motion.div>
 
-                {/* About */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                >
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-4">About the Program</h2>
-                  <div className="glass-card rounded-2xl p-6">
-                    <p className="text-[var(--edu-text-secondary)] leading-relaxed">{program.description}</p>
-                  </div>
-                </motion.div>
-
-                {/* Similar Programs */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                >
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Similar Programs</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {similarPrograms.map((p) => (
-                      <ProgramCard key={p.id} program={p} view="grid" />
-                    ))}
-                  </div>
-                </motion.div>
+                {/* Description */}
+                {program.description && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1 }}
+                  >
+                    <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-4">
+                      About the Program
+                    </h2>
+                    <div className="glass-card rounded-2xl p-6">
+                      <p className="text-[var(--edu-text-secondary)] leading-relaxed">
+                        {program.description}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
               </TabsContent>
 
               <TabsContent value="requirements">
                 <div className="glass-card rounded-2xl p-8">
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Admission Requirements</h2>
-                  <ul className="space-y-3">
-                    {program.requirements.map((req, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-[var(--edu-blue)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-white text-xs">✓</span>
-                        </div>
-                        <span className="text-[var(--edu-text-secondary)]">{req}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
+                    Admission Requirements
+                  </h2>
+                  {program.documents_requis && program.documents_requis.length > 0 ? (
+                    <ul className="space-y-3">
+                      {program.documents_requis.map((doc, i) => (
+                        <li key={i} className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-full bg-[var(--edu-blue)] flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                          <span className="text-[var(--edu-text-secondary)] flex-1">
+                            {doc.nom}
+                          </span>
+                          <span
+                            className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                              doc.obligatoire
+                                ? 'bg-[var(--edu-success)] text-white'
+                                : 'bg-[var(--edu-warning)] text-white'
+                            }`}
+                          >
+                            {doc.obligatoire ? 'Obligatoire' : 'Optionnel'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-[var(--edu-text-secondary)]">
+                      Aucun document requis spécifié.
+                    </p>
+                  )}
                 </div>
               </TabsContent>
 
               <TabsContent value="curriculum">
                 <div className="glass-card rounded-2xl p-8">
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Curriculum</h2>
-                  <Accordion type="single" collapsible className="w-full">
-                    {program.curriculum.map((module, i) => (
-                      <AccordionItem key={i} value={`module-${i}`}>
-                        <AccordionTrigger className="text-[var(--edu-text-primary)] font-semibold">
-                          {module.module}
-                        </AccordionTrigger>
-                        <AccordionContent className="text-[var(--edu-text-secondary)]">
-                          {module.description}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
+                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
+                    Curriculum
+                  </h2>
+                  <p className="text-[var(--edu-text-secondary)]">Curriculum non disponible.</p>
                 </div>
               </TabsContent>
 
               <TabsContent value="tuition">
                 <div className="glass-card rounded-2xl p-8">
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Tuition & Funding</h2>
+                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
+                    Tuition & Funding
+                  </h2>
                   <div className="space-y-6">
-                    <div className="flex items-center justify-between py-4 border-b border-[var(--edu-divider)]">
-                      <span className="text-[var(--edu-text-secondary)]">Annual Tuition</span>
-                      <span className="text-2xl font-bold text-[var(--edu-blue)]">${program.tuition.toLocaleString()}</span>
-                    </div>
+                    {program.frais_inscription != null && (
+                      <div className="flex items-center justify-between py-4 border-b border-[var(--edu-divider)]">
+                        <span className="text-[var(--edu-text-secondary)]">Annual Tuition</span>
+                        <span className="text-2xl font-bold text-[var(--edu-blue)]">
+                          {program.frais_inscription.toLocaleString()} TND
+                        </span>
+                      </div>
+                    )}
                     <div>
-                      <h3 className="font-semibold text-[var(--edu-text-primary)] mb-3">Funding Options</h3>
+                      <h3 className="font-semibold text-[var(--edu-text-primary)] mb-3">
+                        Funding Options
+                      </h3>
                       <ul className="space-y-2 text-[var(--edu-text-secondary)]">
                         <li>• Merit-based scholarships</li>
                         <li>• Need-based financial aid</li>
@@ -269,49 +366,69 @@ export function ProgramDetail() {
 
               <TabsContent value="institution">
                 <div className="glass-card rounded-2xl p-8">
-                  <div className="flex items-start gap-6 mb-6">
-                    <img
-                      src={program.institution.logo}
-                      alt={program.institution.name}
-                      className="w-20 h-20 rounded-2xl object-cover"
-                    />
-                    <div className="flex-1">
-                      <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
-                        {program.institution.name}
-                      </h2>
-                      <div className="flex items-center gap-2 text-[var(--edu-text-secondary)] mb-4">
-                        <MapPin className="w-4 h-4" />
-                        <span>{program.institution.city}, {program.institution.country}</span>
+                  {program.institut ? (
+                    <div className="flex items-start gap-6">
+                      {program.institut.logo && (
+                        <img
+                          src={program.institut.logo}
+                          alt={program.institut.nom}
+                          className="w-20 h-20 rounded-2xl object-cover"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
+                          {program.institut.nom}
+                        </h2>
+                        {localisation && (
+                          <div className="flex items-center gap-2 text-[var(--edu-text-secondary)] mb-4">
+                            <MapPin className="w-4 h-4" />
+                            <span>{localisation}</span>
+                          </div>
+                        )}
+                        <Link to={`/institution/${program.institut.id}`}>
+                          <Button variant="outline" className="rounded-full">
+                            View Full Profile
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </Link>
                       </div>
-                      <Link to={`/institution/${program.institution.id}`}>
-                        <Button variant="outline" className="rounded-full">
-                          View Full Profile
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Button>
-                      </Link>
                     </div>
-                  </div>
+                  ) : (
+                    <p className="text-[var(--edu-text-secondary)]">
+                      Informations institution non disponibles.
+                    </p>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
           </div>
 
-          {/* Sidebar */}
+          {/* Barre latérale */}
           <aside className="w-[360px] flex-shrink-0 sticky top-[145px] self-start space-y-6">
-            {/* Apply Card */}
+            {/* Carte candidature */}
             <div className="glass-card rounded-2xl p-6">
-              <div className="text-center mb-6">
-                <p className="text-sm text-[var(--edu-text-secondary)] mb-2">Application Deadline</p>
-                <p className="text-3xl font-bold text-[var(--edu-text-primary)] mb-1">
-                  {daysLeft} days
-                </p>
-                <p className="text-sm text-[var(--edu-text-secondary)]">
-                  {deadline.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
+              {daysLeft != null && (
+                <div className="text-center mb-6">
+                  <p className="text-sm text-[var(--edu-text-secondary)] mb-2">
+                    Application Deadline
+                  </p>
+                  <p className="text-3xl font-bold text-[var(--edu-text-primary)] mb-1">
+                    {daysLeft} days
+                  </p>
+                  {deadlineDate && (
+                    <p className="text-sm text-[var(--edu-text-secondary)]">
+                      {deadlineDate.toLocaleDateString('fr-FR', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <Button
-                onClick={() => setApplyDialogOpen(true)}
+                onClick={handleApply}
                 className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 mb-3"
               >
                 Apply now
@@ -319,10 +436,11 @@ export function ProgramDetail() {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setSaved(!saved)}
-                  className="flex-1 border border-[var(--edu-border)] rounded-full py-2 hover:bg-[var(--edu-surface)] transition-colors"
+                  onClick={handleSave}
+                  disabled={favoriLoading}
+                  className="flex-1 border border-[var(--edu-border)] rounded-full py-2 hover:bg-[var(--edu-surface)] transition-colors disabled:opacity-50"
                 >
-                  Save
+                  {isFavori ? 'Saved ✓' : 'Save'}
                 </button>
                 <button className="flex-1 border border-[var(--edu-border)] rounded-full py-2 hover:bg-[var(--edu-surface)] transition-colors">
                   Share
@@ -330,60 +448,48 @@ export function ProgramDetail() {
               </div>
             </div>
 
-            {/* Institution Mini Card */}
-            <div className="glass-card rounded-2xl p-6">
-              <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">Institution</h3>
-              <div className="flex items-center gap-3 mb-4">
-                <img
-                  src={program.institution.logo}
-                  alt={program.institution.name}
-                  className="w-12 h-12 rounded-lg object-cover"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-[var(--edu-text-primary)] line-clamp-1">
-                    {program.institution.name}
-                  </p>
-                  <p className="text-sm text-[var(--edu-text-secondary)]">
-                    {program.institution.country}
-                  </p>
+            {/* Mini carte institution */}
+            {program.institut && (
+              <div className="glass-card rounded-2xl p-6">
+                <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">Institution</h3>
+                <div className="flex items-center gap-3 mb-4">
+                  {program.institut.logo && (
+                    <img
+                      src={program.institut.logo}
+                      alt={program.institut.nom}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-[var(--edu-text-primary)] line-clamp-1">
+                      {program.institut.nom}
+                    </p>
+                    {program.institut.adresse?.pays && (
+                      <p className="text-sm text-[var(--edu-text-secondary)]">
+                        {program.institut.adresse.pays}
+                      </p>
+                    )}
+                  </div>
                 </div>
+                <Link to={`/institution/${program.institut.id}`}>
+                  <Button variant="outline" className="w-full rounded-full">
+                    View Profile
+                  </Button>
+                </Link>
               </div>
-              <Link to={`/institution/${program.institution.id}`}>
-                <Button variant="outline" className="w-full rounded-full">
-                  View Profile
-                </Button>
-              </Link>
-            </div>
-
-            {/* Contact Card */}
-            <div className="glass-card rounded-2xl p-6">
-              <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">Contact</h3>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="text-[var(--edu-text-secondary)] mb-1">Email</p>
-                  <a href="#" className="text-[var(--edu-blue)] hover:underline">
-                    admissions@{program.institution.id}.edu
-                  </a>
-                </div>
-                <div>
-                  <p className="text-[var(--edu-text-secondary)] mb-1">Phone</p>
-                  <a href="#" className="text-[var(--edu-blue)] hover:underline">
-                    +1 (555) 123-4567
-                  </a>
-                </div>
-              </div>
-            </div>
+            )}
           </aside>
         </div>
       </div>
 
       <Footer />
 
-      {/* Application Dialog */}
+      {/* Dialogue de candidature — branché à l'API (étape 5.8) */}
       <MultiStepDialog
         open={applyDialogOpen}
         onOpenChange={setApplyDialogOpen}
-        programTitle={program.title}
+        programmeId={program.id}
+        programmeTitre={program.titre}
       />
     </div>
   );

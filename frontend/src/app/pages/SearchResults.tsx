@@ -1,14 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Search, Grid, List, SlidersHorizontal } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { ProgramCard } from '../components/ProgramCard';
 import { EmptyState } from '../components/EmptyState';
+import { SkeletonCard } from '../components/SkeletonCard';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Checkbox } from '../components/ui/checkbox';
 import { Slider } from '../components/ui/slider';
-import { mockPrograms, fields, countries } from '../data/mockData';
+import { fields, countries } from '../data/staticData';
+import { usePrograms } from '@/hooks/usePrograms';
+import type { ProgrammeFilters } from '@/types/api';
+
+// Niveaux backend disponibles
+const niveauxBackend = ['cycle_preparatoire', 'licence', 'master', 'ingenieur'] as const;
+
+// Options de tri disponibles
+type SortOption = 'relevance' | 'deadline' | 'tuition_asc' | 'tuition_desc';
 
 export function SearchResults() {
   const [view, setView] = React.useState<'grid' | 'list'>('list');
@@ -17,17 +26,69 @@ export function SearchResults() {
   const [selectedLevels, setSelectedLevels] = React.useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = React.useState<string[]>([]);
   const [tuitionRange, setTuitionRange] = React.useState([0, 100000]);
+  const [sortBy, setSortBy] = React.useState<SortOption>('relevance');
 
-  const filteredPrograms = mockPrograms.filter((program) => {
-    const matchesSearch = !searchQuery || program.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesField = selectedFields.length === 0 || selectedFields.includes(program.field);
-    const matchesLevel = selectedLevels.length === 0 || selectedLevels.includes(program.level);
-    const matchesCountry = selectedCountries.length === 0 || selectedCountries.includes(program.institution.country);
-    const matchesTuition = program.tuition >= tuitionRange[0] && program.tuition <= tuitionRange[1];
+  // --- Construction des filtres à envoyer au backend ---
+  // Règle : toujours undefined (jamais string vide) pour les filtres non actifs
+  const filters = useMemo<ProgrammeFilters>(() => ({
+    // Filtre domaine : on prend le premier champ sélectionné si compatible avec l'enum backend
+    domaine: selectedFields.length === 1
+      ? (selectedFields[0] as ProgrammeFilters['domaine'])
+      : undefined,
+    // Filtre niveau : on prend le premier niveau sélectionné si compatible
+    niveau: selectedLevels.length === 1
+      ? (selectedLevels[0] as ProgrammeFilters['niveau'])
+      : undefined,
+    // Filtre titre (recherche textuelle)
+    titre: searchQuery.trim() || undefined,
+  }), [selectedFields, selectedLevels, searchQuery]);
 
-    return matchesSearch && matchesField && matchesLevel && matchesCountry && matchesTuition;
-  });
+  const { programs, loading, error, refetch } = usePrograms(filters);
 
+  // --- Filtre tuition côté frontend (le backend n'expose pas ce filtre) ---
+  const maxTuition = tuitionRange[1];
+  const minTuition = tuitionRange[0];
+
+  const filteredPrograms = useMemo(() => {
+    // Filtre par tranche de frais
+    let result = programs.filter((p) => {
+      const frais = p.frais_inscription ?? 0;
+      return frais >= minTuition && frais <= maxTuition;
+    });
+
+    // Filtre pays côté frontend (le backend n'expose pas ce filtre)
+    if (selectedCountries.length > 0) {
+      result = result.filter((p) =>
+        selectedCountries.includes(p.institut?.adresse?.pays ?? '')
+      );
+    }
+
+    return result;
+  }, [programs, minTuition, maxTuition, selectedCountries]);
+
+  // --- Tri côté frontend ---
+  const sortedPrograms = useMemo(() => {
+    const list = [...filteredPrograms];
+    switch (sortBy) {
+      case 'deadline':
+        return list.sort((a, b) =>
+          new Date(a.date_limite_candidature ?? '').getTime() -
+          new Date(b.date_limite_candidature ?? '').getTime()
+        );
+      case 'tuition_asc':
+        return list.sort((a, b) =>
+          (a.frais_inscription ?? 0) - (b.frais_inscription ?? 0)
+        );
+      case 'tuition_desc':
+        return list.sort((a, b) =>
+          (b.frais_inscription ?? 0) - (a.frais_inscription ?? 0)
+        );
+      default:
+        return list;
+    }
+  }, [filteredPrograms, sortBy]);
+
+  // --- Gestion des filtres locaux ---
   const toggleField = (field: string) => {
     setSelectedFields((prev) =>
       prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]
@@ -52,13 +113,14 @@ export function SearchResults() {
     setSelectedCountries([]);
     setTuitionRange([0, 100000]);
     setSearchQuery('');
+    setSortBy('relevance');
   };
 
   return (
     <div className="min-h-screen bg-[var(--edu-surface)]">
       <Navbar />
 
-      {/* Search Bar */}
+      {/* Barre de recherche sticky */}
       <div className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)] sticky top-[73px] z-40">
         <div className="max-w-[1440px] mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
@@ -66,27 +128,33 @@ export function SearchResults() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--edu-text-tertiary)]" />
               <Input
                 type="text"
-                placeholder="Search programs..."
+                placeholder="Rechercher des programmes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 rounded-xl h-12"
               />
             </div>
 
-            <select className="px-4 py-2 rounded-xl border border-input bg-background h-12 min-w-[180px]">
-              <option>Relevance</option>
-              <option>Deadline</option>
-              <option>Newest</option>
-              <option>Tuition (Low to High)</option>
-              <option>Tuition (High to Low)</option>
+            {/* Select de tri */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="px-4 py-2 rounded-xl border border-input bg-background h-12 min-w-[180px]"
+            >
+              <option value="relevance">Pertinence</option>
+              <option value="deadline">Date limite</option>
+              <option value="tuition_asc">Frais (croissant)</option>
+              <option value="tuition_desc">Frais (décroissant)</option>
             </select>
 
+            {/* Bascule grille / liste */}
             <div className="flex items-center gap-2 border border-input rounded-xl p-1">
               <button
                 onClick={() => setView('list')}
                 className={`p-2 rounded-lg transition-colors ${
                   view === 'list' ? 'bg-[var(--edu-blue)] text-white' : 'text-[var(--edu-text-secondary)]'
                 }`}
+                aria-label="Vue liste"
               >
                 <List className="w-5 h-5" />
               </button>
@@ -95,6 +163,7 @@ export function SearchResults() {
                 className={`p-2 rounded-lg transition-colors ${
                   view === 'grid' ? 'bg-[var(--edu-blue)] text-white' : 'text-[var(--edu-text-secondary)]'
                 }`}
+                aria-label="Vue grille"
               >
                 <Grid className="w-5 h-5" />
               </button>
@@ -103,35 +172,35 @@ export function SearchResults() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Contenu principal */}
       <div className="max-w-[1440px] mx-auto px-6 py-8">
         <div className="flex gap-8">
-          {/* Sidebar Filters */}
+          {/* Sidebar filtres */}
           <aside className="w-[280px] flex-shrink-0 sticky top-[145px] self-start">
             <div className="glass-card rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-semibold text-[var(--edu-text-primary)] flex items-center gap-2">
                   <SlidersHorizontal className="w-5 h-5" />
-                  Filters
+                  Filtres
                 </h3>
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
-                  Clear all
+                  Réinitialiser
                 </Button>
               </div>
 
-              {/* Field of Study */}
+              {/* Domaine */}
               <div className="mb-6">
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Field of Study</h4>
+                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Domaine</h4>
                 <div className="space-y-3">
                   {fields.map((field) => (
                     <div key={field.name} className="flex items-center gap-2">
                       <Checkbox
-                        id={field.name}
+                        id={`field-${field.name}`}
                         checked={selectedFields.includes(field.name)}
                         onCheckedChange={() => toggleField(field.name)}
                       />
                       <label
-                        htmlFor={field.name}
+                        htmlFor={`field-${field.name}`}
                         className="text-sm text-[var(--edu-text-secondary)] cursor-pointer flex-1"
                       >
                         {field.name}
@@ -144,19 +213,19 @@ export function SearchResults() {
 
               <div className="h-px bg-[var(--edu-divider)] my-6" />
 
-              {/* Degree Level */}
+              {/* Niveau */}
               <div className="mb-6">
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Degree Level</h4>
+                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Niveau</h4>
                 <div className="space-y-3">
-                  {['Bachelor', 'Master', 'PhD', 'Certificate'].map((level) => (
+                  {niveauxBackend.map((level) => (
                     <div key={level} className="flex items-center gap-2">
                       <Checkbox
-                        id={level}
+                        id={`level-${level}`}
                         checked={selectedLevels.includes(level)}
                         onCheckedChange={() => toggleLevel(level)}
                       />
-                      <label htmlFor={level} className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
-                        {level}
+                      <label htmlFor={`level-${level}`} className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
+                        {level.replace(/_/g, ' ')}
                       </label>
                     </div>
                   ))}
@@ -165,18 +234,18 @@ export function SearchResults() {
 
               <div className="h-px bg-[var(--edu-divider)] my-6" />
 
-              {/* Country */}
+              {/* Pays */}
               <div className="mb-6">
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Country</h4>
+                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Pays</h4>
                 <div className="space-y-3 max-h-[200px] overflow-y-auto">
                   {countries.slice(0, 6).map((country) => (
                     <div key={country} className="flex items-center gap-2">
                       <Checkbox
-                        id={country}
+                        id={`country-${country}`}
                         checked={selectedCountries.includes(country)}
                         onCheckedChange={() => toggleCountry(country)}
                       />
-                      <label htmlFor={country} className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
+                      <label htmlFor={`country-${country}`} className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
                         {country}
                       </label>
                     </div>
@@ -186,26 +255,9 @@ export function SearchResults() {
 
               <div className="h-px bg-[var(--edu-divider)] my-6" />
 
-              {/* Delivery Mode */}
-              <div className="mb-6">
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Delivery Mode</h4>
-                <div className="space-y-3">
-                  {['On-campus', 'Online', 'Hybrid'].map((mode) => (
-                    <div key={mode} className="flex items-center gap-2">
-                      <Checkbox id={mode} />
-                      <label htmlFor={mode} className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
-                        {mode}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="h-px bg-[var(--edu-divider)] my-6" />
-
-              {/* Tuition Range */}
+              {/* Frais d'inscription */}
               <div>
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Tuition Range</h4>
+                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Frais d'inscription</h4>
                 <div className="space-y-4">
                   <Slider
                     min={0}
@@ -216,50 +268,79 @@ export function SearchResults() {
                     className="mb-2"
                   />
                   <div className="flex items-center justify-between text-xs text-[var(--edu-text-secondary)]">
-                    <span>${tuitionRange[0].toLocaleString()}</span>
-                    <span>${tuitionRange[1].toLocaleString()}</span>
+                    <span>{tuitionRange[0].toLocaleString()} TND</span>
+                    <span>{tuitionRange[1].toLocaleString()} TND</span>
                   </div>
                 </div>
               </div>
             </div>
           </aside>
 
-          {/* Results */}
+          {/* Zone de résultats */}
           <main className="flex-1">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
-                {filteredPrograms.length} Programs Found
-              </h2>
-              <p className="text-[var(--edu-text-secondary)]">
-                {selectedFields.length > 0 && (
-                  <span>in {selectedFields.join(', ')} </span>
-                )}
-                {selectedCountries.length > 0 && (
-                  <span>from {selectedCountries.join(', ')}</span>
-                )}
-              </p>
-            </div>
+            {/* Compteur de résultats */}
+            {!loading && !error && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
+                  {sortedPrograms.length} programme{sortedPrograms.length !== 1 ? 's' : ''} trouvé{sortedPrograms.length !== 1 ? 's' : ''}
+                </h2>
+                <p className="text-[var(--edu-text-secondary)]">
+                  {selectedFields.length > 0 && (
+                    <span>dans {selectedFields.join(', ')} </span>
+                  )}
+                  {selectedCountries.length > 0 && (
+                    <span>depuis {selectedCountries.join(', ')}</span>
+                  )}
+                </p>
+              </div>
+            )}
 
-            {filteredPrograms.length > 0 ? (
-              <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
-                {filteredPrograms.map((program) => (
-                  <ProgramCard key={program.id} program={program} view={view} />
+            {/* État chargement — grille de skeletons */}
+            {loading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonCard key={i} />
                 ))}
               </div>
-            ) : (
+            )}
+
+            {/* État erreur */}
+            {error && (
+              <div className="text-center py-20 flex flex-col items-center gap-4">
+                <p className="text-[var(--edu-danger)]">{error}</p>
+                <button
+                  onClick={refetch}
+                  className="px-4 py-2 bg-[var(--edu-blue)] text-white rounded-lg hover:bg-[var(--edu-blue-hover)] transition-colors"
+                >
+                  Réessayer
+                </button>
+              </div>
+            )}
+
+            {/* État vide */}
+            {!loading && !error && sortedPrograms.length === 0 && (
               <EmptyState
-                title="No programs found"
-                description="Try adjusting your filters or search criteria to find more programs."
-                actionLabel="Clear filters"
+                title="Aucun programme trouvé"
+                description="Essayez d'ajuster vos filtres ou votre recherche pour trouver plus de programmes."
+                actionLabel="Réinitialiser les filtres"
                 onAction={clearFilters}
               />
             )}
 
-            {/* Pagination */}
-            {filteredPrograms.length > 0 && (
+            {/* Liste / grille des programmes */}
+            {!loading && !error && sortedPrograms.length > 0 && (
+              <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+                {sortedPrograms.map((programme) => (
+                  <ProgramCard key={programme.id} programme={programme} view={view} />
+                ))}
+              </div>
+            )}
+
+            {/* Pagination (statique, à brancher en étape suivante) */}
+            {!loading && !error && sortedPrograms.length > 0 && (
               <div className="flex items-center justify-center gap-2 mt-12">
                 <Button variant="outline" disabled className="rounded-full">
-                  Previous
+                  Précédent
                 </Button>
                 {[1, 2, 3, 4, 5].map((page) => (
                   <Button
@@ -273,7 +354,7 @@ export function SearchResults() {
                   </Button>
                 ))}
                 <Button variant="outline" className="rounded-full">
-                  Next
+                  Suivant
                 </Button>
               </div>
             )}
