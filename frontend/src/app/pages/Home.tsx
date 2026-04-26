@@ -23,6 +23,33 @@ const domaines: { key: NonNullable<ProgrammeFilters['domaine']>; label: string }
   { key: 'management',   label: 'Management' },
 ];
 
+const etapes = [
+  {
+    numero: 1,
+    emoji: '🔍',
+    titre: 'Explorer',
+    description: 'Découvrez les meilleurs instituts et trouvez le programme adapté à votre projet académique.',
+  },
+  {
+    numero: 2,
+    emoji: '📋',
+    titre: 'Candidater',
+    description: 'Déposez votre dossier complet et envoyez votre candidature en quelques étapes simples.',
+  },
+  {
+    numero: 3,
+    emoji: '📡',
+    titre: 'Suivre',
+    description: 'Consultez l\'avancement de votre candidature et recevez les décisions en temps réel.',
+  },
+  {
+    numero: 4,
+    emoji: '🎓',
+    titre: 'Confirmer',
+    description: 'Finalisez votre admission et préparez votre intégration dans l\'établissement choisi.',
+  },
+];
+
 export function Home() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const { programs } = usePrograms({ est_actif: true });
@@ -308,46 +335,72 @@ export function Home() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-16">
-        <div className="max-w-[1440px] mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">Comment ça marche</h2>
-            <p className="text-[var(--edu-text-secondary)] text-lg">Votre parcours vers l'admission en trois étapes simples</p>
+      <section className="py-20 px-8 bg-white">
+        <div className="max-w-[1000px] mx-auto">
+
+          {/* En-tête */}
+          <div className="text-center mb-14">
+            <span className="inline-flex items-center gap-1.5 bg-[#EEF3FF]
+              text-[--edu-blue] text-[11px] font-bold tracking-widest uppercase
+              px-4 py-1.5 rounded-full mb-4">
+              Comment ça marche
+            </span>
+            <h2 className="text-[2.2rem] font-extrabold text-[--edu-text-primary]
+              tracking-tight mb-3">
+              Votre parcours en{' '}
+              <span className="text-[--edu-blue]">4 étapes</span>
+            </h2>
+            <p className="text-sm text-[--edu-text-secondary] max-w-md mx-auto leading-relaxed">
+              De la découverte à l'admission, EduBridge vous accompagne
+              à chaque étape de votre orientation.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {[
-              {
-                step: '01',
-                title: 'Explorer',
-                description: 'Parcourez des milliers de programmes dans les meilleurs instituts tunisiens. Utilisez les filtres pour trouver la formation idéale.',
-                icon: '🔍',
-              },
-              {
-                step: '02',
-                title: 'Candidater',
-                description: 'Soumettez votre dossier via notre processus simplifié. Suivez votre candidature à chaque étape.',
-                icon: '📝',
-              },
-              {
-                step: '03',
-                title: 'Être admis',
-                description: 'Recevez les décisions et échangez avec les instituts. Démarrez votre parcours académique en toute sérénité.',
-                icon: '🎓',
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.2, duration: 0.5 }}
-                className="text-center"
+          {/* Grid 4 colonnes */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
+
+            {/* Ligne de connexion (desktop uniquement) */}
+            <div className="hidden md:block absolute top-10 left-[12%] right-[12%] h-0.5
+              bg-gradient-to-r from-[--edu-blue] via-blue-300 to-[#E5E5EA] z-0" />
+
+            {etapes.map((etape, index) => (
+              <div
+                key={etape.numero}
+                className={`relative z-10 rounded-2xl p-6 flex flex-col items-center
+                  text-center border transition-all duration-200 hover:-translate-y-1
+                  hover:shadow-lg
+                  ${index === 0
+                    ? 'bg-[--edu-blue] border-[--edu-blue]'
+                    : 'bg-white border-[#E5E5EA] hover:border-[--edu-blue]'
+                  }`}
               >
-                <div className="text-6xl mb-6">{item.icon}</div>
-                <div className="text-sm font-bold text-[var(--edu-blue)] mb-2">ÉTAPE {item.step}</div>
-                <h3 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-3">{item.title}</h3>
-                <p className="text-[var(--edu-text-secondary)]">{item.description}</p>
-              </motion.div>
+                {/* Numéro bulle */}
+                <div className={`absolute -top-3.5 left-1/2 -translate-x-1/2
+                  w-7 h-7 rounded-full border-2 border-white
+                  flex items-center justify-center text-xs font-black
+                  ${index === 0
+                    ? 'bg-white/20 text-white'
+                    : 'bg-[#EEF3FF] text-[--edu-blue]'
+                  }`}>
+                  {etape.numero}
+                </div>
+
+                {/* Icône */}
+                <div className={`w-13 h-13 rounded-[14px] flex items-center justify-center
+                  text-2xl mt-2 mb-4
+                  ${index === 0 ? 'bg-white/15' : 'bg-[#EEF3FF]'}`}>
+                  {etape.emoji}
+                </div>
+
+                <p className={`text-sm font-bold mb-2
+                  ${index === 0 ? 'text-white' : 'text-[--edu-text-primary]'}`}>
+                  {etape.titre}
+                </p>
+                <p className={`text-xs leading-relaxed
+                  ${index === 0 ? 'text-white/75' : 'text-[--edu-text-secondary]'}`}>
+                  {etape.description}
+                </p>
+              </div>
             ))}
           </div>
         </div>
