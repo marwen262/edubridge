@@ -26,7 +26,7 @@ const domaines: { key: NonNullable<ProgrammeFilters['domaine']>; label: string }
 export function Home() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const { programs } = usePrograms({ est_actif: true });
-  const { instituts: institutsRaw } = useInstituts();
+  const { instituts: institutsRaw, loading: institusLoading } = useInstituts({ est_verifie: true });
   const instituts = institutsRaw as Institut[];
 
   useEffect(() => {
@@ -222,9 +222,13 @@ export function Home() {
             </Link>
           </div>
 
-          {instituts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {instituts.slice(0, 4).map((institution, i) => (
+          {institusLoading ? (
+            <p className="text-center text-[var(--edu-text-secondary)] py-8">
+              Chargement…
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {instituts.slice(0, 3).map((institution, i) => (
                 <motion.div
                   key={institution.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -235,10 +239,6 @@ export function Home() {
                 </motion.div>
               ))}
             </div>
-          ) : (
-            <p className="text-center text-[var(--edu-text-secondary)] py-8">
-              Chargement des instituts…
-            </p>
           )}
         </div>
       </section>
