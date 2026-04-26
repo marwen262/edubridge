@@ -1,11 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router';
-import { Moon, Sun, GraduationCap, Bell, LogOut } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router';
+import { Moon, Sun, Bell, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { notificationService } from '@/services/api';
 import { NotificationDropdown } from './NotificationDropdown';
+import logoEduBridge from '@/assets/logo/logoedubridge.png';
 
 interface NavbarProps {
   transparent?: boolean;
@@ -17,6 +18,8 @@ export function Navbar({ transparent = false }: NavbarProps) {
   const notifRef = React.useRef<HTMLDivElement>(null);
 
   const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Toujours appelé, mais affiché uniquement si authentifié
   const { notifications, unreadCount, refetch: refetchNotifications } = useNotifications();
@@ -27,6 +30,26 @@ export function Navbar({ transparent = false }: NavbarProps) {
       : user?.role === 'institut'
         ? '/dashboard/institution'
         : '/dashboard/admin';
+
+  /**
+   * Navigue vers l'ancre #id sur la page d'accueil.
+   * Si l'utilisateur est déjà sur /, scroll directement.
+   * Sinon, navigue d'abord vers / puis scroll après le rendu.
+   */
+  const handleScrollAnchor = (e: React.MouseEvent, anchor: string) => {
+    e.preventDefault();
+    const scrollToAnchor = () => {
+      const el = document.getElementById(anchor);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    };
+    if (location.pathname === '/') {
+      scrollToAnchor();
+    } else {
+      navigate('/');
+      // Attend le prochain tick pour que Home soit monté
+      setTimeout(scrollToAnchor, 100);
+    }
+  };
 
   React.useEffect(() => {
     const isDark = localStorage.getItem('darkMode') === 'true';
@@ -76,13 +99,23 @@ export function Navbar({ transparent = false }: NavbarProps) {
       <div className="max-w-[1440px] mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 text-[var(--edu-text-primary)]">
-            <GraduationCap className="w-8 h-8 text-[var(--edu-blue)]" />
-            <span className="text-xl font-semibold tracking-tight">EduBridge</span>
+          <Link to="/" className="flex items-center">
+            <img
+              src={logoEduBridge}
+              alt="EduBridge"
+              className="h-14 w-auto scale-110 origin-left dark:bg-white dark:rounded-lg dark:px-2 dark:py-1"
+            />
           </Link>
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-8">
+            <Link
+              to="/"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
+            >
+              Home
+            </Link>
             <Link
               to="/search"
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
@@ -90,16 +123,30 @@ export function Navbar({ transparent = false }: NavbarProps) {
               Programs
             </Link>
             <Link
-              to="/search"
+              to="/institutions"
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
               Institutions
             </Link>
+            <Link
+              to="/compare"
+              className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
+            >
+              Compare
+            </Link>
             <a
               href="#how-it-works"
+              onClick={(e) => handleScrollAnchor(e, 'how-it-works')}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
               How it works
+            </a>
+            <a
+              href="#about"
+              onClick={(e) => handleScrollAnchor(e, 'about')}
+              className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
+            >
+              About
             </a>
           </div>
 
