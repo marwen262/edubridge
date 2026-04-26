@@ -14,40 +14,13 @@ import { motion } from 'motion/react';
 
 const domaines: { key: NonNullable<ProgrammeFilters['domaine']>; label: string }[] = [
   { key: 'informatique', label: 'Informatique' },
-  { key: 'genie_civil',  label: 'Génie Civil' },
-  { key: 'electrique',   label: 'Génie Électrique' },
-  { key: 'mecanique',    label: 'Génie Mécanique' },
-  { key: 'chimie',       label: 'Chimie' },
-  { key: 'agronomie',    label: 'Agronomie' },
-  { key: 'finance',      label: 'Finance' },
-  { key: 'management',   label: 'Management' },
-];
-
-const etapes = [
-  {
-    numero: 1,
-    emoji: '🔍',
-    titre: 'Explorer',
-    description: 'Découvrez les meilleurs instituts et trouvez le programme adapté à votre projet académique.',
-  },
-  {
-    numero: 2,
-    emoji: '📋',
-    titre: 'Candidater',
-    description: 'Déposez votre dossier complet et envoyez votre candidature en quelques étapes simples.',
-  },
-  {
-    numero: 3,
-    emoji: '📡',
-    titre: 'Suivre',
-    description: 'Consultez l\'avancement de votre candidature et recevez les décisions en temps réel.',
-  },
-  {
-    numero: 4,
-    emoji: '🎓',
-    titre: 'Confirmer',
-    description: 'Finalisez votre admission et préparez votre intégration dans l\'établissement choisi.',
-  },
+  { key: 'genie_civil', label: 'Génie Civil' },
+  { key: 'electrique', label: 'Génie Électrique' },
+  { key: 'mecanique', label: 'Génie Mécanique' },
+  { key: 'chimie', label: 'Chimie' },
+  { key: 'agronomie', label: 'Agronomie' },
+  { key: 'finance', label: 'Finance' },
+  { key: 'management', label: 'Management' },
 ];
 
 export function Home() {
@@ -105,20 +78,20 @@ export function Home() {
           preserveAspectRatio="xMidYMid slice"
           viewBox="0 0 1440 900"
         >
-          <line x1="200" y1="150" x2="500" y2="400" stroke="white" strokeWidth="1"/>
-          <line x1="500" y1="400" x2="900" y2="200" stroke="white" strokeWidth="1"/>
-          <line x1="900" y1="200" x2="1200" y2="500" stroke="white" strokeWidth="1"/>
-          <line x1="1200" y1="500" x2="800" y2="700" stroke="white" strokeWidth="1"/>
-          <line x1="800" y1="700" x2="400" y2="600" stroke="white" strokeWidth="1"/>
-          <line x1="400" y1="600" x2="200" y2="150" stroke="white" strokeWidth="1"/>
-          <line x1="500" y1="400" x2="800" y2="700" stroke="white" strokeWidth="1"/>
-          <line x1="900" y1="200" x2="400" y2="600" stroke="white" strokeWidth="1"/>
-          <circle cx="200" cy="150" r="4" fill="white"/>
-          <circle cx="500" cy="400" r="4" fill="white"/>
-          <circle cx="900" cy="200" r="4" fill="white"/>
-          <circle cx="1200" cy="500" r="4" fill="white"/>
-          <circle cx="800" cy="700" r="4" fill="white"/>
-          <circle cx="400" cy="600" r="4" fill="white"/>
+          <line x1="200" y1="150" x2="500" y2="400" stroke="white" strokeWidth="1" />
+          <line x1="500" y1="400" x2="900" y2="200" stroke="white" strokeWidth="1" />
+          <line x1="900" y1="200" x2="1200" y2="500" stroke="white" strokeWidth="1" />
+          <line x1="1200" y1="500" x2="800" y2="700" stroke="white" strokeWidth="1" />
+          <line x1="800" y1="700" x2="400" y2="600" stroke="white" strokeWidth="1" />
+          <line x1="400" y1="600" x2="200" y2="150" stroke="white" strokeWidth="1" />
+          <line x1="500" y1="400" x2="800" y2="700" stroke="white" strokeWidth="1" />
+          <line x1="900" y1="200" x2="400" y2="600" stroke="white" strokeWidth="1" />
+          <circle cx="200" cy="150" r="4" fill="white" />
+          <circle cx="500" cy="400" r="4" fill="white" />
+          <circle cx="900" cy="200" r="4" fill="white" />
+          <circle cx="1200" cy="500" r="4" fill="white" />
+          <circle cx="800" cy="700" r="4" fill="white" />
+          <circle cx="400" cy="600" r="4" fill="white" />
         </svg>
 
         {/* COUCHE 4 — Contenu texte centré */}
@@ -335,72 +308,52 @@ export function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 px-8 bg-white">
-        <div className="max-w-[1000px] mx-auto">
-
-          {/* En-tête */}
-          <div className="text-center mb-14">
-            <span className="inline-flex items-center gap-1.5 bg-[#EEF3FF]
-              text-[--edu-blue] text-[11px] font-bold tracking-widest uppercase
-              px-4 py-1.5 rounded-full mb-4">
-              Comment ça marche
-            </span>
-            <h2 className="text-[2.2rem] font-extrabold text-[--edu-text-primary]
-              tracking-tight mb-3">
-              Votre parcours en{' '}
-              <span className="text-[--edu-blue]">4 étapes</span>
-            </h2>
-            <p className="text-sm text-[--edu-text-secondary] max-w-md mx-auto leading-relaxed">
-              De la découverte à l'admission, EduBridge vous accompagne
-              à chaque étape de votre orientation.
-            </p>
+      <section id="how-it-works" className="py-16">
+        <div className="max-w-[1440px] mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">Comment ça marche</h2>
+            <p className="text-[var(--edu-text-secondary)] text-lg">Votre parcours vers l'admission en quatre étapes simples</p>
           </div>
 
-          {/* Grid 4 colonnes */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
-
-            {/* Ligne de connexion (desktop uniquement) */}
-            <div className="hidden md:block absolute top-10 left-[12%] right-[12%] h-0.5
-              bg-gradient-to-r from-[--edu-blue] via-blue-300 to-[#E5E5EA] z-0" />
-
-            {etapes.map((etape, index) => (
-              <div
-                key={etape.numero}
-                className={`relative z-10 rounded-2xl p-6 flex flex-col items-center
-                  text-center border transition-all duration-200 hover:-translate-y-1
-                  hover:shadow-lg
-                  ${index === 0
-                    ? 'bg-[--edu-blue] border-[--edu-blue]'
-                    : 'bg-white border-[#E5E5EA] hover:border-[--edu-blue]'
-                  }`}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              {
+                step: '01',
+                title: 'Explorer',
+                description: 'Découvrez les meilleurs instituts et trouvez le programme adapté à votre projet académique.',
+                icon: '🔍',
+              },
+              {
+                step: '02',
+                title: 'Candidater',
+                description: 'Déposez votre dossier complet et envoyez votre candidature en quelques étapes simples.',
+                icon: '📋',
+              },
+              {
+                step: '03',
+                title: 'Suivre',
+                description: 'Consultez l\'avancement de votre candidature et recevez les décisions en temps réel.',
+                icon: '📡',
+              },
+              {
+                step: '04',
+                title: 'Confirmer',
+                description: 'Finalisez votre admission et préparez votre intégration dans l\'établissement choisi.',
+                icon: '🎓',
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.2, duration: 0.5 }}
+                className="text-center"
               >
-                {/* Numéro bulle */}
-                <div className={`absolute -top-3.5 left-1/2 -translate-x-1/2
-                  w-7 h-7 rounded-full border-2 border-white
-                  flex items-center justify-center text-xs font-black
-                  ${index === 0
-                    ? 'bg-white/20 text-white'
-                    : 'bg-[#EEF3FF] text-[--edu-blue]'
-                  }`}>
-                  {etape.numero}
-                </div>
-
-                {/* Icône */}
-                <div className={`w-13 h-13 rounded-[14px] flex items-center justify-center
-                  text-2xl mt-2 mb-4
-                  ${index === 0 ? 'bg-white/15' : 'bg-[#EEF3FF]'}`}>
-                  {etape.emoji}
-                </div>
-
-                <p className={`text-sm font-bold mb-2
-                  ${index === 0 ? 'text-white' : 'text-[--edu-text-primary]'}`}>
-                  {etape.titre}
-                </p>
-                <p className={`text-xs leading-relaxed
-                  ${index === 0 ? 'text-white/75' : 'text-[--edu-text-secondary]'}`}>
-                  {etape.description}
-                </p>
-              </div>
+                <div className="text-6xl mb-6">{item.icon}</div>
+                <div className="text-sm font-bold text-[var(--edu-blue)] mb-2">ÉTAPE {item.step}</div>
+                <h3 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-3">{item.title}</h3>
+                <p className="text-[var(--edu-text-secondary)]">{item.description}</p>
+              </motion.div>
             ))}
           </div>
         </div>
