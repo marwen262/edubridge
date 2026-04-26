@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { ProgramCard } from '../components/ProgramCard';
-import { InstitutionCard } from '../components/InstitutionCard';
+import { InstitutCard } from '../components/InstitutCard';
 import { Button } from '../components/ui/button';
 import { usePrograms } from '@/hooks/usePrograms';
 import { useInstituts } from '@/hooks/useInstituts';
@@ -228,15 +228,8 @@ export function Home() {
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {instituts.slice(0, 3).map((institution, i) => (
-                <motion.div
-                  key={institution.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1, duration: 0.4 }}
-                >
-                  <InstitutionCard institution={institution} />
-                </motion.div>
+              {instituts.slice(0, 3).map((institution) => (
+                <InstitutCard key={institution.id} institut={institution} />
               ))}
             </div>
           )}
