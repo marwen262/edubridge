@@ -27,9 +27,10 @@ const steps: Step[] = [
 
 // Map des champs fichiers → libellés UI / clé Multer backend
 const champsFichiers = [
-  { cle: 'cv', libelle: 'Curriculum Vitae (CV)', backend: 'cv' },
   { cle: 'diplome', libelle: 'Diplôme du baccalauréat', backend: 'diplome_bac' },
   { cle: 'releves', libelle: 'Relevés de notes', backend: 'releves_notes' },
+  { cle: 'piece_identite', libelle: 'CIN ou Passeport', backend: 'piece_identite' },
+  { cle: 'lettre_motivation', libelle: 'Lettre de motivation', backend: 'lettre_motivation' },
   { cle: 'recommandation', libelle: 'Lettre de recommandation', backend: 'lettre_recommandation' },
 ] as const;
 

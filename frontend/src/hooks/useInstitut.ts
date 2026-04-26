@@ -21,7 +21,9 @@ export function useInstitut(id: string | undefined) {
     institutService
       .getById(id)
       .then(({ data }) => {
-        if (!cancelled) setInstitut(data as Institut);
+        // Backend retourne { institut: {...} }
+        const payload = data as { institut?: Institut };
+        if (!cancelled) setInstitut(payload.institut ?? null);
       })
       .catch((err) => {
         if (!cancelled)

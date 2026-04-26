@@ -57,15 +57,18 @@ const dateLimite = '2026-08-31'
 // Source de vérité : programme.documents_requis (JSONB [{nom, obligatoire, label}]).
 // verifierCompletude() lit ces listes dynamiquement — aucune règle globale hardcodée.
 // Champ label : affiché par le frontend ; ignoré par la logique de validation.
-// Seeder 5 injecte cv+diplome_bac+releves_notes via bulkInsert (hors workflow) ;
-// les candidatures déjà soumises ne sont jamais re-validées.
+//
+// IMPORTANT : seuls les noms de champs Multer valides sont autorisés :
+//   diplome_bac, diplome_licence, releves_notes, attestation_prepa,
+//   lettre_motivation, piece_identite, photo_identite,
+//   lettre_recommandation, attestation_stage
+// ❌ cv n'est PAS un champ Multer — ne jamais l'inclure.
 
 // Cycle Préparatoire Intégré (post-bac, 2 ans)
 const documentsRequisPreparatoire = JSON.stringify([
   { nom: 'diplome_bac',       obligatoire: true,  label: 'Diplôme / Attestation Baccalauréat' },
   { nom: 'releves_notes',     obligatoire: true,  label: 'Relevés de notes lycée (2e et 3e années)' },
-  { nom: 'piece_identite',    obligatoire: false, label: 'CIN ou Passeport' },
-  { nom: 'photo_identite',    obligatoire: false, label: "Photo d'identité récente" },
+  { nom: 'piece_identite',    obligatoire: true,  label: 'CIN ou Passeport' },
   { nom: 'lettre_motivation', obligatoire: false, label: 'Lettre de motivation' },
 ])
 
@@ -79,31 +82,22 @@ const documentsRequisLicence = JSON.stringify([
 
 // Cycle Ingénieur (bac+5) — après Cycle Préparatoire validé ou concours national
 const documentsRequisIngenieur = JSON.stringify([
-  { nom: 'releves_notes',     obligatoire: true,  label: 'Relevés de notes Cycle Préparatoire' },
-  { nom: 'attestation_prepa', obligatoire: true,  label: 'Attestation validation Cycle Préparatoire (ou résultat concours)' },
-  { nom: 'piece_identite',    obligatoire: true,  label: 'CIN ou Passeport' },
-  { nom: 'diplome_bac',       obligatoire: false, label: 'Diplôme Baccalauréat' },
-  { nom: 'lettre_motivation', obligatoire: false, label: 'Lettre de motivation' },
-  { nom: 'attestation_stage', obligatoire: false, label: 'Attestation de stage' },
+  { nom: 'diplome_bac',           obligatoire: true,  label: 'Diplôme Baccalauréat' },
+  { nom: 'attestation_prepa',     obligatoire: false, label: 'Attestation validation Cycle Préparatoire (ou résultat concours)' },
+  { nom: 'releves_notes',         obligatoire: true,  label: 'Relevés de notes Cycle Préparatoire' },
+  { nom: 'piece_identite',        obligatoire: true,  label: 'CIN ou Passeport' },
+  { nom: 'lettre_motivation',     obligatoire: false, label: 'Lettre de motivation' },
+  { nom: 'lettre_recommandation', obligatoire: false, label: 'Lettre de recommandation' },
 ])
 
 // Master (bac+5) — sur dossier après licence ou diplôme ingénieur
 const documentsRequisMaster = JSON.stringify([
   { nom: 'diplome_licence',       obligatoire: true,  label: 'Diplôme Licence (ou Diplôme Ingénieur équivalent)' },
   { nom: 'releves_notes',         obligatoire: true,  label: 'Relevés de notes Licence' },
-  { nom: 'lettre_motivation',     obligatoire: true,  label: 'Lettre de motivation' },
   { nom: 'piece_identite',        obligatoire: true,  label: 'CIN ou Passeport' },
+  { nom: 'lettre_motivation',     obligatoire: false, label: 'Lettre de motivation' },
   { nom: 'lettre_recommandation', obligatoire: false, label: 'Lettre de recommandation' },
-])
-
-// Programmes internationaux MedTech (anglophone + partenariats)
-// piece_identite obligatoire : vérification d'identité plus stricte pour cursus international
-const documentsRequisInternational = JSON.stringify([
-  { nom: 'diplome_bac',           obligatoire: true,  label: 'Diplôme Baccalauréat' },
-  { nom: 'releves_notes',         obligatoire: true,  label: 'Relevés de notes' },
-  { nom: 'piece_identite',        obligatoire: true,  label: 'CIN ou Passeport' },
-  { nom: 'lettre_motivation',     obligatoire: false, label: 'Lettre de motivation (en anglais)' },
-  { nom: 'lettre_recommandation', obligatoire: false, label: 'Lettre de recommandation' },
+  { nom: 'attestation_stage',     obligatoire: false, label: 'Attestation de stage' },
 ])
 
 // ── Prérequis par niveau ─────────────────────────────────────
@@ -292,7 +286,7 @@ module.exports = {
           "hardware architecture, embedded systems, software engineering " +
           "and full-stack development. Admitted after a validated 2-year " +
           "preparatory cycle or equivalent competitive exam.",
-        documents_requis: documentsRequisInternational,
+        documents_requis: documentsRequisIngenieur,
         prerequis: prerequisIngenieurInfo,
         frais_inscription: 12000.0,
         date_limite_candidature: dateLimite,
@@ -317,7 +311,7 @@ module.exports = {
           "format: full-stack web, DevOps, agile methodologies and software " +
           "architecture patterns. Candidates must hold a compatible bachelor " +
           "or engineering degree in computer science.",
-        documents_requis: documentsRequisInternational,
+        documents_requis: documentsRequisMaster,
         prerequis: prerequisMasterSoftware,
         frais_inscription: 12500.0,
         date_limite_candidature: dateLimite,

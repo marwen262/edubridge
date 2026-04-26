@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { GraduationCap, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import logoEduBridge from '@/assets/logo/logoedubridge.png';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -71,9 +72,12 @@ export function Login() {
     <div className="min-h-screen dotted-bg flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <GraduationCap className="w-10 h-10 text-[var(--edu-blue)]" />
-          <span className="text-2xl font-bold text-[var(--edu-text-primary)]">EduBridge</span>
+        <Link to="/" className="flex items-center justify-center mb-8">
+          <img
+            src={logoEduBridge}
+            alt="EduBridge"
+            className="h-14 w-auto dark:bg-white dark:rounded-xl dark:px-3 dark:py-1.5"
+          />
         </Link>
 
         {/* Card */}

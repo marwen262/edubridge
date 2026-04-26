@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router';
 import { Home } from './pages/Home';
 import { SearchResults } from './pages/SearchResults';
+import { Institutions } from './pages/Institutions';
 import { ProgramDetail } from './pages/ProgramDetail';
 import { InstitutionProfile } from './pages/InstitutionProfile';
 import { Compare } from './pages/Compare';
@@ -20,6 +21,10 @@ export const router = createBrowserRouter([
   {
     path: '/search',
     Component: SearchResults,
+  },
+  {
+    path: '/institutions',
+    Component: Institutions,
   },
   {
     path: '/program/:id',
