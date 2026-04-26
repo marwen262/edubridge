@@ -34,14 +34,8 @@ const CAND_SARRA_MEDTECH_SE_ID   = '55555555-2222-4222-8222-000000000002'
 const CAND_YASSINE_POLY_CIVIL_ID = '55555555-3333-4333-8333-000000000001'
 const CAND_YASSINE_POLY_INFO_ID  = '55555555-3333-4333-8333-000000000002'
 
-// Helper : 3 documents standards déjà uploadés
+// Helper : 2 documents standards déjà uploadés (Baccalauréat + Relevés)
 const documentsSoumisStandard = JSON.stringify([
-  {
-    nom: 'cv',
-    url: '/uploads/seed-cv.pdf',
-    media_id: null,
-    telecharge_le: '2026-04-05T10:00:00Z',
-  },
   {
     nom: 'diplome_bac',
     url: '/uploads/seed-diplome.pdf',

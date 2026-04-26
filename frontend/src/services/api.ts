@@ -38,11 +38,14 @@ api.interceptors.response.use(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (error: any) => {
     const status: number | undefined = error.response?.status;
-    if (status === 401) {
+    // Ne rediriger sur 401 que si un token était présent (session expirée).
+    // Un visiteur non connecté qui frappe un endpoint protégé reçoit 401 mais
+    // ne doit pas être expulsé de la navigation publique (/, /search, etc.).
+    if (status === 401 && localStorage.getItem('auth_token')) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
       window.location.href = '/login';
-    } else if (status === 403) {
+    } else if (status === 403 && localStorage.getItem('auth_token')) {
       window.location.href = '/';
     }
     return Promise.reject(error);

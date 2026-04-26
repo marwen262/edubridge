@@ -43,6 +43,11 @@ export function FirstLogin() {
     formState: { errors, isSubmitting },
   } = useForm<FirstLoginFormData>({
     resolver: zodResolver(firstLoginSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
   });
 
   const watchedNewPassword = watch('newPassword') ?? '';

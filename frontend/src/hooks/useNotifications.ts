@@ -18,7 +18,8 @@ export function useNotifications() {
     notificationService
       .getMine()
       .then(({ data }) => {
-        if (!cancelled) setNotifications(data as Notification[]);
+        if (!cancelled)
+          setNotifications((data as { notifications: Notification[] }).notifications ?? []);
       })
       .catch((err) => {
         if (!cancelled)

@@ -15,7 +15,7 @@ export function useFavoriStatus(programmeId: string) {
   const handleToggle = async () => {
     if (!isAuthenticated) {
       toast.error('Connectez-vous pour ajouter aux favoris');
-      window.location.href = '/login';
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
       return;
     }
     if (!programmeId) return;

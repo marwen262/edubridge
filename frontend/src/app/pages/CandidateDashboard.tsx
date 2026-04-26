@@ -569,7 +569,11 @@ export function CandidateDashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
-                { name: 'CV', status: 'Verified', color: 'var(--edu-success)' },
+                {
+                  name: 'Baccalauréat',
+                  status: 'Verified',
+                  color: 'var(--edu-success)',
+                },
                 {
                   name: 'Transcripts',
                   status: 'Pending',

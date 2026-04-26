@@ -13,7 +13,8 @@ import { useAuth } from '@/context/AuthContext';
 
 const signupSchema = z
   .object({
-    fullName: z.string().min(2, 'Nom complet requis'),
+    prenom: z.string().min(2, 'Prénom requis'),
+    nom: z.string().min(2, 'Nom requis'),
     email: z.string().email('Email invalide'),
     password: z
       .string()
@@ -22,9 +23,6 @@ const signupSchema = z
       .regex(/[0-9]/, 'Un chiffre requis')
       .regex(/[!@#$%^&*]/, 'Un caractère spécial requis'),
     confirmPassword: z.string(),
-    country: z.string().min(1, 'Pays requis'),
-    educationLevel: z.string().min(1, 'Niveau requis'),
-    fieldOfInterest: z.string().min(1, 'Domaine requis'),
     termsAccepted: z.boolean().refine((v) => v === true, 'Accepter les conditions'),
   })
   .refine((d) => d.password === d.confirmPassword, {
@@ -48,12 +46,18 @@ export function Signup() {
     formState: { errors, isSubmitting },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { termsAccepted: false },
+    defaultValues: {
+      prenom: '',
+      nom: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      termsAccepted: false,
+    },
   });
 
   const watchedPassword = watch('password') ?? '';
 
-  // Indicateur de force du mot de passe
   const getPasswordStrength = () => {
     if (watchedPassword.length === 0) return 0;
     if (watchedPassword.length < 8) return 1;
@@ -79,8 +83,8 @@ export function Signup() {
         email: data.email,
         password: data.password,
         role: 'candidat',
-        prenom: data.fullName.split(' ')[0],
-        nom: data.fullName.split(' ').slice(1).join(' ') || data.fullName.split(' ')[0],
+        prenom: data.prenom,
+        nom: data.nom,
       });
       navigate('/dashboard/candidate');
     } catch (err: unknown) {
@@ -110,19 +114,35 @@ export function Signup() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="fullName">Full Name *</Label>
+                <Label htmlFor="prenom">Prénom *</Label>
                 <Input
-                  id="fullName"
+                  id="prenom"
                   type="text"
-                  placeholder="John Doe"
-                  {...register('fullName')}
+                  placeholder="prenom"
+                  {...register('prenom')}
                   className="rounded-xl mt-1"
                 />
-                {errors.fullName && (
-                  <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.fullName.message}</p>
+                {errors.prenom && (
+                  <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.prenom.message}</p>
                 )}
               </div>
 
+              <div>
+                <Label htmlFor="nom">Nom *</Label>
+                <Input
+                  id="nom"
+                  type="text"
+                  placeholder="nom"
+                  {...register('nom')}
+                  className="rounded-xl mt-1"
+                />
+                {errors.nom && (
+                  <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.nom.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label htmlFor="email">Email *</Label>
                 <Input
@@ -158,7 +178,6 @@ export function Signup() {
                   </button>
                 </div>
 
-                {/* Barre de force */}
                 {watchedPassword && (
                   <div className="mt-2">
                     <div className="h-1.5 bg-[var(--edu-surface)] rounded-full overflow-hidden">
@@ -210,7 +229,6 @@ export function Signup() {
               </div>
             </div>
 
-            {/* Checklist des critères mot de passe */}
             {watchedPassword && (
               <div className="bg-[var(--edu-surface)] rounded-xl p-4">
                 <p className="text-sm font-medium text-[var(--edu-text-primary)] mb-2">
@@ -237,60 +255,6 @@ export function Signup() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="country">Country *</Label>
-                <Input
-                  id="country"
-                  type="text"
-                  placeholder="Your country"
-                  {...register('country')}
-                  className="rounded-xl mt-1"
-                />
-                {errors.country && (
-                  <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.country.message}</p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="educationLevel">Current Education Level *</Label>
-                <select
-                  id="educationLevel"
-                  {...register('educationLevel')}
-                  className="w-full px-3 py-2 rounded-xl border border-input bg-background mt-1"
-                >
-                  <option value="">Select level</option>
-                  <option value="high-school">High School</option>
-                  <option value="bachelor">Bachelor's</option>
-                  <option value="master">Master's</option>
-                  <option value="phd">PhD</option>
-                  <option value="other">Other</option>
-                </select>
-                {errors.educationLevel && (
-                  <p className="text-xs text-[var(--edu-danger)] mt-1">
-                    {errors.educationLevel.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="fieldOfInterest">Field of Interest *</Label>
-              <Input
-                id="fieldOfInterest"
-                type="text"
-                placeholder="e.g., Computer Science, Business, Medicine"
-                {...register('fieldOfInterest')}
-                className="rounded-xl mt-1"
-              />
-              {errors.fieldOfInterest && (
-                <p className="text-xs text-[var(--edu-danger)] mt-1">
-                  {errors.fieldOfInterest.message}
-                </p>
-              )}
-            </div>
-
-            {/* Conditions d'utilisation */}
             <div className="flex items-start gap-2">
               <Controller
                 control={control}
@@ -336,13 +300,6 @@ export function Signup() {
               Sign in
             </Link>
           </p>
-
-          <div className="mt-6 p-4 bg-[var(--edu-surface)] rounded-xl">
-            <p className="text-xs text-[var(--edu-text-secondary)] text-center">
-              <strong>You are an institution?</strong> Contact the EduBridge admin to request an
-              account.
-            </p>
-          </div>
         </div>
 
         <div className="text-center mt-6">

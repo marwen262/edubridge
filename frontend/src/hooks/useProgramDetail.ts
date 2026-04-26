@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { programmeService } from '@/services/api';
+import type { Programme } from '@/types/api';
 
 export function useProgramDetail(id: string | undefined) {
-  const [program, setProgram] = useState<unknown | null>(null);
+  const [program, setProgram] = useState<Programme | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +21,8 @@ export function useProgramDetail(id: string | undefined) {
     programmeService
       .getById(id)
       .then(({ data }) => {
-        if (!cancelled) setProgram(data);
+        // Backend retourne { programme: {...} }
+        if (!cancelled) setProgram(data.programme);
       })
       .catch((err) => {
         if (!cancelled)
@@ -37,3 +39,4 @@ export function useProgramDetail(id: string | undefined) {
 
   return { program, loading, error };
 }
+

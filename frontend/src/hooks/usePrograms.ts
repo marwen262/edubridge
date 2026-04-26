@@ -21,7 +21,14 @@ export function usePrograms(filters?: ProgrammeFilters) {
     programmeService
       .getAll(filters)
       .then(({ data }) => {
-        if (!cancelled) setPrograms(data);
+        if (cancelled) return;
+        // Le backend renvoie { programmes: [...] } ; on tolère aussi un tableau brut.
+        const liste = Array.isArray((data as { programmes?: unknown }).programmes)
+          ? (data as { programmes: Programme[] }).programmes
+          : Array.isArray(data)
+            ? (data as Programme[])
+            : [];
+        setPrograms(liste);
       })
       .catch((err) => {
         if (!cancelled)

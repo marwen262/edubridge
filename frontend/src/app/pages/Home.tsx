@@ -150,7 +150,6 @@ export function Home() {
               >
                 <Link to="/search">
                   <div className="glass-card rounded-2xl p-6 hover-lift cursor-pointer text-center">
-                    <div className="text-5xl mb-3">{field.icon}</div>
                     <h3 className="font-semibold text-[var(--edu-text-primary)] mb-2">{field.name}</h3>
                     <p className="text-sm text-[var(--edu-text-secondary)]">{field.count} programmes</p>
                   </div>

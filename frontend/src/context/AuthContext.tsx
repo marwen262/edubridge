@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import axios from 'axios';
 import type { RegisterData } from '@/types/api';
 import type { User, AuthContextType } from '@/types/auth';
 import { authService } from '@/services/api';
+import { API_URL } from '@/config';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -32,10 +34,50 @@ function construireUser(
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('auth_token'));
-  const [user, setUser] = useState<User | null>(lireUtilisateurStocke);
-  // loading toujours false — les pages gèrent leur propre état de chargement
-  const [loading] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  // loading=true au montage : empêche ProtectedRoute de rediriger vers /login
+  // avant que la lecture du localStorage soit terminée.
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let storedToken: string | null = null;
+    let storedUser: User | null = null;
+    try {
+      storedToken = localStorage.getItem('auth_token');
+      storedUser = lireUtilisateurStocke();
+    } catch {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+
+    if (!storedToken || !storedUser) {
+      setLoading(false);
+      return;
+    }
+
+    // Affichage optimiste : on rend l'UI authentifiée pendant la validation.
+    setToken(storedToken);
+    setUser(storedUser);
+    setLoading(false);
+
+    // Validation silencieuse du token contre le backend.
+    // → axios direct (pas l'instance `api`) pour bypasser l'intercepteur 401
+    //   qui redirigerait vers /login : sur une page publique on veut juste
+    //   purger l'état auth obsolète, pas expulser l'utilisateur.
+    axios
+      .get(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${storedToken}` },
+        timeout: 10000,
+      })
+      .catch(() => {
+        // Token expiré, révoqué, ou backend reset (ex: db:reset) → purge.
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        setToken(null);
+        setUser(null);
+      });
+  }, []);
 
   // Persiste token + user dans localStorage et met à jour les states
   const persisterAuth = (newToken: string, newUser: User): void => {

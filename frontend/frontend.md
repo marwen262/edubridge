@@ -447,6 +447,35 @@ Instance axios centralisée avec :
 - **Intercepteur requête** : injecte `Authorization: Bearer <token>` depuis localStorage ; supprime `Content-Type` pour les `FormData` (uploads Multer)
 - **Intercepteur réponse** : 401 → vide localStorage + redirect `/login` ; 403 → redirect `/`
 
+### ⚠️ Convention critique — wrapping des réponses
+
+Le backend wrappe **toujours** la ressource dans une clé nommée au singulier.
+Ne jamais caster `r.data` directement en `Programme` ou autre type métier :
+
+```ts
+// ❌ INCORRECT — r.data vaut { programme: {...} }, pas un Programme
+const prog = r.data as Programme;
+prog.titre.charAt(0);  // TypeError: Cannot read properties of undefined
+
+// ✅ CORRECT — extraire d'abord depuis le wrapper
+const payload = r.data as { programme?: Programme };
+const prog = payload.programme;
+prog?.titre?.charAt(0) ?? '?';
+```
+
+Tableau récapitulatif :
+
+| Appel service | `r.data` reçu | À extraire |
+|---|---|---|
+| `programmeService.getById(id)` | `{ programme: {...} }` | `r.data.programme` |
+| `programmeService.getAll()` | `{ programmes: [...] }` | `r.data.programmes` |
+| `institutService.getById(id)` | `{ institut: {...} }` | `r.data.institut` |
+| `candidatureService.getById(id)` | `{ candidature: {...} }` | `r.data.candidature` |
+| `favoriService.getMine()` | `{ favoris: [...] }` | `r.data.favoris` |
+| `notificationService.getMine()` | `{ notifications: [...] }` | `r.data.notifications` |
+
+L'alias Sequelize est `as: 'institut'` (minuscule) → la clé imbriquée est `programme.institut`.
+
 ### Services disponibles
 
 | Service | Méthodes | Routes backend |

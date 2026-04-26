@@ -25,6 +25,7 @@ function setCompareIds(ids: string[]): void {
 export function Compare() {
   const [programmes, setProgrammes] = React.useState<Programme[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const ids = getCompareIds();
@@ -32,11 +33,38 @@ export function Compare() {
       setProgrammes([]);
       return;
     }
+    let cancelled = false;
     setLoading(true);
-    Promise.all(ids.map((id) => programmeService.getById(id).then((r) => r.data as Programme)))
-      .then(setProgrammes)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    setError(null);
+
+    // L'API renvoie { programme: {...} } : on extrait donc r.data.programme.
+    // allSettled évite qu'un id obsolète (404) ne casse toute la comparaison.
+    Promise.allSettled(ids.map((id) => programmeService.getById(id)))
+      .then((results) => {
+        if (cancelled) return;
+        const items: Programme[] = [];
+        let failures = 0;
+        results.forEach((r) => {
+          if (r.status === 'fulfilled') {
+            const payload = r.value.data as { programme?: Programme } | undefined;
+            if (payload?.programme) items.push(payload.programme);
+            else failures += 1;
+          } else {
+            failures += 1;
+          }
+        });
+        setProgrammes(items);
+        if (items.length === 0 && failures > 0) {
+          setError('Impossible de charger les programmes sélectionnés.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleRemove = (id: string) => {
@@ -96,6 +124,15 @@ export function Compare() {
             <div className="flex justify-center py-24">
               <Loader2 className="w-10 h-10 animate-spin text-[var(--edu-blue)]" />
             </div>
+          ) : error ? (
+            <div className="glass-card rounded-2xl p-16 text-center">
+              <p className="text-[var(--edu-danger)] text-lg mb-6">{error}</p>
+              <Link to="/search">
+                <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
+                  Retour à la recherche
+                </Button>
+              </Link>
+            </div>
           ) : programmes.length === 0 ? (
             <div className="glass-card rounded-2xl p-16 text-center">
               <p className="text-[var(--edu-text-secondary)] text-lg mb-6">
@@ -121,68 +158,73 @@ export function Compare() {
                         <th className="sticky left-0 bg-[var(--edu-surface)] px-6 py-4 text-left font-semibold text-[var(--edu-text-primary)] min-w-[200px]">
                           Critère
                         </th>
-                        {programmes.map((programme) => (
-                          <th key={programme.id} className="px-6 py-4 min-w-[280px]">
-                            <div className="space-y-4">
-                              {/* Image de couverture */}
-                              <div className="relative">
-                                {programme.institut?.image_couverture ??
-                                programme.institut?.logo ? (
-                                  <img
-                                    src={
-                                      programme.institut?.image_couverture ??
-                                      programme.institut?.logo
-                                    }
-                                    alt={programme.titre}
-                                    className="w-full h-32 object-cover rounded-xl"
-                                  />
-                                ) : (
-                                  <div className="w-full h-32 bg-[var(--edu-blue)]/10 rounded-xl flex items-center justify-center">
-                                    <span className="text-2xl font-bold text-[var(--edu-blue)]">
-                                      {programme.titre.charAt(0)}
-                                    </span>
-                                  </div>
-                                )}
-                                <button
-                                  onClick={() => handleRemove(programme.id)}
-                                  className="absolute top-2 right-2 p-1.5 bg-white dark:bg-[#1D1D1F] rounded-full hover:bg-[var(--edu-danger)] hover:text-white transition-colors"
-                                  aria-label="Retirer de la comparaison"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-                              {/* Logo + titre */}
-                              <div className="flex items-center gap-3">
-                                {programme.institut?.logo ? (
-                                  <img
-                                    src={programme.institut.logo}
-                                    alt={programme.institut?.nom ?? 'Institut'}
-                                    className="w-12 h-12 rounded-lg object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-12 h-12 rounded-lg bg-[var(--edu-blue)]/10 flex items-center justify-center">
-                                    <span className="text-lg font-bold text-[var(--edu-blue)]">
-                                      {(programme.institut?.nom ?? programme.titre).charAt(0)}
-                                    </span>
-                                  </div>
-                                )}
-                                <div className="text-left flex-1 min-w-0">
-                                  <p className="font-semibold text-[var(--edu-text-primary)] text-sm line-clamp-2">
-                                    {programme.titre}
-                                  </p>
+                        {programmes.map((programme) => {
+                          // Pré-calculs sécurisés : éviter tout .charAt() sur undefined
+                          const cover =
+                            programme.institut?.image_couverture ?? programme.institut?.logo;
+                          const titre = programme.titre ?? 'Programme sans titre';
+                          const initialeCover = programme.titre?.charAt(0) ?? '?';
+                          const initialeLogo =
+                            (programme.institut?.nom ?? programme.titre)?.charAt(0) ?? '?';
+                          return (
+                            <th key={programme.id} className="px-6 py-4 min-w-[280px]">
+                              <div className="space-y-4">
+                                {/* Image de couverture */}
+                                <div className="relative">
+                                  {cover ? (
+                                    <img
+                                      src={cover}
+                                      alt={titre}
+                                      className="w-full h-32 object-cover rounded-xl"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-32 bg-[var(--edu-blue)]/10 rounded-xl flex items-center justify-center">
+                                      <span className="text-2xl font-bold text-[var(--edu-blue)]">
+                                        {initialeCover}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <button
+                                    onClick={() => handleRemove(programme.id)}
+                                    className="absolute top-2 right-2 p-1.5 bg-white dark:bg-[#1D1D1F] rounded-full hover:bg-[var(--edu-danger)] hover:text-white transition-colors"
+                                    aria-label="Retirer de la comparaison"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
                                 </div>
+                                {/* Logo + titre */}
+                                <div className="flex items-center gap-3">
+                                  {programme.institut?.logo ? (
+                                    <img
+                                      src={programme.institut.logo}
+                                      alt={programme.institut?.nom ?? 'Institut'}
+                                      className="w-12 h-12 rounded-lg object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-lg bg-[var(--edu-blue)]/10 flex items-center justify-center">
+                                      <span className="text-lg font-bold text-[var(--edu-blue)]">
+                                        {initialeLogo}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="text-left flex-1 min-w-0">
+                                    <p className="font-semibold text-[var(--edu-text-primary)] text-sm line-clamp-2">
+                                      {titre}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Link to={`/program/${programme.id}`}>
+                                  <Button
+                                    size="sm"
+                                    className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white"
+                                  >
+                                    Voir les détails
+                                  </Button>
+                                </Link>
                               </div>
-                              <Link to={`/program/${programme.id}`}>
-                                <Button
-                                  size="sm"
-                                  className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white"
-                                >
-                                  Voir les détails
-                                </Button>
-                              </Link>
-                            </div>
-                          </th>
-                        ))}
+                            </th>
+                          );
+                        })}
                         {programmes.length < 3 && (
                           <th className="px-6 py-4 min-w-[280px]">
                             <Link to="/search">

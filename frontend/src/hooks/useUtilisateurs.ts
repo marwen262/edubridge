@@ -18,7 +18,7 @@ export function useUtilisateurs() {
     utilisateurService
       .getAll()
       .then(({ data }) => {
-        if (!cancelled) setUtilisateurs(data);
+        if (!cancelled) setUtilisateurs((data as { utilisateurs: unknown[] }).utilisateurs ?? []);
       })
       .catch((err) => {
         if (!cancelled)

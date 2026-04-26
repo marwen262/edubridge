@@ -95,15 +95,57 @@ function validerTransition(role, statut_actuel, statut_cible) {
   }
 }
 
-// Compare les documents requis du programme avec ceux soumis dans la candidature
+// Vérifie la complétude documentaire d'une candidature.
+// Source de vérité : programme.documents_requis (JSONB [{nom, obligatoire, label?}]).
+// Retourne { complet, manquants: string[], details: {nom, label}[] }.
 async function verifierCompletude(candidature) {
   const programme = await Programme.findByPk(candidature.programme_id, {
-    attributes: ['documents_requis'],
+    attributes: ['id', 'titre', 'niveau', 'documents_requis'],
   });
-  const requis = (programme?.documents_requis || []).filter((d) => d.obligatoire);
-  const fournis = new Set((candidature.documents_soumis || []).map((d) => d.nom));
-  const manquants = requis.filter((r) => !fournis.has(r.nom)).map((r) => r.nom);
-  return { complet: manquants.length === 0, manquants };
+
+  if (!programme) {
+    throw {
+      status: 404,
+      message: `Programme (id: ${candidature.programme_id}) introuvable — vérification impossible.`,
+    };
+  }
+
+  const documentsRequis = programme.documents_requis;
+
+  // Aucune liste définie → programme sans pré-requis documentaires
+  if (!Array.isArray(documentsRequis) || documentsRequis.length === 0) {
+    return { complet: true, manquants: [], details: [] };
+  }
+
+  // Sanity check structurel : chaque entrée doit avoir un champ nom valide
+  const entreesMalformees = documentsRequis.filter(
+    (d) => !d || typeof d.nom !== 'string' || d.nom.trim() === ''
+  );
+  if (entreesMalformees.length > 0) {
+    throw {
+      status: 500,
+      message: `Configuration invalide : documents_requis du programme « ${programme.titre} » contient ${entreesMalformees.length} entrée(s) sans champ "nom".`,
+    };
+  }
+
+  const obligatoires = documentsRequis.filter((d) => d.obligatoire === true);
+
+  // Lookup O(1) sur noms normalisés des documents soumis
+  const nomsDocumentsSoumis = new Set(
+    (candidature.documents_soumis || [])
+      .filter((d) => d && typeof d.nom === 'string')
+      .map((d) => d.nom.trim().toLowerCase())
+  );
+
+  const manquants = obligatoires.filter(
+    (d) => !nomsDocumentsSoumis.has(d.nom.trim().toLowerCase())
+  );
+
+  return {
+    complet: manquants.length === 0,
+    manquants: manquants.map((d) => d.nom),
+    details: manquants.map((d) => ({ nom: d.nom, label: d.label || d.nom })),
+  };
 }
 
 // Vérifie qu'aucune autre candidature active n'existe pour ce couple (candidat, programme)
@@ -180,12 +222,13 @@ exports.soumettre = async ({ candidature_id, user_id }) => {
 
   validerTransition('candidat', candidature.statut, 'soumise');
 
-  const { complet, manquants } = await verifierCompletude(candidature);
+  const { complet, manquants, details } = await verifierCompletude(candidature);
   if (!complet) {
     throw {
       status: 400,
-      message: `Documents obligatoires manquants : ${manquants.join(', ')}.`,
+      message: `Documents obligatoires manquants : ${details.map((d) => d.label).join(', ')}.`,
       manquants,
+      details,
     };
   }
 

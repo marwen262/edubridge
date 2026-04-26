@@ -16,6 +16,19 @@ import type { ProgrammeFilters } from '@/types/api';
 // Niveaux backend disponibles
 const niveauxBackend = ['cycle_preparatoire', 'licence', 'master', 'ingenieur'] as const;
 
+// Mapping libellés UI (staticData.fields) → enum backend `domaine`.
+type DomaineBackend = NonNullable<ProgrammeFilters['domaine']>;
+const FIELD_TO_DOMAINE: Record<string, DomaineBackend> = {
+  'Informatique':      'informatique',
+  'Génie Civil':       'genie_civil',
+  'Génie Électrique':  'electrique',
+  'Génie Mécanique':   'mecanique',
+  'Chimie':            'chimie',
+  'Agronomie':         'agronomie',
+  'Finance':           'finance',
+  'Management':        'management',
+};
+
 // Options de tri disponibles
 type SortOption = 'relevance' | 'deadline' | 'tuition_asc' | 'tuition_desc';
 
@@ -29,17 +42,17 @@ export function SearchResults() {
   const [sortBy, setSortBy] = React.useState<SortOption>('relevance');
 
   // --- Construction des filtres à envoyer au backend ---
-  // Règle : toujours undefined (jamais string vide) pour les filtres non actifs
+  // Règle : toujours undefined (jamais string vide) pour les filtres non actifs.
+  // Pour `domaine`, on n'envoie un filtre backend que si exactement 1 champ
+  // est coché ET qu'il existe un mapping vers l'enum backend. Sinon on récupère
+  // tous les programmes et on filtre côté client (cf. filteredPrograms).
   const filters = useMemo<ProgrammeFilters>(() => ({
-    // Filtre domaine : on prend le premier champ sélectionné si compatible avec l'enum backend
     domaine: selectedFields.length === 1
-      ? (selectedFields[0] as ProgrammeFilters['domaine'])
+      ? FIELD_TO_DOMAINE[selectedFields[0]]
       : undefined,
-    // Filtre niveau : on prend le premier niveau sélectionné si compatible
     niveau: selectedLevels.length === 1
       ? (selectedLevels[0] as ProgrammeFilters['niveau'])
       : undefined,
-    // Filtre titre (recherche textuelle)
     titre: searchQuery.trim() || undefined,
   }), [selectedFields, selectedLevels, searchQuery]);
 
@@ -50,11 +63,30 @@ export function SearchResults() {
   const minTuition = tuitionRange[0];
 
   const filteredPrograms = useMemo(() => {
+    // Garde-fou : tant que l'API n'a pas répondu (ou en cas d'erreur), on travaille sur []
+    const safePrograms = Array.isArray(programs) ? programs : [];
+
     // Filtre par tranche de frais
-    let result = programs.filter((p) => {
+    let result = safePrograms.filter((p) => {
       const frais = p.frais_inscription ?? 0;
       return frais >= minTuition && frais <= maxTuition;
     });
+
+    // Filtre domaine côté client quand >1 champs cochés (le backend ne prend
+    // qu'une valeur).
+    if (selectedFields.length > 1) {
+      const domainesBackend = selectedFields
+        .map((f) => FIELD_TO_DOMAINE[f])
+        .filter((d): d is NonNullable<ProgrammeFilters['domaine']> => d !== undefined);
+      result = result.filter((p) =>
+        p.domaine ? domainesBackend.includes(p.domaine as DomaineBackend) : false
+      );
+    }
+
+    // Filtre niveau côté client quand >1 niveaux cochés.
+    if (selectedLevels.length > 1) {
+      result = result.filter((p) => selectedLevels.includes(p.niveau ?? ''));
+    }
 
     // Filtre pays côté frontend (le backend n'expose pas ce filtre)
     if (selectedCountries.length > 0) {
@@ -64,7 +96,7 @@ export function SearchResults() {
     }
 
     return result;
-  }, [programs, minTuition, maxTuition, selectedCountries]);
+  }, [programs, minTuition, maxTuition, selectedCountries, selectedFields, selectedLevels]);
 
   // --- Tri côté frontend ---
   const sortedPrograms = useMemo(() => {

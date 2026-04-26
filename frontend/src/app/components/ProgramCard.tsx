@@ -47,9 +47,9 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
   const navigate = useNavigate();
 
   // Favoris synchronisés avec l'API
-  const { isFavori, loading: favoriLoading, handleToggle } = useFavoriStatus(programme.id);
+  const { isFavori, loading: favoriLoading, handleToggle } = useFavoriStatus(programme?.id);
   const [inCompare, setInCompare] = React.useState(() =>
-    getCompareIds().includes(programme.id)
+    getCompareIds().includes(programme?.id ?? '')
   );
 
   const handleSave = (e: React.MouseEvent) => {
@@ -63,14 +63,16 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
     e.preventDefault();
     e.stopPropagation();
     const ids = getCompareIds();
-    if (ids.includes(programme.id)) {
-      setCompareIds(ids.filter((i) => i !== programme.id));
+    const pid = programme?.id ?? '';
+    if (!pid) return;
+    if (ids.includes(pid)) {
+      setCompareIds(ids.filter((i) => i !== pid));
       setInCompare(false);
       toast.info('Retiré de la comparaison');
     } else if (ids.length >= 3) {
       toast.error('Maximum 3 programmes peuvent être comparés');
     } else {
-      setCompareIds([...ids, programme.id]);
+      setCompareIds([...ids, pid]);
       setInCompare(true);
       toast.success('Ajouté à la comparaison', {
         action: { label: 'Voir comparaison', onClick: () => navigate('/compare') },
@@ -79,20 +81,20 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
   };
 
   // Données calculées à partir des champs backend
-  const titre = programme.titre;
-  const institutNom = programme.institut?.nom;
-  const institutLogo = programme.institut?.logo;
-  const institutVille = programme.institut?.adresse?.ville;
-  const institutPays = programme.institut?.adresse?.pays;
-  const niveau = programme.niveau;
-  const domaine = programme.domaine;
-  const mode = programme.mode;
-  const duree = programme.duree_annees != null ? `${programme.duree_annees} ans` : null;
-  const langue = programme.langue;
-  const deadline = programme.date_limite_candidature;
-  const note = programme.institut?.note;
+  const titre = programme?.titre;
+  const institutNom = programme?.institut?.nom;
+  const institutLogo = programme?.institut?.logo;
+  const institutVille = programme?.institut?.adresse?.ville;
+  const institutPays = programme?.institut?.adresse?.pays;
+  const niveau = programme?.niveau;
+  const domaine = programme?.domaine;
+  const mode = programme?.mode;
+  const duree = programme?.duree_annees != null ? `${programme.duree_annees} ans` : null;
+  const langue = programme?.langue;
+  const deadline = programme?.date_limite_candidature;
+  const note = programme?.institut?.note;
   // Image de couverture : préférer image_couverture de l'institut, sinon son logo
-  const coverSrc = programme.institut?.image_couverture ?? programme.institut?.logo;
+  const coverSrc = programme?.institut?.image_couverture ?? programme?.institut?.logo;
 
   // Localisation : ville + pays si disponibles
   const localisation = [institutVille, institutPays].filter(Boolean).join(', ');
@@ -104,7 +106,7 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <Link to={`/program/${programme.id}`}>
+        <Link to={`/program/${programme?.id ?? ''}`}>
           <div className="glass-card rounded-2xl p-6 hover-lift cursor-pointer">
             <div className="flex gap-6">
               {/* Logo institution */}
@@ -245,7 +247,7 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <Link to={`/program/${programme.id}`}>
+      <Link to={`/program/${programme?.id ?? ''}`}>
         <div className="glass-card rounded-2xl overflow-hidden hover-lift cursor-pointer">
           {/* Image de couverture */}
           {coverSrc && (

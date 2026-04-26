@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { Moon, Sun, GraduationCap, Bell } from 'lucide-react';
+import { Moon, Sun, GraduationCap, Bell, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -16,7 +16,7 @@ export function Navbar({ transparent = false }: NavbarProps) {
   const [notifOpen, setNotifOpen] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
 
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
 
   // Toujours appelé, mais affiché uniquement si authentifié
   const { notifications, unreadCount, refetch: refetchNotifications } = useNotifications();
@@ -147,11 +147,21 @@ export function Navbar({ transparent = false }: NavbarProps) {
             )}
 
             {isAuthenticated ? (
-              <Link to={dashboardPath}>
-                <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white text-[15px] font-medium px-6">
-                  Mon espace
-                </Button>
-              </Link>
+              <>
+                <Link to={dashboardPath}>
+                  <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white text-[15px] font-medium px-6">
+                    Mon espace
+                  </Button>
+                </Link>
+                <button
+                  onClick={logout}
+                  className="p-2 rounded-full hover:bg-[var(--edu-surface)] transition-colors text-[var(--edu-text-secondary)] hover:text-[var(--edu-danger)]"
+                  aria-label="Se déconnecter"
+                  title="Se déconnecter"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </>
             ) : (
               <>
                 <Link to="/login">

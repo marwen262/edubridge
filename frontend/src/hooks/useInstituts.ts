@@ -20,7 +20,7 @@ export function useInstituts(filters?: InstitutFilters) {
     institutService
       .getAll(filters)
       .then(({ data }) => {
-        if (!cancelled) setInstituts(data);
+        if (!cancelled) setInstituts((data as { instituts: unknown[] }).instituts ?? []);
       })
       .catch((err) => {
         if (!cancelled)

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,14 +11,27 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 
 const loginSchema = z.object({
-  email: z.string().email('Email invalide'),
-  password: z.string().min(1, 'Mot de passe requis'),
+  email: z
+    .string({ required_error: 'Email requis' })
+    .min(1, 'Email requis')
+    .email('Email invalide'),
+  password: z
+    .string({ required_error: 'Mot de passe requis' })
+    .min(1, 'Mot de passe requis'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+const roleToPath: Record<string, string> = {
+  candidat: '/dashboard/candidate',
+  institut: '/dashboard/institution',
+  admin: '/dashboard/admin',
+};
+
 export function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
   const { login } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
 
@@ -28,6 +41,10 @@ export function Login() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
   });
 
   const onSubmit = async (data: LoginFormData) => {
@@ -38,15 +55,12 @@ export function Login() {
       const savedUser = stored ? (JSON.parse(stored) as { role: string }) : null;
       const userRole = savedUser?.role;
 
-      if (userRole === 'candidat') {
-        navigate('/dashboard/candidate');
-      } else if (userRole === 'institut') {
-        navigate('/dashboard/institution');
-      } else if (userRole === 'admin') {
-        navigate('/dashboard/admin');
-      } else {
-        navigate('/');
+      // Redirection prioritaire vers la page d'origine si fournie en query param
+      if (redirectTo) {
+        navigate(redirectTo);
+        return;
       }
+      navigate(roleToPath[userRole ?? ''] ?? '/');
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string } } };
       toast.error(axiosError.response?.data?.message ?? 'Identifiants incorrects');

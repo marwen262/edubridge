@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, Link, useNavigate } from 'react-router';
+import { useParams, Link, useNavigate, useLocation } from 'react-router';
 import { Heart, Share2, MapPin, Clock, Globe, Calendar, ChevronRight, Star } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -9,16 +9,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { useProgramDetail } from '@/hooks/useProgramDetail';
 import { useFavoriStatus } from '@/hooks/useFavoriStatus';
 import { useAuth } from '@/context/AuthContext';
-import type { Programme } from '@/types/api';
+
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 
 export function ProgramDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
-  const { program: programData, loading, error } = useProgramDetail(id);
-  const program = programData as Programme | null;
+  const { program, loading, error } = useProgramDetail(id);
   const { isFavori, loading: favoriLoading, handleToggle: handleSave } = useFavoriStatus(
     program?.id ?? ''
   );
@@ -28,7 +28,7 @@ export function ProgramDetail() {
   const handleApply = () => {
     if (!isAuthenticated) {
       toast.error('Connectez-vous pour candidater');
-      navigate('/login');
+      navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`);
       return;
     }
     setApplyDialogOpen(true);
@@ -104,8 +104,10 @@ export function ProgramDetail() {
 
       {/* Hero */}
       <div className="relative h-[400px] overflow-hidden">
-        {coverSrc && (
+        {coverSrc ? (
           <img src={coverSrc} alt={program.titre} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[var(--edu-blue)] via-[#6366f1] to-[#8b5cf6]" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
@@ -188,7 +190,6 @@ export function ProgramDetail() {
               {[
                 { value: 'overview', label: 'Overview' },
                 { value: 'requirements', label: 'Requirements' },
-                { value: 'curriculum', label: 'Curriculum' },
                 { value: 'tuition', label: 'Tuition' },
                 { value: 'institution', label: 'Institution' },
               ].map((tab) => (
@@ -296,44 +297,46 @@ export function ProgramDetail() {
                   <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
                     Admission Requirements
                   </h2>
-                  {program.documents_requis && program.documents_requis.length > 0 ? (
-                    <ul className="space-y-3">
-                      {program.documents_requis.map((doc, i) => (
-                        <li key={i} className="flex items-center gap-3">
-                          <div className="w-6 h-6 rounded-full bg-[var(--edu-blue)] flex items-center justify-center flex-shrink-0">
-                            <span className="text-white text-xs">✓</span>
-                          </div>
-                          <span className="text-[var(--edu-text-secondary)] flex-1">
-                            {doc.nom}
-                          </span>
-                          <span
-                            className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                              doc.obligatoire
-                                ? 'bg-[var(--edu-success)] text-white'
-                                : 'bg-[var(--edu-warning)] text-white'
-                            }`}
-                          >
-                            {doc.obligatoire ? 'Obligatoire' : 'Optionnel'}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-[var(--edu-text-secondary)]">
-                      Aucun document requis spécifié.
-                    </p>
-                  )}
+                  {(() => {
+                    // Garde défensif : tolère null / undefined / string / objet inattendu
+                    const docs = Array.isArray(program?.documents_requis)
+                      ? program.documents_requis
+                      : [];
+                    if (docs.length === 0) {
+                      return (
+                        <p className="text-[var(--edu-text-secondary)]">
+                          Aucun document requis spécifié.
+                        </p>
+                      );
+                    }
+                    return (
+                      <ul className="space-y-3">
+                        {docs.map((doc, i) => (
+                          <li key={i} className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-full bg-[var(--edu-blue)] flex items-center justify-center flex-shrink-0">
+                              <span className="text-white text-xs">✓</span>
+                            </div>
+                            <span className="text-[var(--edu-text-secondary)] flex-1">
+                              {doc?.nom ?? 'Document'}
+                            </span>
+                            <span
+                              className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                                doc?.obligatoire
+                                  ? 'bg-[var(--edu-success)] text-white'
+                                  : 'bg-[var(--edu-warning)] text-white'
+                              }`}
+                            >
+                              {doc?.obligatoire ? 'Obligatoire' : 'Optionnel'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
                 </div>
               </TabsContent>
 
-              <TabsContent value="curriculum">
-                <div className="glass-card rounded-2xl p-8">
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
-                    Curriculum
-                  </h2>
-                  <p className="text-[var(--edu-text-secondary)]">Curriculum non disponible.</p>
-                </div>
-              </TabsContent>
+
 
               <TabsContent value="tuition">
                 <div className="glass-card rounded-2xl p-8">

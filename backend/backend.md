@@ -211,7 +211,7 @@ backend/
 | `middleware/` | Middlewares (filtrage, auth, validations) | JWT, permissions, guards métier |
 | `services/` | Logique métier (épaisse) | Workflow, notifications, transactions |
 | `migrations/` | Historique schéma BD | Version de table, migrations DDL |
-| `uploads/` | Stockage disque fichiers | Documents candidats (CV, diplômes, etc.) |
+| `uploads/` | Stockage disque fichiers | Documents candidats (diplômes, relevés, etc.) |
 | `docs/` | Documentation projet | Guides, exemples, tests |
 
 ---
@@ -322,7 +322,7 @@ backend/
 - Transitions autorisées par rôle
 - Validation complétude documents avant soumission
 - Empêche doublons candidat ↔ programme
-- Upload Multer (CV, diplôme, lettre, etc.)
+- Upload Multer (diplôme, relevés, attestation, etc.)
 - Notifications automatiques
 - Transactions ACID
 
@@ -711,15 +711,28 @@ Toutes les relations utilisent **DELETE CASCADE** → suppression automatique de
 | `niveau` | ENUM | ✓ | cycle_preparatoire\|licence\|master\|ingenieur |
 | `mode` | ENUM | ✓ | cours_du_jour\|cours_du_soir\|alternance\|formation_continue |
 | `duree_annees` | INTEGER | ✓ | |
+| `langue` | STRING | ✓ | Langue(s) d'enseignement (ex: `'Français'`, `'Anglais'`, `'Français/Anglais'`) |
+| `date_debut` | DATEONLY | ✓ | Date de rentrée (ex: `'2026-09-15'`) |
 | `description` | TEXT | ✓ | |
 | `documents_requis` | JSONB | ✓ | [{nom, obligatoire}] |
-| `prerequis` | JSONB | ✓ | {moyenne_min, matieres, types_bac} |
+| `prerequis` | JSONB | ✓ | {conditions, moyenne_min, types_bac, …} |
 | `frais_inscription` | FLOAT | ✓ | Montant TND |
 | `date_limite_candidature` | DATEONLY | ✓ | Deadline soumission |
 | `capacite` | INTEGER | ✓ | Nb places |
 | `est_actif` | BOOLEAN | ✗ | Default=true, pour filtres |
 | `cree_le` | DATE | ✗ | |
 | `mis_a_jour_le` | DATE | ✗ | |
+
+**Règle métier — Système LMD tunisien :**
+
+Le système éducatif tunisien suit une structure en deux temps pour les diplômes ingénieur :
+
+| Étape | Durée | ENUM `niveau` | Description |
+|-------|-------|---------------|-------------|
+| Cycle Préparatoire Intégré | 2 ans | `cycle_preparatoire` | Tronc commun : maths, physique, algorithmique, sciences de l'ingénieur. **Général** — aucune spécialisation (Télécom, Info, Civil…) à ce stade. |
+| Cycle Ingénieur | 3 ans | `ingenieur` | Spécialisation (Informatique, Génie Civil, Télécom…). Accessible après prépa validée OU concours national. |
+
+Règle d'or : un `niveau=cycle_preparatoire` représente **toujours** un cursus préparatoire général. Un titre tel que "Cycle Préparatoire Informatique" ou "Cycle Préparatoire Télécom" est **architecturalement invalide** dans ce modèle.
 
 **Associations :**
 - `belongsTo(Institut)` — L'institut qui l'offre
@@ -838,6 +851,25 @@ brouillon → soumise → en_examen → {acceptee | refusee | liste_attente}
   "error": "Détail technique (optionnel)"
 }
 ```
+
+**Convention wrapping des réponses :**
+
+Toutes les réponses wrappent la ressource dans une clé nommée au singulier :
+
+| Route | Clé de réponse |
+|---|---|
+| `GET /api/programmes/:id` | `{ programme: {...} }` |
+| `GET /api/programmes` | `{ programmes: [...] }` |
+| `GET /api/instituts/:id` | `{ institut: {...} }` |
+| `GET /api/instituts` | `{ instituts: [...] }` |
+| `GET /api/candidatures/:id` | `{ candidature: {...} }` |
+| `GET /api/candidatures` | `{ candidatures: [...] }` |
+| `GET /api/utilisateurs/:id` | `{ utilisateur: {...} }` |
+| `GET /api/favoris/mine` | `{ favoris: [...] }` |
+| `GET /api/notifications/mine` | `{ notifications: [...] }` |
+
+L'association Sequelize Institut dans Programme est déclarée `as: 'institut'`
+(minuscule) — la clé dans le JSON est donc `programme.institut` et non `programme.Institut`.
 
 ### 6.2 Routes par module
 
@@ -958,9 +990,10 @@ curl "http://localhost:5000/api/instituts?nom=ENIS&est_verifie=true"
 
 ```javascript
 Champs Multer acceptés:
-- cv
 - diplome_bac
+- diplome_licence
 - releves_notes
+- attestation_prepa
 - lettre_motivation
 - piece_identite
 - photo_identite
@@ -975,7 +1008,7 @@ curl -X POST http://localhost:5000/api/candidatures \
   -H "Authorization: Bearer <TOKEN_CANDIDAT>" \
   -F "programme_id=<UUID>" \
   -F "lettre_motivation=Je suis motivé..." \
-  -F "cv=@/path/to/cv.pdf"
+  -F "diplome_bac=@/path/to/diplome.pdf"
 ```
 
 **Réponse :**
@@ -990,7 +1023,7 @@ curl -X POST http://localhost:5000/api/candidatures \
     "statut": "brouillon",
     "documents_soumis": [
       {
-        "nom": "cv",
+        "nom": "diplome_bac",
         "url": "/uploads/1714123456-123456.pdf",
         "media_id": "uuid-4",
         "telecharge_le": "2026-04-20T14:30:00.000Z"
@@ -1215,9 +1248,10 @@ const upload = multer({ storage, fileFilter, limits: { fileSize: 5MB } })
 
 ```javascript
 [
-  'cv',
   'diplome_bac',
+  'diplome_licence',
   'releves_notes',
+  'attestation_prepa',
   'lettre_motivation',
   'piece_identite',
   'photo_identite',
@@ -1243,7 +1277,7 @@ Media:
 // Intégration dans Candidature:
 candidature.documents_soumis = [
   {
-    nom: 'cv',
+    nom: 'diplome_bac',
     url: '/uploads/file.pdf',
     media_id: 'UUID Media',
     telecharge_le: '2026-04-20T14:30:00Z'
@@ -1264,7 +1298,7 @@ candidature.documents_soumis = [
 
 3. Candidature sauvegardée
    └─ documents_soumis = [
-       { nom: 'cv', media_id: '...', url: '/uploads/...' }
+       { nom: 'diplome_bac', media_id: '...', url: '/uploads/...' }
      ]
 
 4. GET /api/candidatures/:id
@@ -1339,7 +1373,7 @@ POST /api/candidatures
 {
   programme_id: UUID,
   lettre_motivation?: string,
-  [cv, diplome_bac, ...]: File[]
+  [diplome_bac, releves_notes, ...]: File[]
 }
 
 Validations:
@@ -1360,7 +1394,7 @@ Effet:
 PUT /api/candidatures/:id
 {
   lettre_motivation?: string (remplace),
-  [cv, ...]: File[]  (ajoute)
+  [diplome_bac, ...]: File[]  (ajoute)
 }
 
 Validations:
@@ -1474,33 +1508,43 @@ STATUTS_TERMINAUX = ['acceptee', 'refusee']
 **Documents requis par Programme :**
 
 ```javascript
+// Schéma JSONB : [{ nom, obligatoire, label? }]
 Programme.documents_requis = [
-  { nom: 'cv', obligatoire: true },
-  { nom: 'diplome_bac', obligatoire: true },
-  { nom: 'lettre_motivation', obligatoire: true },
-  { nom: 'lettre_recommandation', obligatoire: false },
+  { nom: 'diplome_bac',   obligatoire: true,  label: 'Diplôme Baccalauréat' },
+  { nom: 'releves_notes', obligatoire: true,  label: 'Relevés de notes' },
+  { nom: 'piece_identite', obligatoire: true, label: 'CIN ou Passeport' },
+  { nom: 'lettre_motivation', obligatoire: false, label: 'Lettre de motivation' },
   ...
 ]
 ```
+
+Listes différenciées par niveau dans `seeders/20260003000000-programmes.js` :
+`cycle_preparatoire`, `licence`, `ingenieur`, `master`, `international` (MedTech).
 
 **Validation complétude :**
 
 ```javascript
 async function verifierCompletude(candidature) {
-  const programme = await Programme.findByPk(candidature.programme_id)
-  const requis = programme.documents_requis.filter(d => d.obligatoire)
-  const fournis = candidature.documents_soumis.map(d => d.nom)
-  
-  const manquants = requis.filter(r => !fournis.includes(r.nom))
-  
+  const programme = await Programme.findByPk(candidature.programme_id, {
+    attributes: ['id', 'titre', 'niveau', 'documents_requis'],
+  })
+  if (!programme) throw { status: 404, message: '...' }
+
+  const requis = (programme.documents_requis || []).filter(d => d.obligatoire === true)
+  const fournis = new Set(
+    (candidature.documents_soumis || []).map(d => d.nom.trim().toLowerCase())
+  )
+  const manquants = requis.filter(r => !fournis.has(r.nom.trim().toLowerCase()))
+
   return {
     complet: manquants.length === 0,
-    manquants: manquants.map(m => m.nom)
+    manquants: manquants.map(d => d.nom),
+    details:   manquants.map(d => ({ nom: d.nom, label: d.label || d.nom })),
   }
 }
 
 // Utilisé dans soumettre():
-// si (!complet) throw 400 "Documents obligatoires manquants : CV, ..."
+// si (!complet) throw 400 "Documents obligatoires manquants : Diplôme Baccalauréat, ..."
 ```
 
 ### 9.4 Empêcher les doublons
@@ -1876,7 +1920,7 @@ exécution produit le même jeu de données.
 |--------|--------|
 | `20260001000000-admin.js`         | 1 utilisateur admin (`admin@edubridge.tn`) |
 | `20260002000000-instituts.js`     | 3 utilisateurs (role=`institut`) + 3 instituts (ESPRIT, MedTech, Polytechnique Sousse) |
-| `20260003000000-programmes.js`    | 11 programmes (couvre les 4 valeurs ENUM `mode`) |
+| `20260003000000-programmes.js`    | 11 programmes réalistes (2 cycles préparatoires intégrés, 5 cycles ingénieur, 2 masters, 2 licences — 4 modes ENUM couverts) |
 | `20260004000000-candidats.js`     | 3 utilisateurs (role=`candidat`) + 3 candidats (Ali/Sarra tunisiens, Yassine français) |
 | `20260005000000-candidatures.js`  | 6 candidatures (couvre les 6 valeurs ENUM `statut`) |
 | `20260006000000-favoris.js`       | 5 favoris |
@@ -1894,6 +1938,28 @@ exécution produit le même jeu de données.
 - ⚠️ `bulkInsert` **ne déclenche pas** les hooks Sequelize. Les valeurs
   cohérentes pour les champs identité (`type_piece_identite`, nullification
   croisée CIN ↔ passeport) sont fournies directement dans le seeder.
+
+### Structure des programmes (seeder 3)
+
+Les 11 programmes reflètent le système LMD tunisien — répartis par institut :
+
+| Institut | Programmes | Niveaux |
+|----------|-----------|---------|
+| ESPRIT | Cycle Préparatoire Intégré | `cycle_preparatoire` |
+| ESPRIT | Génie Informatique | `ingenieur` |
+| ESPRIT | Master Télécommunications et Réseaux | `master` |
+| ESPRIT | Licence Génie Civil *(cours du soir)* | `licence` |
+| MedTech | Computer Engineering | `ingenieur` |
+| MedTech | Master Software Engineering *(alternance)* | `master` |
+| MedTech | Licence Renewable Energy *(formation continue)* | `licence` |
+| EPSousse | Cycle Préparatoire Intégré | `cycle_preparatoire` |
+| EPSousse | Génie Civil | `ingenieur` |
+| EPSousse | Génie des Télécommunications et Réseaux | `ingenieur` |
+| EPSousse | Génie Électrique et Automatique | `ingenieur` |
+
+Règle de cohérence FK : les 11 UUIDs du seeder 3 sont référencés dans les seeders 5 (candidatures) et 6 (favoris). **Ne jamais renommer ni supprimer un UUID** sans mettre à jour les seeders dépendants.
+
+Documents obligatoires différenciés par niveau métier (cycle_preparatoire / licence / ingenieur / master / international). Voir `seeders/20260003000000-programmes.js` pour les listes complètes — chaque programme pointe vers une constante adaptée à son niveau via le champ JSONB `documents_requis`. `documentsSoumisStandard` du seeder 5 (`diplome_bac` + `releves_notes`) injecte les pièces communes via `bulkInsert` (hors workflow → pas de re-validation).
 
 ### Démarrage depuis zéro
 

@@ -8,9 +8,10 @@ const ctrl   = require('../controllers/candidatureController');
 
 // Upload multi-fichiers
 const candidatureUpload = upload.fields([
-  { name: 'cv',                    maxCount: 1 },
   { name: 'diplome_bac',           maxCount: 1 },
+  { name: 'diplome_licence',       maxCount: 1 },
   { name: 'releves_notes',         maxCount: 1 },
+  { name: 'attestation_prepa',     maxCount: 1 },
   { name: 'lettre_motivation',     maxCount: 1 },
   { name: 'piece_identite',        maxCount: 1 },
   { name: 'photo_identite',        maxCount: 1 },

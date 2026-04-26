@@ -276,6 +276,14 @@ automatiques (candidat + institut) à chaque événement.
 - **Uploads Multer** : stockage disque (`./uploads/`), noms uniques
   (timestamp + random), filtre MIME (jpeg/jpg/png/pdf), limite 5 Mo.
   Référencés dans `Candidature.documents_soumis` (JSONB) via `media_id`.
+- **Convention réponses API** : toutes les réponses wrappent la ressource dans
+  une clé nommée au singulier du nom de la ressource. Exemples :
+  `GET /api/programmes/:id` → `{ programme: {...} }`,
+  `GET /api/instituts/:id` → `{ institut: {...} }`,
+  `GET /api/candidatures/:id` → `{ candidature: {...} }`.
+  Les listes utilisent le pluriel : `{ programmes: [...] }`, `{ instituts: [...] }`.
+  L'alias Sequelize pour l'association Institut dans Programme est `as: 'institut'`
+  (minuscule) — la clé dans le JSON est donc `institut` et non `Institut`.
 
 ### Frontend
 - Import alias `@/` pour `src/` (ex: `import { Button } from '@/app/components/ui/button'`)
@@ -296,6 +304,15 @@ automatiques (candidat + institut) à chaque événement.
   automatiquement.
 - **Appels API** : toujours passer par les services de `@/services/api.ts` ou
   les hooks `@/hooks/` — ne jamais faire d'appels axios directs dans les pages.
+- **Extraction réponse API** : le backend wrappe toujours la ressource dans une
+  clé (ex: `{ programme: {...} }`). Ne jamais caster `r.data` directement en
+  `Programme` — extraire `r.data.programme`. Exemple correct :
+  ```ts
+  const payload = r.data as { programme?: Programme };
+  const programme = payload.programme;
+  ```
+  Caster `r.data as Programme` sans extraction provoque des `TypeError` au
+  runtime (ex: `.charAt()` sur `undefined`).
 - **Variables d'env** : `VITE_API_URL` dans `.env.local` (jamais `.env`
   versionné pour les secrets).
 

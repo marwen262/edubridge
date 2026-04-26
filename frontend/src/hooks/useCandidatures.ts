@@ -18,7 +18,7 @@ export function useCandidatures() {
     candidatureService
       .getMine()
       .then(({ data }) => {
-        if (!cancelled) setCandidatures(data as Candidature[]);
+        if (!cancelled) setCandidatures((data as { candidatures: Candidature[] }).candidatures ?? []);
       })
       .catch((err) => {
         if (!cancelled)
@@ -52,7 +52,7 @@ export function useInstitutCandidatures() {
     candidatureService
       .getInstituteList()
       .then(({ data }) => {
-        if (!cancelled) setCandidatures(data as Candidature[]);
+        if (!cancelled) setCandidatures((data as { candidatures: Candidature[] }).candidatures ?? []);
       })
       .catch((err) => {
         if (!cancelled)
@@ -89,7 +89,7 @@ export function useAllCandidatures(filters?: CandidatureFilters) {
     candidatureService
       .getAll(filters)
       .then(({ data }) => {
-        if (!cancelled) setCandidatures(data as Candidature[]);
+        if (!cancelled) setCandidatures((data as { candidatures: Candidature[] }).candidatures ?? []);
       })
       .catch((err) => {
         if (!cancelled)

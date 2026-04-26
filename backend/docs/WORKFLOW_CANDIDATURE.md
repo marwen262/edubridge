@@ -94,7 +94,7 @@ curl -X PUT http://localhost:5000/api/candidatures/<CANDIDATURE_ID>/soumettre \
   -H "Authorization: Bearer $TOKEN_CANDIDAT"
 # → 200 { message: "Candidature soumise avec succès." }
 # ⚠️ Si documents obligatoires manquants :
-# → 400 { message: "Documents obligatoires manquants : CV, Diplôme du baccalauréat." }
+# → 400 { message: "Documents obligatoires manquants : Diplôme Baccalauréat, Relevés de notes." }
 ```
 
 ### Étape 3 — Prise en charge (institut → en_examen)
