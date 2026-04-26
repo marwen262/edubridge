@@ -103,7 +103,7 @@ export function Navbar({ transparent = false }: NavbarProps) {
             <img
               src={logoEduBridge}
               alt="EduBridge"
-              className="h-12 md:h-14 w-auto dark:bg-white dark:rounded-lg dark:p-1.5"
+              className="h-14 md:h-[68px] w-auto dark:bg-white dark:rounded-lg dark:p-1.5"
             />
           </Link>
 
