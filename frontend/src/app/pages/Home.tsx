@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { ChevronRight } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
@@ -5,16 +6,44 @@ import { Footer } from '../components/Footer';
 import { ProgramCard } from '../components/ProgramCard';
 import { InstitutionCard } from '../components/InstitutionCard';
 import { Button } from '../components/ui/button';
-import { fields } from '../data/staticData';
 import { usePrograms } from '@/hooks/usePrograms';
 import { useInstituts } from '@/hooks/useInstituts';
-import type { Institut } from '@/types/api';
+import type { Institut, ProgrammeFilters } from '@/types/api';
+import { programmeService } from '@/services/api';
 import { motion } from 'motion/react';
 
+const domaines: { key: NonNullable<ProgrammeFilters['domaine']>; label: string }[] = [
+  { key: 'informatique', label: 'Informatique' },
+  { key: 'genie_civil',  label: 'Génie Civil' },
+  { key: 'electrique',   label: 'Génie Électrique' },
+  { key: 'mecanique',    label: 'Génie Mécanique' },
+  { key: 'chimie',       label: 'Chimie' },
+  { key: 'agronomie',    label: 'Agronomie' },
+  { key: 'finance',      label: 'Finance' },
+  { key: 'management',   label: 'Management' },
+];
+
 export function Home() {
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const { programs } = usePrograms({ est_actif: true });
   const { instituts: institutsRaw } = useInstituts();
   const instituts = institutsRaw as Institut[];
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const results = await Promise.all(
+        domaines.map(d =>
+          programmeService.getAll({ domaine: d.key })
+            .then(r => ({ key: d.key, count: (r.data.programmes ?? []).length }))
+            .catch(() => ({ key: d.key, count: 0 }))
+        )
+      );
+      const map: Record<string, number> = {};
+      results.forEach(r => { map[r.key] = r.count; });
+      setCounts(map);
+    };
+    fetchCounts();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#1D1D1F]">
@@ -117,17 +146,17 @@ export function Home() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {fields.map((field, i) => (
+            {domaines.map((domaine, i) => (
               <motion.div
-                key={field.name}
+                key={domaine.key}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.05, duration: 0.3 }}
               >
                 <Link to="/search">
                   <div className="glass-card rounded-2xl p-6 hover-lift cursor-pointer text-center">
-                    <h3 className="font-semibold text-[var(--edu-text-primary)] mb-2">{field.name}</h3>
-                    <p className="text-sm text-[var(--edu-text-secondary)]">{field.count} programmes</p>
+                    <h3 className="font-semibold text-[var(--edu-text-primary)] mb-2">{domaine.label}</h3>
+                    <p className="text-sm text-[var(--edu-text-secondary)]">{counts[domaine.key] ?? '...'} programmes</p>
                   </div>
                 </Link>
               </motion.div>
