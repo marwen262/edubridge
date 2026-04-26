@@ -158,19 +158,19 @@ export function Home() {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="glass-card rounded-3xl p-10 mb-10"
           >
-            <p className="text-[var(--edu-text-primary)] text-lg leading-relaxed mb-6">
-              EduBridge est une plateforme numérique tunisienne qui centralise la mise en relation entre
-              les candidats et les écoles d'ingénieurs, universités et instituts privés du pays.
-              Notre mission est de rendre le processus d'orientation et d'admission transparent,
-              accessible et efficace pour chaque étudiant, quelle que soit sa région ou son parcours.
+            <p className="text-base text-[var(--edu-text-primary)] leading-relaxed mb-6">
+              EduBridge est une plateforme numérique tunisienne dédiée à la mise
+              en relation entre les candidats et les établissements d'enseignement
+              supérieur privés en Tunisie. Elle couvre l'ensemble des filières :
+              cycles préparatoires, licences, cycles ingénieurs et masters —
+              dans des domaines aussi variés que l'informatique, le génie civil,
+              l'électrique, la mécanique et bien d'autres.
             </p>
-            <p className="text-[var(--edu-text-secondary)] text-base leading-relaxed">
-              Grâce à EduBridge, les candidats peuvent explorer des centaines de programmes académiques,
-              comparer les établissements selon leurs critères (domaine, niveau, mode, localisation),
-              soumettre leurs dossiers en ligne et suivre l'avancement de leurs candidatures en temps réel.
-              De leur côté, les institutions partenaires disposent d'outils de gestion des candidatures,
-              de pipelines de traitement et de communication directe avec les candidats — le tout depuis
-              un tableau de bord unique.
+            <p className="text-sm text-[var(--edu-text-secondary)] leading-relaxed">
+              Les candidats peuvent explorer les programmes disponibles, comparer
+              les institutions et soumettre leurs dossiers en ligne. Les institutions
+              disposent d'un espace dédié pour gérer les admissions et communiquer
+              directement avec les candidats.
             </p>
           </motion.div>
 
