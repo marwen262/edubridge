@@ -1,12 +1,10 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router';
-import { Search, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router';
+import { ChevronRight } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { ProgramCard } from '../components/ProgramCard';
 import { InstitutionCard } from '../components/InstitutionCard';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
 import { fields } from '../data/staticData';
 import { usePrograms } from '@/hooks/usePrograms';
 import { useInstituts } from '@/hooks/useInstituts';
@@ -14,97 +12,75 @@ import type { Institut } from '@/types/api';
 import { motion } from 'motion/react';
 
 export function Home() {
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [searchCountry, setSearchCountry] = React.useState('');
-
   const { programs } = usePrograms({ est_actif: true });
   const { instituts: institutsRaw } = useInstituts();
   const instituts = institutsRaw as Institut[];
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate('/search');
-  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#1D1D1F]">
       <Navbar transparent />
 
       {/* Hero Section */}
-      <section className="hero-gradient relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <img
-            src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&h=800&fit=crop"
-            alt="Campus"
-            className="w-full h-full object-cover"
-          />
-        </div>
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
 
-        <div className="relative max-w-[1440px] mx-auto px-6 py-24 md:py-32">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
-          >
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
-              Find your path to the<br />right institution
-            </h1>
+        {/* COUCHE 1 — Photo campus nette */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1562774053-701939374585?w=1600&h=900&fit=crop&q=85')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
 
-            <p className="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
-              Discover programs, compare institutions, and manage your admissions — all in one place.
-            </p>
+        {/* COUCHE 2 — Overlay dégradé bleu foncé + vert */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0,10,60,0.72) 0%, rgba(0,40,80,0.55) 50%, rgba(0,80,40,0.45) 100%)',
+          }}
+        />
 
-            {/* Mega Search Bar */}
-            <form onSubmit={handleSearch} className="max-w-3xl mx-auto">
-              <div className="glass-card rounded-full p-2 flex items-center gap-2">
-                <div className="flex-1 px-4">
-                  <input
-                    type="text"
-                    placeholder="Program or field"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-transparent border-none outline-none text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)]"
-                  />
-                </div>
+        {/* COUCHE 3 — Réseau de nœuds SVG abstrait blanc semi-transparent */}
+        <svg
+          className="absolute inset-0 w-full h-full"
+          style={{ opacity: 0.10 }}
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid slice"
+          viewBox="0 0 1440 900"
+        >
+          <line x1="200" y1="150" x2="500" y2="400" stroke="white" strokeWidth="1"/>
+          <line x1="500" y1="400" x2="900" y2="200" stroke="white" strokeWidth="1"/>
+          <line x1="900" y1="200" x2="1200" y2="500" stroke="white" strokeWidth="1"/>
+          <line x1="1200" y1="500" x2="800" y2="700" stroke="white" strokeWidth="1"/>
+          <line x1="800" y1="700" x2="400" y2="600" stroke="white" strokeWidth="1"/>
+          <line x1="400" y1="600" x2="200" y2="150" stroke="white" strokeWidth="1"/>
+          <line x1="500" y1="400" x2="800" y2="700" stroke="white" strokeWidth="1"/>
+          <line x1="900" y1="200" x2="400" y2="600" stroke="white" strokeWidth="1"/>
+          <circle cx="200" cy="150" r="4" fill="white"/>
+          <circle cx="500" cy="400" r="4" fill="white"/>
+          <circle cx="900" cy="200" r="4" fill="white"/>
+          <circle cx="1200" cy="500" r="4" fill="white"/>
+          <circle cx="800" cy="700" r="4" fill="white"/>
+          <circle cx="400" cy="600" r="4" fill="white"/>
+        </svg>
 
-                <div className="w-px h-8 bg-[var(--edu-border)]" />
+        {/* COUCHE 4 — Contenu texte centré */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="relative z-10 text-center px-6 max-w-3xl mx-auto"
+        >
+          <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight mb-6">
+            Find your path to the<br />right institution
+          </h1>
+          <p className="text-xl text-white/75 max-w-xl mx-auto">
+            Discover programs, compare institutions,
+            and manage your admissions — all in one place.
+          </p>
+        </motion.div>
 
-                <div className="flex-1 px-4">
-                  <input
-                    type="text"
-                    placeholder="Country / City"
-                    value={searchCountry}
-                    onChange={(e) => setSearchCountry(e.target.value)}
-                    className="w-full bg-transparent border-none outline-none text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)]"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white px-8 h-12"
-                >
-                  <Search className="w-5 h-5 mr-2" />
-                  Search
-                </Button>
-              </div>
-            </form>
-
-            {/* Quick Filters */}
-            <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
-              {['Licence', 'Master', 'Ingénieur', 'Cours du soir', 'En ligne'].map((filter) => (
-                <Badge
-                  key={filter}
-                  variant="secondary"
-                  className="rounded-full bg-white/20 backdrop-blur-sm text-white border-white/30 hover:bg-white/30 cursor-pointer px-4 py-2"
-                >
-                  {filter}
-                </Badge>
-              ))}
-            </div>
-          </motion.div>
-        </div>
       </section>
 
       {/* Stats Strip */}
