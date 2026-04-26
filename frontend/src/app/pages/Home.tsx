@@ -282,56 +282,75 @@ export function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-16 bg-[var(--edu-surface)]">
+      {/* About */}
+      <section id="about" className="py-20 bg-[var(--edu-surface)]">
         <div className="max-w-[1440px] mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">Ce que disent nos étudiants</h2>
-            <p className="text-[var(--edu-text-secondary)] text-lg">Témoignages de notre communauté</p>
-          </div>
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-14"
+            >
+              <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">À propos d'EduBridge</h2>
+              <p className="text-[var(--edu-text-secondary)] text-lg">
+                Une plateforme conçue pour simplifier l'accès à l'enseignement supérieur en Tunisie
+              </p>
+            </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                quote: "EduBridge m'a facilité la découverte et la candidature à mon programme idéal. La plateforme est intuitive et le suivi excellent.",
-                author: 'Sarah J.',
-                program: 'Master Informatique, INSAT',
-                avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-              },
-              {
-                quote: "J'ai comparé plusieurs programmes côte à côte et trouvé celui qui correspondait parfaitement à mes objectifs professionnels.",
-                author: 'Mohamed C.',
-                program: 'Ingénieur Génie Civil, ENIT',
-                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-              },
-              {
-                quote: "Le processus de candidature était simple et j'ai reçu ma réponse rapidement. Merci EduBridge !",
-                author: 'Emma W.',
-                program: 'Master Finance, IHEC',
-                avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
-              },
-            ].map((testimonial, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.15, duration: 0.4 }}
-                className="glass-card rounded-2xl p-8"
-              >
-                <p className="text-[var(--edu-text-primary)] mb-6 italic">"{testimonial.quote}"</p>
-                <div className="flex items-center gap-4">
-                  <img
-                    src={testimonial.avatar}
-                    alt={testimonial.author}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div>
-                    <p className="font-semibold text-[var(--edu-text-primary)]">{testimonial.author}</p>
-                    <p className="text-sm text-[var(--edu-text-secondary)]">{testimonial.program}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.15 }}
+              className="glass-card rounded-3xl p-10 mb-10"
+            >
+              <p className="text-[var(--edu-text-primary)] text-lg leading-relaxed mb-6">
+                EduBridge est une plateforme numérique tunisienne qui centralise la mise en relation entre
+                les candidats et les écoles d'ingénieurs, universités et instituts privés du pays.
+                Notre mission est de rendre le processus d'orientation et d'admission transparent,
+                accessible et efficace pour chaque étudiant, quelle que soit sa région ou son parcours.
+              </p>
+              <p className="text-[var(--edu-text-secondary)] text-base leading-relaxed">
+                Grâce à EduBridge, les candidats peuvent explorer des centaines de programmes académiques,
+                comparer les établissements selon leurs critères (domaine, niveau, mode, localisation),
+                soumettre leurs dossiers en ligne et suivre l'avancement de leurs candidatures en temps réel.
+                De leur côté, les institutions partenaires disposent d'outils de gestion des candidatures,
+                de pipelines de traitement et de communication directe avec les candidats — le tout depuis
+                un tableau de bord unique.
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  icon: '🎯',
+                  title: 'Notre mission',
+                  text: 'Démocratiser l\'accès à l\'information sur l\'enseignement supérieur et réduire les inégalités d\'orientation en Tunisie.',
+                },
+                {
+                  icon: '🤝',
+                  title: 'Nos partenaires',
+                  text: 'Nous collaborons avec des établissements publics et privés accrédités, sélectionnés pour la qualité de leurs formations et leur engagement envers les étudiants.',
+                },
+                {
+                  icon: '🔒',
+                  title: 'Confidentialité',
+                  text: 'Les données personnelles des candidats sont protégées et partagées uniquement avec les institutions concernées, dans le strict respect de la vie privée.',
+                },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 + i * 0.1 }}
+                  className="glass-card rounded-2xl p-6 text-center"
+                >
+                  <div className="text-4xl mb-4">{item.icon}</div>
+                  <h3 className="text-lg font-semibold text-[var(--edu-text-primary)] mb-3">{item.title}</h3>
+                  <p className="text-sm text-[var(--edu-text-secondary)] leading-relaxed">{item.text}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
