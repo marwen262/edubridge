@@ -7,28 +7,15 @@ import { Button } from '../components/ui/button';
 import { programmeService } from '@/services/api';
 import type { Programme } from '@/types/api';
 import { motion } from 'motion/react';
-
-const COMPARE_KEY = 'edu_compare_ids';
-
-function getCompareIds(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(COMPARE_KEY) ?? '[]');
-  } catch {
-    return [];
-  }
-}
-
-function setCompareIds(ids: string[]): void {
-  localStorage.setItem(COMPARE_KEY, JSON.stringify(ids.slice(0, 3)));
-}
+import { useComparaison } from '@/hooks/useComparaison';
 
 export function Compare() {
   const [programmes, setProgrammes] = React.useState<Programme[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const { ids, retirer } = useComparaison();
 
   React.useEffect(() => {
-    const ids = getCompareIds();
     if (ids.length === 0) {
       setProgrammes([]);
       return;
@@ -65,10 +52,10 @@ export function Compare() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ids]);
 
   const handleRemove = (id: string) => {
-    setCompareIds(getCompareIds().filter((i) => i !== id));
+    retirer(id);
     setProgrammes((prev) => prev.filter((p) => p.id !== id));
   };
 

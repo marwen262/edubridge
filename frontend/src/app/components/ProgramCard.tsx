@@ -7,20 +7,7 @@ import { Button } from './ui/button';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useFavoriStatus } from '@/hooks/useFavoriStatus';
-
-const COMPARE_KEY = 'edu_compare_ids';
-
-function getCompareIds(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(COMPARE_KEY) ?? '[]');
-  } catch {
-    return [];
-  }
-}
-
-function setCompareIds(ids: string[]): void {
-  localStorage.setItem(COMPARE_KEY, JSON.stringify(ids.slice(0, 3)));
-}
+import { useComparaison } from '@/hooks/useComparaison';
 
 // Mapping champs mock → backend :
 // program.title           → programme.titre
@@ -48,9 +35,8 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
 
   // Favoris synchronisés avec l'API
   const { isFavori, loading: favoriLoading, handleToggle } = useFavoriStatus(programme?.id);
-  const [inCompare, setInCompare] = React.useState(() =>
-    getCompareIds().includes(programme?.id ?? '')
-  );
+  const { toggle, estDansComparaison, ids: compareIds } = useComparaison();
+  const dansCmp = estDansComparaison(programme?.id ?? '');
 
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -62,18 +48,16 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
   const handleCompare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const ids = getCompareIds();
     const pid = programme?.id ?? '';
     if (!pid) return;
-    if (ids.includes(pid)) {
-      setCompareIds(ids.filter((i) => i !== pid));
-      setInCompare(false);
-      toast.info('Retiré de la comparaison');
-    } else if (ids.length >= 3) {
+    if (!dansCmp && compareIds.length >= 3) {
       toast.error('Maximum 3 programmes peuvent être comparés');
+      return;
+    }
+    toggle(pid);
+    if (dansCmp) {
+      toast.info('Retiré de la comparaison');
     } else {
-      setCompareIds([...ids, pid]);
-      setInCompare(true);
       toast.success('Ajouté à la comparaison', {
         action: { label: 'Voir comparaison', onClick: () => navigate('/compare') },
       });
@@ -220,12 +204,12 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
                   <button
                     onClick={handleCompare}
                     className={`p-2 rounded-full hover:bg-[var(--edu-surface)] transition-colors ${
-                      inCompare ? 'text-[var(--edu-blue)]' : 'text-[var(--edu-text-secondary)]'
+                      dansCmp ? 'text-[var(--edu-blue)]' : 'text-[var(--edu-text-secondary)]'
                     }`}
                     aria-label="Comparer le programme"
-                    title={inCompare ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
+                    title={dansCmp ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
                   >
-                    <Scale className={`w-5 h-5 ${inCompare ? 'fill-[var(--edu-blue)]/20' : ''}`} />
+                    <Scale className={`w-5 h-5 ${dansCmp ? 'fill-[var(--edu-blue)]/20' : ''}`} />
                   </button>
 
                   <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
@@ -342,14 +326,14 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
             <button
               onClick={handleCompare}
               className={`mt-4 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-full text-xs font-medium border transition-colors ${
-                inCompare
+                dansCmp
                   ? 'border-[var(--edu-blue)] text-[var(--edu-blue)] bg-[var(--edu-blue)]/10'
                   : 'border-[var(--edu-border)] text-[var(--edu-text-secondary)] hover:border-[var(--edu-blue)] hover:text-[var(--edu-blue)]'
               }`}
-              aria-label={inCompare ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
+              aria-label={dansCmp ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
             >
               <Scale className="w-3.5 h-3.5" />
-              {inCompare ? 'Retirer de la comparaison' : 'Comparer'}
+              {dansCmp ? 'Retirer de la comparaison' : 'Comparer'}
             </button>
           </div>
         </div>
