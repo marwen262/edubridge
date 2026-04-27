@@ -1,37 +1,69 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router';
-import { GraduationCap, Eye, EyeOff, Check, X } from 'lucide-react';
+import { Eye, EyeOff, Check, X } from 'lucide-react';
+import logoEduBridge from '@/assets/logo/logoedubridge.png';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Checkbox } from '../components/ui/checkbox';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+
+const signupSchema = z
+  .object({
+    prenom: z.string().min(2, 'Prénom requis'),
+    nom: z.string().min(2, 'Nom requis'),
+    email: z.string().email('Email invalide'),
+    password: z
+      .string()
+      .min(8, '8 caractères minimum')
+      .regex(/[A-Z]/, 'Une majuscule requise')
+      .regex(/[0-9]/, 'Un chiffre requis')
+      .regex(/[!@#$%^&*]/, 'Un caractère spécial requis'),
+    confirmPassword: z.string(),
+    termsAccepted: z.boolean().refine((v) => v === true, 'Accepter les conditions'),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: 'Les mots de passe ne correspondent pas',
+    path: ['confirmPassword'],
+  });
+
+type SignupFormData = z.infer<typeof signupSchema>;
 
 export function Signup() {
   const navigate = useNavigate();
-  const [formData, setFormData] = React.useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    country: '',
-    educationLevel: '',
-    fieldOfInterest: '',
-  });
+  const { register: registerUser } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
-  const [termsAccepted, setTermsAccepted] = React.useState(false);
 
-  const updateField = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  const {
+    register,
+    handleSubmit,
+    watch,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      prenom: '',
+      nom: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      termsAccepted: false,
+    },
+  });
+
+  const watchedPassword = watch('password') ?? '';
 
   const getPasswordStrength = () => {
-    const password = formData.password;
-    if (password.length === 0) return 0;
-    if (password.length < 8) return 1;
-    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) return 2;
-    if (!/[!@#$%^&*]/.test(password)) return 3;
+    if (watchedPassword.length === 0) return 0;
+    if (watchedPassword.length < 8) return 1;
+    if (!/[A-Z]/.test(watchedPassword) || !/[0-9]/.test(watchedPassword)) return 2;
+    if (!/[!@#$%^&*]/.test(watchedPassword)) return 3;
     return 4;
   };
 
@@ -40,47 +72,38 @@ export function Signup() {
   const strengthColors = ['', '#FF3B30', '#FF9F0A', '#64D2FF', '#30D158'];
 
   const passwordChecks = [
-    { label: 'At least 8 characters', met: formData.password.length >= 8 },
-    { label: 'Contains uppercase letter', met: /[A-Z]/.test(formData.password) },
-    { label: 'Contains number', met: /[0-9]/.test(formData.password) },
-    { label: 'Contains special character', met: /[!@#$%^&*]/.test(formData.password) },
+    { label: 'At least 8 characters', met: watchedPassword.length >= 8 },
+    { label: 'Contains uppercase letter', met: /[A-Z]/.test(watchedPassword) },
+    { label: 'Contains number', met: /[0-9]/.test(watchedPassword) },
+    { label: 'Contains special character', met: /[!@#$%^&*]/.test(watchedPassword) },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validation
-    if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
-      toast.error('Please fill in all required fields');
-      return;
+  const onSubmit = async (data: SignupFormData) => {
+    try {
+      await registerUser({
+        email: data.email,
+        password: data.password,
+        role: 'candidat',
+        prenom: data.prenom,
+        nom: data.nom,
+      });
+      navigate('/dashboard/candidate');
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      toast.error(axiosError.response?.data?.message ?? 'Erreur inscription');
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
-    if (passwordStrength < 3) {
-      toast.error('Please choose a stronger password');
-      return;
-    }
-
-    if (!termsAccepted) {
-      toast.error('Please accept the terms and privacy policy');
-      return;
-    }
-
-    toast.success('Account created successfully!');
-    navigate('/dashboard/candidate');
   };
 
   return (
     <div className="min-h-screen dotted-bg flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
         {/* Logo */}
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <GraduationCap className="w-10 h-10 text-[var(--edu-blue)]" />
-          <span className="text-2xl font-bold text-[var(--edu-text-primary)]">EduBridge</span>
+        <Link to="/" className="flex items-center justify-center mb-8">
+          <img
+            src={logoEduBridge}
+            alt="EduBridge"
+            className="h-14 w-auto dark:bg-white dark:rounded-xl dark:px-3 dark:py-1.5"
+          />
         </Link>
 
         {/* Card */}
@@ -92,31 +115,50 @@ export function Signup() {
             Start your journey to find the perfect program
           </p>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="fullName">Full Name *</Label>
+                <Label htmlFor="prenom">Prénom *</Label>
                 <Input
-                  id="fullName"
+                  id="prenom"
                   type="text"
-                  placeholder="John Doe"
-                  value={formData.fullName}
-                  onChange={(e) => updateField('fullName', e.target.value)}
+                  placeholder="prenom"
+                  {...register('prenom')}
                   className="rounded-xl mt-1"
                 />
+                {errors.prenom && (
+                  <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.prenom.message}</p>
+                )}
               </div>
 
+              <div>
+                <Label htmlFor="nom">Nom *</Label>
+                <Input
+                  id="nom"
+                  type="text"
+                  placeholder="nom"
+                  {...register('nom')}
+                  className="rounded-xl mt-1"
+                />
+                {errors.nom && (
+                  <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.nom.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="your@email.com"
-                  value={formData.email}
-                  onChange={(e) => updateField('email', e.target.value)}
+                  {...register('email')}
                   className="rounded-xl mt-1"
                 />
+                {errors.email && (
+                  <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.email.message}</p>
+                )}
               </div>
             </div>
 
@@ -128,8 +170,7 @@ export function Signup() {
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Create a strong password"
-                    value={formData.password}
-                    onChange={(e) => updateField('password', e.target.value)}
+                    {...register('password')}
                     className="rounded-xl pr-10"
                   />
                   <button
@@ -141,8 +182,7 @@ export function Signup() {
                   </button>
                 </div>
 
-                {/* Strength Bar */}
-                {formData.password && (
+                {watchedPassword && (
                   <div className="mt-2">
                     <div className="h-1.5 bg-[var(--edu-surface)] rounded-full overflow-hidden">
                       <div
@@ -158,6 +198,9 @@ export function Signup() {
                     </p>
                   </div>
                 )}
+                {errors.password && (
+                  <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.password.message}</p>
+                )}
               </div>
 
               <div>
@@ -167,8 +210,7 @@ export function Signup() {
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => updateField('confirmPassword', e.target.value)}
+                    {...register('confirmPassword')}
                     className="rounded-xl pr-10"
                   />
                   <button
@@ -176,16 +218,26 @@ export function Signup() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--edu-text-tertiary)] hover:text-[var(--edu-text-primary)]"
                   >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
+                {errors.confirmPassword && (
+                  <p className="text-xs text-[var(--edu-danger)] mt-1">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Password Requirements */}
-            {formData.password && (
+            {watchedPassword && (
               <div className="bg-[var(--edu-surface)] rounded-xl p-4">
-                <p className="text-sm font-medium text-[var(--edu-text-primary)] mb-2">Password Requirements:</p>
+                <p className="text-sm font-medium text-[var(--edu-text-primary)] mb-2">
+                  Password Requirements:
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {passwordChecks.map((check, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
@@ -194,7 +246,11 @@ export function Signup() {
                       ) : (
                         <X className="w-4 h-4 text-[var(--edu-text-tertiary)]" />
                       )}
-                      <span className={check.met ? 'text-[var(--edu-success)]' : 'text-[var(--edu-text-secondary)]'}>
+                      <span
+                        className={
+                          check.met ? 'text-[var(--edu-success)]' : 'text-[var(--edu-text-secondary)]'
+                        }
+                      >
                         {check.label}
                       </span>
                     </div>
@@ -203,56 +259,18 @@ export function Signup() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  type="text"
-                  placeholder="Your country"
-                  value={formData.country}
-                  onChange={(e) => updateField('country', e.target.value)}
-                  className="rounded-xl mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="educationLevel">Current Education Level</Label>
-                <select
-                  id="educationLevel"
-                  value={formData.educationLevel}
-                  onChange={(e) => updateField('educationLevel', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-input bg-background mt-1"
-                >
-                  <option value="">Select level</option>
-                  <option value="high-school">High School</option>
-                  <option value="bachelor">Bachelor's</option>
-                  <option value="master">Master's</option>
-                  <option value="phd">PhD</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="fieldOfInterest">Field of Interest</Label>
-              <Input
-                id="fieldOfInterest"
-                type="text"
-                placeholder="e.g., Computer Science, Business, Medicine"
-                value={formData.fieldOfInterest}
-                onChange={(e) => updateField('fieldOfInterest', e.target.value)}
-                className="rounded-xl mt-1"
-              />
-            </div>
-
-            {/* Terms */}
             <div className="flex items-start gap-2">
-              <Checkbox
-                id="terms"
-                checked={termsAccepted}
-                onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
-                className="mt-1"
+              <Controller
+                control={control}
+                name="termsAccepted"
+                render={({ field }) => (
+                  <Checkbox
+                    id="terms"
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                    className="mt-1"
+                  />
+                )}
               />
               <label htmlFor="terms" className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
                 I agree to the{' '}
@@ -265,32 +283,29 @@ export function Signup() {
                 </a>
               </label>
             </div>
+            {errors.termsAccepted && (
+              <p className="text-xs text-[var(--edu-danger)] -mt-3">
+                {errors.termsAccepted.message}
+              </p>
+            )}
 
             <Button
               type="submit"
-              className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 font-medium"
+              disabled={isSubmitting}
+              className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 font-medium disabled:opacity-60"
             >
-              Create account
+              {isSubmitting ? 'Creating account…' : 'Create account'}
             </Button>
           </form>
 
-          {/* Sign In Link */}
           <p className="text-center text-sm text-[var(--edu-text-secondary)] mt-6">
             Already have an account?{' '}
             <Link to="/login" className="text-[var(--edu-blue)] hover:underline font-medium">
               Sign in
             </Link>
           </p>
-
-          {/* Institution Note */}
-          <div className="mt-6 p-4 bg-[var(--edu-surface)] rounded-xl">
-            <p className="text-xs text-[var(--edu-text-secondary)] text-center">
-              <strong>You are an institution?</strong> Contact the EduBridge admin to request an account.
-            </p>
-          </div>
         </div>
 
-        {/* Back to Home */}
         <div className="text-center mt-6">
           <Link to="/" className="text-sm text-[var(--edu-text-secondary)] hover:text-[var(--edu-blue)]">
             ← Back to home

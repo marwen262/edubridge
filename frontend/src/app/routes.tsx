@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router';
 import { Home } from './pages/Home';
 import { SearchResults } from './pages/SearchResults';
+import { Institutions } from './pages/Institutions';
 import { ProgramDetail } from './pages/ProgramDetail';
 import { InstitutionProfile } from './pages/InstitutionProfile';
 import { Compare } from './pages/Compare';
@@ -10,6 +11,7 @@ import { FirstLogin } from './pages/FirstLogin';
 import { CandidateDashboard } from './pages/CandidateDashboard';
 import { InstitutionDashboard } from './pages/InstitutionDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -19,6 +21,10 @@ export const router = createBrowserRouter([
   {
     path: '/search',
     Component: SearchResults,
+  },
+  {
+    path: '/institutions',
+    Component: Institutions,
   },
   {
     path: '/program/:id',
@@ -46,15 +52,27 @@ export const router = createBrowserRouter([
   },
   {
     path: '/dashboard/candidate',
-    Component: CandidateDashboard,
+    element: (
+      <ProtectedRoute requiredRole="candidat">
+        <CandidateDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/dashboard/institution',
-    Component: InstitutionDashboard,
+    element: (
+      <ProtectedRoute requiredRole="institut">
+        <InstitutionDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/dashboard/admin',
-    Component: AdminDashboard,
+    element: (
+      <ProtectedRoute requiredRole="admin">
+        <AdminDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '*',

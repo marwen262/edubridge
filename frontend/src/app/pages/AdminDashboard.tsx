@@ -4,19 +4,16 @@ import {
   Building2,
   FileText,
   Clock,
-  Activity,
   Plus,
-  Send,
   CheckCircle,
-  XCircle,
-  AlertTriangle,
-  ChevronRight,
-  Eye,
-  MoreVertical,
+  Trash2,
+  ShieldCheck,
+  ShieldOff,
+  X,
+  UserX,
+  UserCheck,
 } from 'lucide-react';
 import {
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -29,169 +26,265 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { toast } from 'sonner';
 import { DashboardSidebar } from '../components/DashboardSidebar';
 import { StatCard } from '../components/StatCard';
-import { StatusBadge } from '../components/StatusBadge';
 import { Button } from '../components/ui/button';
 import { motion } from 'motion/react';
+import { useAuth } from '@/context/AuthContext';
+import { useUtilisateurs } from '@/hooks/useUtilisateurs';
+import { useAllCandidatures } from '@/hooks/useCandidatures';
+import { usePrograms } from '@/hooks/usePrograms';
+import { useInstituts } from '@/hooks/useInstituts';
+import {
+  authService,
+  utilisateurService,
+  candidatureService,
+  institutService,
+} from '@/services/api';
+import type { Utilisateur, Institut, Candidature } from '@/types/api';
+
+// Couleurs des badges de rôle
+const ROLE_COLORS: Record<string, string> = {
+  candidat: 'var(--edu-blue)',
+  institut: 'var(--edu-indigo)',
+  admin:    'var(--edu-warning)',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  candidat: 'Candidat',
+  institut: 'Institut',
+  admin:    'Admin',
+};
+
+// Couleurs des badges de statut candidature
+const STATUT_COLORS: Record<string, string> = {
+  brouillon:     'var(--edu-text-secondary)',
+  soumise:       'var(--edu-blue)',
+  en_examen:     'var(--edu-warning)',
+  acceptee:      'var(--edu-success)',
+  refusee:       'var(--edu-danger)',
+  liste_attente: '#8B5CF6',
+};
+
+const STATUT_LABELS: Record<string, string> = {
+  brouillon:     'Brouillon',
+  soumise:       'Soumise',
+  en_examen:     'En examen',
+  acceptee:      'Acceptée',
+  refusee:       'Refusée',
+  liste_attente: "Liste d'attente",
+};
+
+const STATUTS = [
+  'brouillon',
+  'soumise',
+  'en_examen',
+  'acceptee',
+  'refusee',
+  'liste_attente',
+] as const;
 
 export function AdminDashboard() {
-  const [userFilter, setUserFilter] = useState<'All' | 'Candidates' | 'Institutions'>('All');
+  const { user } = useAuth();
 
-  const user = {
-    name: 'Admin User',
-    role: 'Platform Administrator',
-  };
+  // Filtres locaux
+  const [filterRole, setFilterRole] = useState<
+    'all' | 'candidat' | 'institut' | 'admin'
+  >('all');
+  const [filtreStatut, setFiltreStatut] = useState<string>('');
 
-  const stats = [
-    { label: 'Total Users', value: '2,486', icon: Users, color: 'var(--edu-indigo)' },
-    { label: 'Institutions', value: '184', icon: Building2, color: 'var(--edu-blue)' },
-    { label: 'Active Programs', value: '1,247', icon: FileText, color: 'var(--edu-info)' },
-    { label: 'Pending Decisions', value: '23', icon: Clock, color: 'var(--edu-warning)' },
-    { label: 'System Health', value: 'OK', icon: Activity, color: 'var(--edu-success)' },
-  ];
-
-  // Decisions to relay
-  const pendingDecisions = [
-    {
-      candidate: 'Sarah Johnson',
-      program: 'MSc Computer Science',
-      institution: 'MIT',
-      decision: 'Accepted' as const,
-      receivedAt: '2 hours ago',
-    },
-    {
-      candidate: 'Ahmed Hassan',
-      program: 'PhD in AI',
-      institution: 'Stanford University',
-      decision: 'More info needed' as const,
-      receivedAt: '5 hours ago',
-    },
-    {
-      candidate: 'Maria Garcia',
-      program: 'MBA Program',
-      institution: 'Harvard Business School',
-      decision: 'Accepted' as const,
-      receivedAt: '1 day ago',
-    },
-    {
-      candidate: 'Yuki Tanaka',
-      program: 'MSc Robotics',
-      institution: 'ETH Zurich',
-      decision: 'Rejected' as const,
-      receivedAt: '1 day ago',
-    },
-  ];
-
-  // Users table
-  const allUsers = [
-    {
-      name: 'Sarah Johnson',
-      email: 'sarah.j@email.com',
-      role: 'Candidate',
-      status: 'Active' as const,
-      joined: '2026-01-15',
-    },
-    {
-      name: 'MIT Admissions',
-      email: 'admissions@mit.edu',
-      role: 'Institution',
-      status: 'Active' as const,
-      joined: '2025-09-10',
-    },
-    {
-      name: 'Ahmed Hassan',
-      email: 'ahmed.h@email.com',
-      role: 'Candidate',
-      status: 'Active' as const,
-      joined: '2026-02-03',
-    },
-    {
-      name: 'Stanford University',
-      email: 'admissions@stanford.edu',
-      role: 'Institution',
-      status: 'Active' as const,
-      joined: '2025-08-22',
-    },
-    {
-      name: 'John Smith',
-      email: 'john.s@email.com',
-      role: 'Candidate',
-      status: 'Inactive' as const,
-      joined: '2026-03-12',
-    },
-    {
-      name: 'Spam Account',
-      email: 'spam@fake.com',
-      role: 'Candidate',
-      status: 'Banned' as const,
-      joined: '2026-04-01',
-    },
-  ];
-
-  const filteredUsers = allUsers.filter((u) => {
-    if (userFilter === 'All') return true;
-    if (userFilter === 'Candidates') return u.role === 'Candidate';
-    if (userFilter === 'Institutions') return u.role === 'Institution';
-    return true;
+  // Création institut (formulaire inline)
+  const [showCreateInstitut, setShowCreateInstitut] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newInstitut, setNewInstitut] = useState({
+    nom: '',
+    email: '',
+    password: '',
   });
 
-  // Charts data
-  const registrationsData = [
-    { month: 'Nov', users: 120 },
-    { month: 'Dec', users: 180 },
-    { month: 'Jan', users: 240 },
-    { month: 'Feb', users: 310 },
-    { month: 'Mar', users: 420 },
-    { month: 'Apr', users: 580 },
-  ];
+  // Hooks API — les hooks renvoient unknown[], on cast vers les types attendus
+  const {
+    utilisateurs: utilisateursRaw,
+    loading: loadingUtilisateurs,
+    refetch: refetchUtilisateurs,
+  } = useUtilisateurs();
+  const utilisateurs = utilisateursRaw as Utilisateur[];
 
-  const roleDistribution = [
-    { name: 'Candidates', value: 2280, color: '#5E5CE6' },
-    { name: 'Institutions', value: 184, color: '#0071E3' },
-    { name: 'Admins', value: 22, color: '#FF9500' },
-  ];
+  const {
+    candidatures,
+    loading: loadingCandidatures,
+    refetch: refetchCandidatures,
+  } = useAllCandidatures();
 
-  const applicationsByCountry = [
-    { country: 'USA', applications: 420 },
-    { country: 'UK', applications: 310 },
-    { country: 'Germany', applications: 280 },
-    { country: 'France', applications: 240 },
-    { country: 'Canada', applications: 195 },
-    { country: 'Japan', applications: 130 },
-  ];
+  const { programs: programmes, loading: loadingProgrammes } = usePrograms();
 
-  // Flagged reports
-  const flags = [
+  const {
+    instituts: institutsRaw,
+    loading: loadingInstituts,
+    refetch: refetchInstituts,
+  } = useInstituts();
+  const instituts = institutsRaw as Institut[];
+
+  // Stats globales
+  const totalCandidats = utilisateurs.filter((u) => u.role === 'candidat').length;
+  const totalInstituts = utilisateurs.filter((u) => u.role === 'institut').length;
+  const totalAdmins = utilisateurs.filter((u) => u.role === 'admin').length;
+
+  const candidaturesEnAttente = candidatures.filter(
+    (c) => c.statut === 'soumise' || c.statut === 'en_examen'
+  ).length;
+
+  const tauxAcceptation =
+    candidatures.length > 0
+      ? Math.round(
+          (candidatures.filter((c) => c.statut === 'acceptee').length /
+            candidatures.length) *
+            100
+        )
+      : 0;
+
+  const stats = [
     {
-      type: 'Suspicious activity',
-      description: 'Multiple failed login attempts on institution account',
-      severity: 'high',
-      time: '15 min ago',
+      label: 'Utilisateurs',
+      value: String(utilisateurs.length),
+      icon: Users,
+      color: 'var(--edu-indigo)',
     },
     {
-      type: 'Inappropriate content',
-      description: 'Program description flagged by 3 users',
-      severity: 'medium',
-      time: '2 hours ago',
+      label: 'Instituts',
+      value: String(totalInstituts),
+      icon: Building2,
+      color: 'var(--edu-blue)',
     },
     {
-      type: 'Document mismatch',
-      description: 'Candidate documents do not match profile',
-      severity: 'low',
-      time: '1 day ago',
+      label: 'Programmes',
+      value: String(programmes.length),
+      icon: FileText,
+      color: 'var(--edu-info)',
+    },
+    {
+      label: 'En attente',
+      value: String(candidaturesEnAttente),
+      icon: Clock,
+      color: 'var(--edu-warning)',
+    },
+    {
+      label: 'Taux d\'acceptation',
+      value: `${tauxAcceptation}%`,
+      icon: CheckCircle,
+      color: 'var(--edu-success)',
     },
   ];
 
-  const severityColor = {
-    high: 'var(--edu-danger)',
-    medium: 'var(--edu-warning)',
-    low: 'var(--edu-info)',
+  // Données graphiques
+  const dataRoles = [
+    { name: 'Candidats', value: totalCandidats, color: 'var(--edu-blue)' },
+    { name: 'Instituts', value: totalInstituts, color: 'var(--edu-indigo)' },
+    { name: 'Admins', value: totalAdmins, color: 'var(--edu-warning)' },
+  ].filter((d) => d.value > 0);
+
+  const dataStatuts = [
+    { statut: 'Soumises',  count: candidatures.filter((c) => c.statut === 'soumise').length },
+    { statut: 'En examen', count: candidatures.filter((c) => c.statut === 'en_examen').length },
+    { statut: 'Acceptées', count: candidatures.filter((c) => c.statut === 'acceptee').length },
+    { statut: 'Refusées',  count: candidatures.filter((c) => c.statut === 'refusee').length },
+    { statut: 'Attente',   count: candidatures.filter((c) => c.statut === 'liste_attente').length },
+  ];
+
+  // Listes filtrées
+  const utilisateursFiltres =
+    filterRole === 'all'
+      ? utilisateurs
+      : utilisateurs.filter((u) => u.role === filterRole);
+
+  const candidaturesFiltrees = filtreStatut
+    ? candidatures.filter((c) => c.statut === filtreStatut)
+    : candidatures;
+
+  // --- Actions ---
+
+  const handleCreerInstitut = async () => {
+    if (!newInstitut.email || !newInstitut.password || !newInstitut.nom) {
+      toast.error('Tous les champs sont requis');
+      return;
+    }
+    setCreating(true);
+    try {
+      await authService.register({
+        email: newInstitut.email,
+        password: newInstitut.password,
+        role: 'institut',
+        nom: newInstitut.nom,
+      });
+      toast.success('Compte institut créé');
+      setShowCreateInstitut(false);
+      setNewInstitut({ nom: '', email: '', password: '' });
+      refetchUtilisateurs();
+      refetchInstituts();
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        apiErr?.response?.data?.message ?? 'Erreur lors de la création'
+      );
+    } finally {
+      setCreating(false);
+    }
   };
+
+  const handleToggleActif = async (id: string, estActif: boolean) => {
+    try {
+      await utilisateurService.update(id, { est_actif: !estActif });
+      toast.success(estActif ? 'Compte désactivé' : 'Compte réactivé');
+      refetchUtilisateurs();
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      toast.error(apiErr?.response?.data?.message ?? 'Erreur');
+    }
+  };
+
+  const handleSupprimerUtilisateur = async (id: string) => {
+    if (!window.confirm('Supprimer cet utilisateur définitivement ?')) return;
+    try {
+      await utilisateurService.delete(id);
+      toast.success('Utilisateur supprimé');
+      refetchUtilisateurs();
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      toast.error(apiErr?.response?.data?.message ?? 'Erreur');
+    }
+  };
+
+  const handleChangerStatutCandidature = async (id: string, statut: string) => {
+    try {
+      await candidatureService.changerStatut(id, statut);
+      toast.success('Statut mis à jour');
+      refetchCandidatures();
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      toast.error(apiErr?.response?.data?.message ?? 'Erreur');
+    }
+  };
+
+  const handleToggleVerifie = async (id: string, estVerifie: boolean) => {
+    try {
+      await institutService.update(id, { est_verifie: !estVerifie });
+      toast.success(estVerifie ? 'Institut non vérifié' : 'Institut vérifié');
+      refetchInstituts();
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      toast.error(apiErr?.response?.data?.message ?? 'Erreur');
+    }
+  };
+
+  const nomAdmin = user?.prenom ?? user?.email ?? 'Administrateur';
 
   return (
     <div className="flex h-screen bg-[var(--edu-surface)]">
-      <DashboardSidebar role="admin" user={user} />
+      <DashboardSidebar
+        role="admin"
+        user={{ name: nomAdmin, role: 'Platform Administrator' }}
+      />
 
       <main className="flex-1 overflow-y-auto">
         {/* Header */}
@@ -202,21 +295,104 @@ export function AdminDashboard() {
                 Admin Control Panel
               </h1>
               <p className="text-[var(--edu-text-secondary)]">
-                Manage the entire EduBridge platform
+                Bienvenue, {nomAdmin}
               </p>
             </div>
-
             <Button
               className="rounded-full text-white"
               style={{ backgroundColor: 'var(--edu-indigo)' }}
+              onClick={() => setShowCreateInstitut((v) => !v)}
             >
               <Plus className="w-5 h-5 mr-2" />
-              Create Institution Account
+              Créer un institut
             </Button>
           </div>
         </div>
 
         <div className="p-8 space-y-8">
+          {/* Formulaire création institut (inline) */}
+          {showCreateInstitut && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card rounded-2xl p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-[var(--edu-text-primary)]">
+                  Nouveau compte institut
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCreateInstitut(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--edu-text-secondary)] mb-1">
+                    Nom de l'école
+                  </label>
+                  <input
+                    type="text"
+                    value={newInstitut.nom}
+                    onChange={(e) =>
+                      setNewInstitut((s) => ({ ...s, nom: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--edu-border)] bg-white dark:bg-[#1D1D1F] text-[var(--edu-text-primary)]"
+                    placeholder="Ex: ENIT"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--edu-text-secondary)] mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={newInstitut.email}
+                    onChange={(e) =>
+                      setNewInstitut((s) => ({ ...s, email: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--edu-border)] bg-white dark:bg-[#1D1D1F] text-[var(--edu-text-primary)]"
+                    placeholder="contact@ecole.tn"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--edu-text-secondary)] mb-1">
+                    Mot de passe temporaire
+                  </label>
+                  <input
+                    type="password"
+                    value={newInstitut.password}
+                    onChange={(e) =>
+                      setNewInstitut((s) => ({ ...s, password: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--edu-border)] bg-white dark:bg-[#1D1D1F] text-[var(--edu-text-primary)]"
+                    placeholder="Min. 8 caractères"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowCreateInstitut(false)}
+                  disabled={creating}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  className="rounded-full text-white"
+                  style={{ backgroundColor: 'var(--edu-indigo)' }}
+                  onClick={handleCreerInstitut}
+                  disabled={creating}
+                >
+                  {creating ? 'Création…' : 'Créer le compte'}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -237,84 +413,97 @@ export function AdminDashboard() {
             </div>
           </motion.div>
 
-          {/* Decisions Relay Queue */}
+          {/* Charts */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.4 }}
           >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-[var(--edu-text-primary)]">
-                  Decisions Relay Queue
-                </h2>
-                <p className="text-sm text-[var(--edu-text-secondary)] mt-1">
-                  Decisions received from institutions awaiting forwarding to candidates
-                </p>
+            <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
+              Analytics
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Pie : répartition par rôle */}
+              <div className="glass-card rounded-2xl p-6">
+                <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">
+                  Répartition par rôle
+                </h3>
+                {dataRoles.length === 0 ? (
+                  <div className="h-[260px] flex items-center justify-center text-sm text-[var(--edu-text-secondary)]">
+                    Pas de données
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie
+                        data={dataRoles}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={90}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {dataRoles.map((entry, idx) => (
+                          <Cell key={`cell-${idx}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid var(--edu-border)',
+                          borderRadius: '12px',
+                        }}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        iconType="circle"
+                        wrapperStyle={{ fontSize: '12px' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </div>
-              <Button variant="ghost" className="text-[var(--edu-indigo)]">
-                View all
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
 
-            <div className="space-y-3">
-              {pendingDecisions.map((d, i) => (
-                <div
-                  key={i}
-                  className="glass-card rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-all"
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: 'var(--edu-indigo)15' }}
-                  >
-                    <Send className="w-6 h-6" style={{ color: 'var(--edu-indigo)' }} />
-                  </div>
-
-                  <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-xs text-[var(--edu-text-tertiary)] mb-1">Candidate</p>
-                      <p className="font-semibold text-[var(--edu-text-primary)] truncate">
-                        {d.candidate}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-[var(--edu-text-tertiary)] mb-1">Program</p>
-                      <p className="font-medium text-[var(--edu-text-primary)] truncate">
-                        {d.program}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-[var(--edu-text-tertiary)] mb-1">Institution</p>
-                      <p className="font-medium text-[var(--edu-text-secondary)] truncate">
-                        {d.institution}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-[var(--edu-text-tertiary)] mb-1">Decision</p>
-                      <StatusBadge status={d.decision} />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs text-[var(--edu-text-tertiary)] mr-2">
-                      {d.receivedAt}
-                    </span>
-                    <Button
-                      size="sm"
-                      className="rounded-full text-white"
-                      style={{ backgroundColor: 'var(--edu-indigo)' }}
-                    >
-                      <Send className="w-4 h-4 mr-1" />
-                      Forward
-                    </Button>
-                  </div>
-                </div>
-              ))}
+              {/* Bar : candidatures par statut */}
+              <div className="glass-card rounded-2xl p-6 lg:col-span-2">
+                <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">
+                  Candidatures par statut
+                </h3>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={dataStatuts}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--edu-divider)"
+                    />
+                    <XAxis
+                      dataKey="statut"
+                      stroke="var(--edu-text-tertiary)"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <YAxis
+                      stroke="var(--edu-text-tertiary)"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid var(--edu-border)',
+                        borderRadius: '12px',
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="var(--edu-indigo)"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </motion.div>
 
-          {/* Users Management */}
+          {/* Gestion des utilisateurs */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -322,19 +511,26 @@ export function AdminDashboard() {
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-[var(--edu-text-primary)]">
-                Users Management
+                Gestion des utilisateurs
               </h2>
             </div>
 
-            {/* Filter tabs */}
-            <div className="flex items-center gap-2 mb-4">
-              {(['All', 'Candidates', 'Institutions'] as const).map((tab) => (
+            {/* Tabs filtres */}
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              {(
+                [
+                  { value: 'all', label: 'Tous' },
+                  { value: 'candidat', label: 'Candidats' },
+                  { value: 'institut', label: 'Instituts' },
+                  { value: 'admin', label: 'Admins' },
+                ] as const
+              ).map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setUserFilter(tab)}
+                  key={tab.value}
+                  onClick={() => setFilterRole(tab.value)}
                   className="px-4 py-2 rounded-full text-sm font-medium transition-all"
                   style={
-                    userFilter === tab
+                    filterRole === tab.value
                       ? { backgroundColor: 'var(--edu-indigo)', color: 'white' }
                       : {
                           backgroundColor: 'var(--edu-surface)',
@@ -342,7 +538,7 @@ export function AdminDashboard() {
                         }
                   }
                 >
-                  {tab}
+                  {tab.label}
                 </button>
               ))}
             </div>
@@ -353,19 +549,16 @@ export function AdminDashboard() {
                   <thead className="bg-[var(--edu-surface)]">
                     <tr>
                       <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
-                        Name
-                      </th>
-                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
                         Email
                       </th>
                       <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
-                        Role
+                        Rôle
                       </th>
                       <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
-                        Status
+                        Statut
                       </th>
                       <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
-                        Joined
+                        Inscrit le
                       </th>
                       <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
                         Actions
@@ -373,212 +566,378 @@ export function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--edu-divider)]">
-                    {filteredUsers.map((u, i) => (
-                      <tr key={i} className="hover:bg-[var(--edu-surface)] transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--edu-blue)] to-[var(--edu-indigo)] flex items-center justify-center text-white text-sm font-semibold">
-                              {u.name.charAt(0)}
-                            </div>
-                            <p className="font-medium text-[var(--edu-text-primary)]">{u.name}</p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm text-[var(--edu-text-secondary)]">{u.email}</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-[var(--edu-text-secondary)]">{u.role}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <StatusBadge status={u.status} />
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-[var(--edu-text-secondary)]">
-                            {new Date(u.joined).toLocaleDateString()}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
+                    {loadingUtilisateurs ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <tr key={i}>
+                          {Array.from({ length: 5 }).map((_, j) => (
+                            <td key={j} className="px-6 py-4">
+                              <div className="h-4 bg-[var(--edu-surface)] rounded animate-pulse" />
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    ) : utilisateursFiltres.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-6 py-8 text-center text-[var(--edu-text-secondary)]"
+                        >
+                          Aucun utilisateur.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      utilisateursFiltres.map((u) => (
+                        <tr
+                          key={u.id}
+                          className="hover:bg-[var(--edu-surface)] transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--edu-blue)] to-[var(--edu-indigo)] flex items-center justify-center text-white text-sm font-semibold">
+                                {u.email.charAt(0).toUpperCase()}
+                              </div>
+                              <p className="font-medium text-[var(--edu-text-primary)]">
+                                {u.email}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                              style={{
+                                color: ROLE_COLORS[u.role],
+                                backgroundColor: `${ROLE_COLORS[u.role]}1A`,
+                              }}
+                            >
+                              {ROLE_LABELS[u.role] ?? u.role}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                              style={{
+                                color: u.est_actif
+                                  ? 'var(--edu-success)'
+                                  : 'var(--edu-text-secondary)',
+                                backgroundColor: u.est_actif
+                                  ? 'var(--edu-success)1A'
+                                  : 'var(--edu-surface)',
+                              }}
+                            >
+                              {u.est_actif ? 'Actif' : 'Inactif'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-[var(--edu-text-secondary)]">
+                              {u.cree_le
+                                ? new Date(u.cree_le).toLocaleDateString()
+                                : '—'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title={
+                                  u.est_actif
+                                    ? 'Désactiver'
+                                    : 'Réactiver'
+                                }
+                                onClick={() =>
+                                  handleToggleActif(u.id, !!u.est_actif)
+                                }
+                              >
+                                {u.est_actif ? (
+                                  <UserX className="w-4 h-4" />
+                                ) : (
+                                  <UserCheck className="w-4 h-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Supprimer"
+                                onClick={() => handleSupprimerUtilisateur(u.id)}
+                              >
+                                <Trash2 className="w-4 h-4 text-[var(--edu-danger)]" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </motion.div>
 
-          {/* Analytics: 3 charts */}
+          {/* Toutes les candidatures */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.4 }}
           >
-            <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
-              Platform Analytics
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[var(--edu-text-primary)]">
+                Toutes les candidatures
+              </h2>
+              <select
+                value={filtreStatut}
+                onChange={(e) => setFiltreStatut(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-[var(--edu-border)] bg-white dark:bg-[#1D1D1F] text-sm text-[var(--edu-text-primary)]"
+              >
+                <option value="">Tous les statuts</option>
+                {STATUTS.map((s) => (
+                  <option key={s} value={s}>
+                    {STATUT_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Registrations line chart */}
-              <div className="glass-card rounded-2xl p-6 lg:col-span-2">
-                <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">
-                  Registrations Over Time
-                </h3>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={registrationsData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--edu-divider)" />
-                    <XAxis
-                      dataKey="month"
-                      stroke="var(--edu-text-tertiary)"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <YAxis stroke="var(--edu-text-tertiary)" style={{ fontSize: '12px' }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid var(--edu-border)',
-                        borderRadius: '12px',
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="users"
-                      stroke="var(--edu-indigo)"
-                      strokeWidth={3}
-                      dot={{ fill: 'var(--edu-indigo)', r: 5 }}
-                      activeDot={{ r: 7 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-[var(--edu-surface)]">
+                    <tr>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Candidat
+                      </th>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Programme
+                      </th>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Institut
+                      </th>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Statut
+                      </th>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Date
+                      </th>
+                      <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Changer statut
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--edu-divider)]">
+                    {loadingCandidatures ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <tr key={i}>
+                          {Array.from({ length: 6 }).map((_, j) => (
+                            <td key={j} className="px-6 py-4">
+                              <div className="h-4 bg-[var(--edu-surface)] rounded animate-pulse" />
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    ) : candidaturesFiltrees.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-8 text-center text-[var(--edu-text-secondary)]"
+                        >
+                          Aucune candidature.
+                        </td>
+                      </tr>
+                    ) : (
+                      candidaturesFiltrees.map((c: Candidature) => {
+                        const nomCandidat =
+                          [c.candidat?.prenom, c.candidat?.nom]
+                            .filter(Boolean)
+                            .join(' ') || '—';
+                        const dateAffichee = c.soumise_le ?? c.cree_le;
 
-              {/* Role donut chart */}
-              <div className="glass-card rounded-2xl p-6">
-                <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">
-                  Role Distribution
-                </h3>
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie
-                      data={roleDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={90}
-                      paddingAngle={3}
-                      dataKey="value"
-                    >
-                      {roleDistribution.map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid var(--edu-border)',
-                        borderRadius: '12px',
-                      }}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      iconType="circle"
-                      wrapperStyle={{ fontSize: '12px' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Applications by country bar */}
-              <div className="glass-card rounded-2xl p-6 lg:col-span-3">
-                <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">
-                  Applications per Country
-                </h3>
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={applicationsByCountry}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--edu-divider)" />
-                    <XAxis
-                      dataKey="country"
-                      stroke="var(--edu-text-tertiary)"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <YAxis stroke="var(--edu-text-tertiary)" style={{ fontSize: '12px' }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid var(--edu-border)',
-                        borderRadius: '12px',
-                      }}
-                    />
-                    <Bar dataKey="applications" fill="var(--edu-indigo)" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                        return (
+                          <tr
+                            key={c.id}
+                            className="hover:bg-[var(--edu-surface)] transition-colors"
+                          >
+                            <td className="px-6 py-4">
+                              <p className="font-medium text-[var(--edu-text-primary)]">
+                                {nomCandidat}
+                              </p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="text-sm text-[var(--edu-text-secondary)]">
+                                {c.programme?.titre ?? '—'}
+                              </p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="text-sm text-[var(--edu-text-secondary)]">
+                                {c.programme?.institut?.nom ?? '—'}
+                              </p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                                style={{
+                                  color: STATUT_COLORS[c.statut],
+                                  backgroundColor: `${STATUT_COLORS[c.statut]}1A`,
+                                }}
+                              >
+                                {STATUT_LABELS[c.statut]}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="text-sm text-[var(--edu-text-secondary)]">
+                                {dateAffichee
+                                  ? new Date(dateAffichee).toLocaleDateString()
+                                  : '—'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <select
+                                value={c.statut}
+                                onChange={(e) =>
+                                  handleChangerStatutCandidature(
+                                    c.id,
+                                    e.target.value
+                                  )
+                                }
+                                className="px-2 py-1 rounded-lg border border-[var(--edu-border)] bg-white dark:bg-[#1D1D1F] text-xs text-[var(--edu-text-primary)]"
+                              >
+                                {STATUTS.map((s) => (
+                                  <option key={s} value={s}>
+                                    {STATUT_LABELS[s]}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </motion.div>
 
-          {/* Flags & Reports */}
+          {/* Instituts */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.4 }}
           >
-            <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">
-              Flags & Reports
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[var(--edu-text-primary)]">
+                Instituts
+              </h2>
+            </div>
 
-            <div className="space-y-3">
-              {flags.map((f, i) => (
-                <div
-                  key={i}
-                  className="glass-card rounded-2xl p-5 flex items-center gap-4 border-l-4"
-                  style={{ borderLeftColor: severityColor[f.severity as keyof typeof severityColor] }}
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                      backgroundColor: `${severityColor[f.severity as keyof typeof severityColor]}15`,
-                    }}
-                  >
-                    <AlertTriangle
-                      className="w-6 h-6"
-                      style={{ color: severityColor[f.severity as keyof typeof severityColor] }}
-                    />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-semibold text-[var(--edu-text-primary)]">{f.type}</p>
-                      <span
-                        className="text-xs font-semibold px-2 py-0.5 rounded-full uppercase"
-                        style={{
-                          backgroundColor: `${severityColor[f.severity as keyof typeof severityColor]}15`,
-                          color: severityColor[f.severity as keyof typeof severityColor],
-                        }}
-                      >
-                        {f.severity}
-                      </span>
-                    </div>
-                    <p className="text-sm text-[var(--edu-text-secondary)]">{f.description}</p>
-                    <p className="text-xs text-[var(--edu-text-tertiary)] mt-1">{f.time}</p>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Button variant="outline" size="sm" className="rounded-full">
-                      <Eye className="w-4 h-4 mr-1" />
-                      Investigate
-                    </Button>
-                    <Button variant="ghost" size="sm" className="rounded-full">
-                      <XCircle className="w-4 h-4 mr-1" />
-                      Dismiss
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-[var(--edu-surface)]">
+                    <tr>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Nom
+                      </th>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Sigle
+                      </th>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Vérifié
+                      </th>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Note
+                      </th>
+                      <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Étudiants
+                      </th>
+                      <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--edu-text-primary)]">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--edu-divider)]">
+                    {loadingInstituts ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <tr key={i}>
+                          {Array.from({ length: 6 }).map((_, j) => (
+                            <td key={j} className="px-6 py-4">
+                              <div className="h-4 bg-[var(--edu-surface)] rounded animate-pulse" />
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    ) : instituts.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-8 text-center text-[var(--edu-text-secondary)]"
+                        >
+                          Aucun institut.
+                        </td>
+                      </tr>
+                    ) : (
+                      instituts.map((inst) => (
+                        <tr
+                          key={inst.id}
+                          className="hover:bg-[var(--edu-surface)] transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            <p className="font-medium text-[var(--edu-text-primary)]">
+                              {inst.nom}
+                            </p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-[var(--edu-text-secondary)]">
+                              {inst.sigle ?? '—'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                              style={{
+                                color: inst.est_verifie
+                                  ? 'var(--edu-success)'
+                                  : 'var(--edu-text-secondary)',
+                                backgroundColor: inst.est_verifie
+                                  ? 'var(--edu-success)1A'
+                                  : 'var(--edu-surface)',
+                              }}
+                            >
+                              {inst.est_verifie ? 'Vérifié' : 'Non vérifié'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-[var(--edu-text-secondary)]">
+                              {inst.note != null ? inst.note.toFixed(1) : '—'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-[var(--edu-text-secondary)]">
+                              {inst.nombre_etudiants ?? '—'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleToggleVerifie(
+                                  inst.id,
+                                  !!inst.est_verifie
+                                )
+                              }
+                            >
+                              {inst.est_verifie ? (
+                                <ShieldOff className="w-4 h-4 text-[var(--edu-text-secondary)]" />
+                              ) : (
+                                <ShieldCheck className="w-4 h-4 text-[var(--edu-success)]" />
+                              )}
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </motion.div>
         </div>
