@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router';
-import { Moon, Sun, Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -13,7 +13,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ transparent = false }: NavbarProps) {
-  const [darkMode, setDarkMode] = React.useState(false);
+
   const [notifOpen, setNotifOpen] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
 
@@ -53,7 +53,6 @@ export function Navbar({ transparent = false }: NavbarProps) {
 
   React.useEffect(() => {
     const isDark = localStorage.getItem('darkMode') === 'true';
-    setDarkMode(isDark);
     if (isDark) {
       document.documentElement.classList.add('dark');
     }
@@ -70,16 +69,7 @@ export function Navbar({ transparent = false }: NavbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem('darkMode', String(newMode));
-    if (newMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
+
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -152,17 +142,7 @@ export function Navbar({ transparent = false }: NavbarProps) {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-[var(--edu-surface)] transition-colors"
-              aria-label="Toggle dark mode"
-            >
-              {darkMode ? (
-                <Sun className="w-5 h-5 text-[var(--edu-text-secondary)]" />
-              ) : (
-                <Moon className="w-5 h-5 text-[var(--edu-text-secondary)]" />
-              )}
-            </button>
+
 
             {/* Cloche notifications — uniquement si connecté */}
             {isAuthenticated && (
