@@ -372,7 +372,7 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
                 onChange={(e) => setNewDocNom(e.target.value)}
                 placeholder="Nom du document"
                 className="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-[#2D2D2F] border border-[var(--edu-border)] text-sm text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--edu-blue)]"
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addDocument(); } }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); addDocument(); } }}
               />
               <label className="flex items-center gap-1.5 text-xs text-[var(--edu-text-secondary)] shrink-0 cursor-pointer">
                 <input
@@ -383,9 +383,14 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
                 />
                 Obligatoire
               </label>
-              <Button type="button" variant="outline" size="sm" onClick={addDocument} className="rounded-lg shrink-0">
-                <Plus className="w-4 h-4" />
-              </Button>
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); addDocument(); }}
+                disabled={!newDocNom.trim()}
+                className="p-2 rounded-lg border border-[var(--edu-border)] bg-white dark:bg-[#2D2D2F] hover:bg-[var(--edu-surface)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4 text-[var(--edu-text-primary)]" />
+              </button>
             </div>
           </div>
 

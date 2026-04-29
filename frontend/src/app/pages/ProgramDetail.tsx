@@ -17,7 +17,9 @@ export function ProgramDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  // Seuls les candidats peuvent postuler
+  const canApply = !isAuthenticated || user?.role === 'candidat';
   const { program, loading, error } = useProgramDetail(id);
   const { isFavori, loading: favoriLoading, handleToggle: handleSave } = useFavoriStatus(
     program?.id ?? ''
@@ -29,6 +31,11 @@ export function ProgramDetail() {
     if (!isAuthenticated) {
       toast.error('Connectez-vous pour candidater');
       navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`);
+      return;
+    }
+    // Blocage strict : seul un candidat peut postuler
+    if (user?.role !== 'candidat') {
+      toast.error('Seuls les candidats peuvent postuler à un programme.');
       return;
     }
     setApplyDialogOpen(true);
@@ -170,12 +177,14 @@ export function ProgramDetail() {
                 <button className="glass-card p-3 rounded-full">
                   <Share2 className="w-6 h-6 text-white" />
                 </button>
-                <Button
-                  onClick={handleApply}
-                  className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white px-8 h-12 text-lg"
-                >
-                  Apply now
-                </Button>
+                {canApply && (
+                  <Button
+                    onClick={handleApply}
+                    className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white px-8 h-12 text-lg"
+                  >
+                    Apply now
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -430,12 +439,14 @@ export function ProgramDetail() {
                 </div>
               )}
 
-              <Button
-                onClick={handleApply}
-                className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 mb-3"
-              >
-                Apply now
-              </Button>
+              {canApply && (
+                <Button
+                  onClick={handleApply}
+                  className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 mb-3"
+                >
+                  Apply now
+                </Button>
+              )}
 
               <div className="flex items-center gap-2">
                 <button
@@ -487,13 +498,15 @@ export function ProgramDetail() {
 
       <Footer />
 
-      {/* Dialogue de candidature — branché à l'API (étape 5.8) */}
-      <MultiStepDialog
-        open={applyDialogOpen}
-        onOpenChange={setApplyDialogOpen}
-        programmeId={program.id}
-        programmeTitre={program.titre}
-      />
+      {/* Dialogue de candidature — uniquement pour les candidats */}
+      {canApply && (
+        <MultiStepDialog
+          open={applyDialogOpen}
+          onOpenChange={setApplyDialogOpen}
+          programmeId={program.id}
+          programmeTitre={program.titre}
+        />
+      )}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { notificationService } from '@/services/api';
 import type { Notification } from '@/types/api';
 
-const TYPE_CFG: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }> = {
+const TYPE_CFG: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }> = {
   statut_candidature: { label: 'Candidature', color: 'var(--edu-blue)', bg: 'rgba(0,113,227,0.1)', icon: FileText },
   nouveau_programme: { label: 'Programme', color: 'var(--edu-indigo)', bg: 'rgba(99,102,241,0.1)', icon: Info },
   document_manquant: { label: 'Document', color: 'var(--edu-warning)', bg: 'rgba(255,159,10,0.1)', icon: AlertTriangle },

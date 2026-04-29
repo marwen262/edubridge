@@ -48,7 +48,7 @@ interface OverviewSectionProps {
 interface AdminNotification {
   id: string;
   type: 'urgent' | 'warning' | 'info';
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   title: string;
   description: string;
   date?: string;

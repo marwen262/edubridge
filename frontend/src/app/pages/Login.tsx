@@ -62,7 +62,7 @@ export function Login() {
       const savedUser = stored ? (JSON.parse(stored) as { role: string }) : null;
       const userRole = savedUser?.role;
 
-      if (redirectTo) {
+      if (redirectTo && userRole === 'candidat') {
         navigate(redirectTo);
         return;
       }
