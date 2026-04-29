@@ -9,7 +9,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Checkbox } from '../components/ui/checkbox';
 import { Slider } from '../components/ui/slider';
-import { fields, countries } from '../data/staticData';
+import { fields } from '../data/staticData';
 import { usePrograms } from '@/hooks/usePrograms';
 import type { ProgrammeFilters } from '@/types/api';
 
@@ -37,7 +37,6 @@ export function SearchResults() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedFields, setSelectedFields] = React.useState<string[]>([]);
   const [selectedLevels, setSelectedLevels] = React.useState<string[]>([]);
-  const [selectedCountries, setSelectedCountries] = React.useState<string[]>([]);
   const [tuitionRange, setTuitionRange] = React.useState([0, 100000]);
   const [sortBy, setSortBy] = React.useState<SortOption>('relevance');
 
@@ -88,15 +87,8 @@ export function SearchResults() {
       result = result.filter((p) => selectedLevels.includes(p.niveau ?? ''));
     }
 
-    // Filtre pays côté frontend (le backend n'expose pas ce filtre)
-    if (selectedCountries.length > 0) {
-      result = result.filter((p) =>
-        selectedCountries.includes(p.institut?.adresse?.pays ?? '')
-      );
-    }
-
     return result;
-  }, [programs, minTuition, maxTuition, selectedCountries, selectedFields, selectedLevels]);
+  }, [programs, minTuition, maxTuition, selectedFields, selectedLevels]);
 
   // --- Tri côté frontend ---
   const sortedPrograms = useMemo(() => {
@@ -133,16 +125,9 @@ export function SearchResults() {
     );
   };
 
-  const toggleCountry = (country: string) => {
-    setSelectedCountries((prev) =>
-      prev.includes(country) ? prev.filter((c) => c !== country) : [...prev, country]
-    );
-  };
-
   const clearFilters = () => {
     setSelectedFields([]);
     setSelectedLevels([]);
-    setSelectedCountries([]);
     setTuitionRange([0, 100000]);
     setSearchQuery('');
     setSortBy('relevance');
@@ -266,27 +251,6 @@ export function SearchResults() {
 
               <div className="h-px bg-[var(--edu-divider)] my-6" />
 
-              {/* Pays */}
-              <div className="mb-6">
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Pays</h4>
-                <div className="space-y-3 max-h-[200px] overflow-y-auto">
-                  {countries.slice(0, 6).map((country) => (
-                    <div key={country} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`country-${country}`}
-                        checked={selectedCountries.includes(country)}
-                        onCheckedChange={() => toggleCountry(country)}
-                      />
-                      <label htmlFor={`country-${country}`} className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
-                        {country}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="h-px bg-[var(--edu-divider)] my-6" />
-
               {/* Frais d'inscription */}
               <div>
                 <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Frais d'inscription</h4>
@@ -319,9 +283,6 @@ export function SearchResults() {
                 <p className="text-[var(--edu-text-secondary)]">
                   {selectedFields.length > 0 && (
                     <span>dans {selectedFields.join(', ')} </span>
-                  )}
-                  {selectedCountries.length > 0 && (
-                    <span>depuis {selectedCountries.join(', ')}</span>
                   )}
                 </p>
               </div>

@@ -124,6 +124,12 @@ export function Navbar({ transparent = false }: NavbarProps) {
             >
               Compare
             </Link>
+            <Link
+              to="/guide"
+              className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
+            >
+              Guide
+            </Link>
             <a
               href="#how-it-works"
               onClick={(e) => handleScrollAnchor(e, 'how-it-works')}

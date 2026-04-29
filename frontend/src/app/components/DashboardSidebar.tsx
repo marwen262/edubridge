@@ -2,7 +2,6 @@ import React from 'react';
 import { Link, useLocation } from 'react-router';
 import { useAuth } from '@/context/AuthContext';
 import {
-  GraduationCap,
   Home,
   Search,
   FileText,
@@ -14,9 +13,14 @@ import {
   Building2,
   Users,
   BarChart3,
-  Shield,
+  LayoutDashboard,
+  Bell,
+  Activity,
+  PieChart,
+  Sliders,
   LogOut,
 } from 'lucide-react';
+import logoedubridge from '@/assets/logo/logoedubridge.png';
 
 interface NavItem {
   label: string;
@@ -49,38 +53,41 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   ];
 
   const institutionNav: NavItem[] = [
-    { label: 'Home', icon: <Home className="w-5 h-5" />, href: '/dashboard/institution' },
-    { label: 'Programs', icon: <FileText className="w-5 h-5" />, href: '/dashboard/institution/programs' },
-    { label: 'Admission Requests', icon: <Users className="w-5 h-5" />, href: '/dashboard/institution/requests' },
-    { label: 'Candidates', icon: <User className="w-5 h-5" />, href: '/dashboard/institution/candidates' },
-    { label: 'Messages', icon: <MessageSquare className="w-5 h-5" />, href: '/dashboard/institution/messages' },
-    { label: 'Reports', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/institution/reports' },
-    { label: 'Institution Profile', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/institution/profile' },
-    { label: 'Settings', icon: <Settings className="w-5 h-5" />, href: '/dashboard/institution/settings' },
+    { label: 'Tableau de bord', icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/institution' },
+    { label: 'Programmes', icon: <FileText className="w-5 h-5" />, href: '/dashboard/institution/programmes' },
+    { label: 'Candidatures', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/institution/candidatures' },
+    { label: 'Candidats', icon: <User className="w-5 h-5" />, href: '/dashboard/institution/candidats' },
+    { label: 'Notifications', icon: <Bell className="w-5 h-5" />, href: '/dashboard/institution/notifications' },
+    { label: 'Rapports', icon: <PieChart className="w-5 h-5" />, href: '/dashboard/institution/rapports' },
+    { label: 'Profil établissement', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/institution/profil' },
+    { label: 'Paramètres', icon: <Settings className="w-5 h-5" />, href: '/dashboard/institution/parametres' },
   ];
 
   const adminNav: NavItem[] = [
-    { label: 'Overview', icon: <Home className="w-5 h-5" />, href: '/dashboard/admin' },
-    { label: 'Users', icon: <Users className="w-5 h-5" />, href: '/dashboard/admin/users' },
-    { label: 'Institutions', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/admin/institutions' },
-    { label: 'Programs', icon: <FileText className="w-5 h-5" />, href: '/dashboard/admin/programs' },
-    { label: 'All Applications', icon: <FileText className="w-5 h-5" />, href: '/dashboard/admin/applications' },
-    { label: 'Decisions Relay', icon: <MessageSquare className="w-5 h-5" />, href: '/dashboard/admin/decisions' },
-    { label: 'Analytics', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/admin/analytics' },
-    { label: 'System', icon: <Shield className="w-5 h-5" />, href: '/dashboard/admin/system' },
-    { label: 'Settings', icon: <Settings className="w-5 h-5" />, href: '/dashboard/admin/settings' },
+    { label: 'Tableau de bord', icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/admin' },
+    { label: 'Utilisateurs', icon: <Users className="w-5 h-5" />, href: '/dashboard/admin/utilisateurs' },
+    { label: 'Instituts', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/admin/instituts' },
+    { label: 'Programmes', icon: <FileText className="w-5 h-5" />, href: '/dashboard/admin/programmes' },
+    { label: 'Candidatures', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/admin/candidatures' },
+    { label: 'Notifications', icon: <Bell className="w-5 h-5" />, href: '/dashboard/admin/notifications' },
+    { label: 'Rapports', icon: <PieChart className="w-5 h-5" />, href: '/dashboard/admin/rapports' },
+    { label: "Journal d'activité", icon: <Activity className="w-5 h-5" />, href: '/dashboard/admin/journal' },
+    { label: 'Paramètres système', icon: <Sliders className="w-5 h-5" />, href: '/dashboard/admin/parametres' },
   ];
 
   const navItems = role === 'candidate' ? candidateNav : role === 'institution' ? institutionNav : adminNav;
 
-  const accentColor = role === 'admin' ? 'var(--edu-indigo)' : 'var(--edu-blue)';
+  const accentColor = role === 'candidate' ? 'var(--edu-blue)' : 'var(--edu-indigo)';
 
   return (
     <aside className="w-64 bg-white dark:bg-[#1D1D1F] border-r border-[var(--edu-border)] flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <Link to="/" className="flex items-center gap-2 px-6 py-6 border-b border-[var(--edu-border)]">
-        <GraduationCap className="w-8 h-8" style={{ color: accentColor }} />
-        <span className="text-xl font-bold text-[var(--edu-text-primary)]">EduBridge</span>
+      <Link to="/" className="flex justify-center items-center px-4 py-5 border-b border-[var(--edu-border)]">
+        <img
+          src={logoedubridge}
+          alt="EduBridge"
+          className="h-[72px] w-auto dark:bg-white dark:rounded-xl dark:p-2"
+        />
       </Link>
 
       {/* User */}
@@ -134,7 +141,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--edu-text-secondary)] hover:bg-[var(--edu-surface)] hover:text-[var(--edu-danger)] transition-colors w-full text-left"
         >
           <LogOut className="w-5 h-5" />
-          <span className="text-[15px]">Log out</span>
+          <span className="text-[15px]">Déconnexion</span>
         </button>
       </div>
     </aside>

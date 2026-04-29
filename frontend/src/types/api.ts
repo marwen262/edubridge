@@ -81,11 +81,18 @@ export interface Programme {
   institut?: InstitutResume;
 }
 
+export type ValidationStatus =
+  | 'invited'
+  | 'pending_admin_review'
+  | 'approved'
+  | 'rejected'
+  | 'suspended';
+
 /** Institut complet tel que retourné par /api/instituts */
 export interface Institut {
   id: string;
   utilisateur_id: string;
-  nom: string;
+  nom: string | null;
   sigle?: string;
   description?: string;
   site_web?: string;
@@ -98,10 +105,20 @@ export interface Institut {
   image_couverture?: string;
   taux_acceptation?: number;
   nombre_etudiants?: number;
+  validation_status?: ValidationStatus;
+  suspension_reason?: string | null;
+  suspended_at?: string | null;
   cree_le?: string;
   mis_a_jour_le?: string;
   /** Programmes publiés par l'institut */
   programmes?: Programme[];
+  /** Utilisateur lié (inclus dans les réponses admin) */
+  utilisateur?: {
+    id: string;
+    email: string;
+    cree_le?: string;
+    first_login_completed?: boolean;
+  };
 }
 
 // --- Auth ---
@@ -135,6 +152,7 @@ export interface ProgrammeFilters {
 export interface InstitutFilters {
   nom?: string;
   est_verifie?: boolean;
+  admin_view?: boolean;
 }
 
 export interface CandidatureFilters {
@@ -158,14 +176,16 @@ export interface CreateProgrammeData {
   date_limite_candidature?: string;
   capacite?: number;
   est_actif?: boolean;
+  langue?: string;
+  date_debut?: string;
 }
 
 // --- Instituts ---
 
 export interface CreateInstitutData {
   email: string;
-  password: string;
-  nom: string;
+  password?: string;
+  nom?: string;
   sigle?: string;
   description?: string;
   site_web?: string;
@@ -175,6 +195,19 @@ export interface CreateInstitutData {
   contact?: Contact;
   est_verifie?: boolean;
   note?: number;
+}
+
+export interface InviterInstitutData {
+  email: string;
+  nom?: string;
+}
+
+export interface TerminerPremierLoginData {
+  token: string;
+  password: string;
+  nom: string;
+  telephone?: string;
+  description?: string;
 }
 
 // --- Utilisateurs ---

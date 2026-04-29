@@ -1,4 +1,4 @@
-import type { RegisterData } from '@/types/api';
+import type { RegisterData, ValidationStatus } from '@/types/api';
 
 export interface User {
   id: string;
@@ -6,8 +6,11 @@ export interface User {
   role: 'candidat' | 'institut' | 'admin';
   prenom?: string;
   nom?: string;
-  candidat_id?: string; // id du profil Candidat si role=candidat
-  institut_id?: string; // id du profil Institut si role=institut
+  candidat_id?: string;
+  institut_id?: string;
+  first_login_completed?: boolean;
+  /** Statut de validation dans le pipeline SaaS (instituts uniquement) */
+  validation_status?: ValidationStatus;
 }
 
 export interface AuthContextType {

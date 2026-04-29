@@ -1,17 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { GraduationCap, Facebook, Twitter, Linkedin, Instagram } from 'lucide-react';
+import { Facebook, Twitter, Linkedin, Instagram } from 'lucide-react';
+import logoedubridge from '@/assets/logo/logoedubridge.png';
 
 export function Footer() {
   return (
     <footer className="bg-[#1D1D1F] text-white py-16">
       <div className="max-w-[1440px] mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-12 mb-12">
           {/* Brand */}
           <div className="col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <GraduationCap className="w-8 h-8 text-[var(--edu-blue)]" />
-              <span className="text-xl font-semibold">EduBridge</span>
+              <img
+                src={logoedubridge}
+                alt="EduBridge"
+                className="h-14 w-auto drop-shadow-sm"
+              />
             </Link>
             <p className="text-[#86868B] text-sm">
               Find your path to the right institution
@@ -102,6 +106,18 @@ export function Footer() {
                 <a href="#" className="text-[#86868B] hover:text-white text-sm transition-colors">
                   Terms of Service
                 </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Resources */}
+          <div>
+            <h4 className="font-semibold mb-4 text-[15px]">Resources</h4>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/guide" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                  Guide étudiant
+                </Link>
               </li>
             </ul>
           </div>

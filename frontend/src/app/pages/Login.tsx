@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle, ShieldOff } from 'lucide-react';
 import logoEduBridge from '@/assets/logo/logoedubridge.png';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,23 +48,38 @@ export function Login() {
     },
   });
 
+  const [loginError, setLoginError] = React.useState<{
+    code?: string;
+    message?: string;
+    reason?: string;
+  } | null>(null);
+
   const onSubmit = async (data: LoginFormData) => {
+    setLoginError(null);
     try {
       await login(data.email, data.password);
-      // persisterAuth() a mis à jour localStorage de façon synchrone
       const stored = localStorage.getItem('auth_user');
       const savedUser = stored ? (JSON.parse(stored) as { role: string }) : null;
       const userRole = savedUser?.role;
 
-      // Redirection prioritaire vers la page d'origine si fournie en query param
       if (redirectTo) {
         navigate(redirectTo);
         return;
       }
       navigate(roleToPath[userRole ?? ''] ?? '/');
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { message?: string } } };
-      toast.error(axiosError.response?.data?.message ?? 'Identifiants incorrects');
+      const axiosError = err as {
+        response?: { data?: { message?: string; code?: string; reason?: string } };
+      };
+      const code    = axiosError.response?.data?.code;
+      const message = axiosError.response?.data?.message;
+      const reason  = axiosError.response?.data?.reason;
+
+      if (code === 'FIRST_LOGIN_REQUIRED' || code === 'ACCOUNT_SUSPENDED') {
+        setLoginError({ code, message, reason });
+      } else {
+        toast.error(message ?? 'Identifiants incorrects');
+      }
     }
   };
 
@@ -88,6 +103,43 @@ export function Login() {
           <p className="text-[var(--edu-text-secondary)] text-center mb-8">
             Sign in to your account to continue
           </p>
+
+          {/* Bannières d'erreur login spéciales */}
+          {loginError?.code === 'FIRST_LOGIN_REQUIRED' && (
+            <div className="mb-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Compte non activé</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                  Votre compte établissement n'a pas encore été activé. Veuillez utiliser
+                  le lien d'invitation reçu par email pour définir votre mot de passe.
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  Si vous n'avez pas reçu l'email, contactez l'administrateur.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {loginError?.code === 'ACCOUNT_SUSPENDED' && (
+            <div className="mb-4 p-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 flex gap-3">
+              <ShieldOff className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-red-800 dark:text-red-200">Compte suspendu</p>
+                <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                  Votre compte établissement a été suspendu par l'administration.
+                </p>
+                {loginError.reason && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1 italic">
+                    Motif : {loginError.reason}
+                  </p>
+                )}
+                <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                  Contactez l'équipe EduBridge pour plus d'informations.
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
