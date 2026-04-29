@@ -9,6 +9,7 @@ import { Guide } from './pages/Guide';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { FirstLogin } from './pages/FirstLogin';
+import { ResetPassword } from './pages/ResetPassword';
 import { CandidateDashboard } from './pages/CandidateDashboard';
 import { InstitutionDashboard } from './pages/InstitutionDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -54,6 +55,10 @@ export const router = createBrowserRouter([
   {
     path: '/first-login',
     Component: FirstLogin,
+  },
+  {
+    path: '/reset-password',
+    Component: ResetPassword,
   },
   {
     path: '/dashboard/candidate',

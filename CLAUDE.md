@@ -114,7 +114,9 @@ edubridge/
 │   │   └── upload.js             # Config Multer (5 Mo, jpeg/png/pdf)
 │   ├── migrations/               # Migrations Sequelize CLI
 │   │   ├── 20260420120000-creation-tables-edubridge.js
-│   │   └── 20260421000000-add-identite-candidat.js
+│   │   ├── 20260421000000-add-identite-candidat.js
+│   │   ├── 20260422000000-add-champs-manquants-programmes-instituts.js
+│   │   └── 20260430000000-workflow-institut.js  # invitation email + first login
 │   ├── models/                   # 8 modèles Sequelize MVP (schéma FR)
 │   │   ├── index.js              # Charge tous les modèles + associations
 │   │   ├── Utilisateur.js        # Compte auth (candidat|institut|admin)
@@ -167,16 +169,21 @@ edubridge/
 │   │   │   ├── useInstitut.ts
 │   │   │   ├── useCandidatures.ts
 │   │   │   ├── useFavoris.ts
+│   │   │   ├── useFavoriStatus.ts  # Hook transversal (ProgramCard + ProgramDetail)
 │   │   │   ├── useNotifications.ts
-│   │   │   └── useUtilisateurs.ts
+│   │   │   ├── useUtilisateurs.ts
+│   │   │   └── useComparaison.ts   # localStorage compare list (max 3 programmes)
 │   │   ├── app/
 │   │   │   ├── App.tsx           # AuthProvider > RouterProvider > Toaster
 │   │   │   ├── routes.tsx        # 12 routes (3 dashboards protégés par ProtectedRoute)
 │   │   │   ├── pages/            # Pages de haut niveau (1 fichier / route)
 │   │   │   ├── components/       # Composants applicatifs (Navbar, MultiStepDialog, …)
+│   │   │   │   ├── NotificationDropdown.tsx  # Badge unreadCount + dropdown Navbar
+│   │   │   │   ├── admin/        # Sections du dashboard admin (Overview, Users, Programs…)
+│   │   │   │   ├── institution/  # Sections du dashboard institut + CreateProgramDialog
 │   │   │   │   ├── ui/           # Composants shadcn/ui (NE PAS ÉDITER)
 │   │   │   │   └── figma/        # Helpers Figma Make (NE PAS ÉDITER)
-│   │   │   └── data/mockData.ts  # Données mock résiduelles (Compare, InstitutionProfile)
+│   │   │   └── data/staticData.ts # Données statiques (référentiels UI, plus aucun mock métier)
 │   │   └── styles/
 │   │       ├── index.css         # Point d'entrée (importe les 4 autres)
 │   │       ├── tailwind.css
@@ -231,10 +238,12 @@ automatiques (candidat + institut) à chaque événement.
 ## Conventions
 
 ### Général
-- **Identifiants de code backend** (variables, fonctions, classes, fichiers,
-  tables, routes) : **français** — cohérence avec le domaine métier
-  (`utilisateur`, `candidat`, `institut`, `programme`, `candidature`, `favori`).
-- **Identifiants de code frontend** : **anglais** (habitude React/TS)
+- **Identifiants de code** (variables, fonctions, classes, fichiers, tables,
+  routes, hooks, composants) : **français aussi bien backend que frontend** —
+  cohérence avec le domaine métier (`utilisateur`, `candidat`, `institut`,
+  `programme`, `candidature`, `favori`).
+  Exemples côté frontend : `useProgrammes`, `useCandidatures`, `useInstituts`,
+  `TableauDeBordCandidat`, `BarreDeNavigation`, `CarteProgramme`.
 - **Commentaires, messages de commit, documentation** : **français**
 - **Strings UI utilisateur** : actuellement anglais côté front (cohérence à garder
   tant qu'une stratégie i18n n'est pas décidée)
@@ -353,7 +362,7 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   refactor, branchement front/back, modification de schéma BDD).
 - **Setup BDD depuis zéro** (dev) :
   1. `npm run db:create` (si la base n'existe pas)
-  2. `npm run db:reset` (drop schéma + recrée + applique les 2 migrations)
+  2. `npm run db:reset` (drop schéma + recrée + applique les 4 migrations)
   3. `npm run seed` (applique les 7 seeders : 1 admin, 3 instituts,
      11 programmes, 3 candidats, 6 candidatures, 5 favoris, 6 notifs).
      Mot de passe commun : `Password123!`
@@ -394,5 +403,7 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - i18n (stratégie à décider)
   - Scan antivirus fichiers uploadés
   - Rate limiting frontend
+- **Priorité immédiate** : Phase 1 d'intégration terminée. Prochaine priorité :
+  stabilisation, corrections de bugs, préparation intégration diploma-verifier.
 - Commits descriptifs en **français**, format court style :
   `feat(auth): ajouter endpoint /me` ou `fix(front): corriger navigation sidebar`.

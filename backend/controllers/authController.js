@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sequelize, Utilisateur, Candidat, Institut } = require('../models');
-const { sendInstitutInviteEmail } = require('../services/emailService');
+const { sendInstitutInviteEmail, sendPasswordResetEmail } = require('../services/emailService');
 
 const signToken = (utilisateur) =>
   jwt.sign(
@@ -286,6 +286,131 @@ exports.terminerPremierLogin = async (req, res) => {
         validation_status: result.institut.validation_status,
       },
     });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+  }
+};
+
+// POST /api/auth/mot-de-passe/oublie — demande de réinitialisation par email
+// Réponse identique que l'email existe ou non (anti-énumération)
+exports.demanderResetPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email requis.' });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Format d\'email invalide.' });
+    }
+
+    // Réponse générique pour empêcher l'énumération de comptes
+    const reponseGenerique = {
+      message: 'Si un compte existe pour cette adresse, un email de réinitialisation vient d\'être envoyé.',
+    };
+
+    const utilisateur = await Utilisateur.findOne({ where: { email } });
+
+    // Email inconnu, compte désactivé ou compte non encore activé : on répond positivement
+    // mais on n'envoie aucun email (silencieusement)
+    if (!utilisateur || !utilisateur.est_actif || !utilisateur.first_login_completed || !utilisateur.mot_de_passe) {
+      return res.status(200).json(reponseGenerique);
+    }
+
+    // Génération token sécurisé (32 octets aléatoires → 64 caractères hex)
+    const token     = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1h
+
+    await utilisateur.update({
+      reset_password_token: token,
+      reset_password_expires_at: expiresAt,
+    });
+
+    try {
+      await sendPasswordResetEmail(utilisateur.email, token);
+    } catch (mailErr) {
+      console.error('[ResetPassword] Échec envoi email :', mailErr.message);
+      // Rollback du token pour permettre une nouvelle tentative
+      await utilisateur.update({
+        reset_password_token: null,
+        reset_password_expires_at: null,
+      });
+      return res.status(500).json({
+        message: 'Impossible d\'envoyer l\'email de réinitialisation. Veuillez réessayer ultérieurement.',
+      });
+    }
+
+    return res.status(200).json(reponseGenerique);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+  }
+};
+
+// GET /api/auth/mot-de-passe/valider-token?token=xxx — valide un token de reset
+exports.validerResetToken = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ message: 'Token manquant.', code: 'TOKEN_MISSING' });
+    }
+
+    const utilisateur = await Utilisateur.findOne({
+      where: { reset_password_token: token },
+      attributes: ['id', 'email', 'reset_password_expires_at'],
+    });
+
+    if (!utilisateur) {
+      return res.status(404).json({ message: 'Lien de réinitialisation invalide.', code: 'TOKEN_INVALID' });
+    }
+    if (new Date() > new Date(utilisateur.reset_password_expires_at)) {
+      return res.status(410).json({ message: 'Ce lien de réinitialisation a expiré.', code: 'TOKEN_EXPIRED' });
+    }
+
+    return res.status(200).json({ valide: true, email: utilisateur.email });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+  }
+};
+
+// POST /api/auth/mot-de-passe/reinitialiser — applique le nouveau mot de passe
+exports.reinitialiserPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token et mot de passe requis.' });
+    }
+
+    const pwdRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
+    if (!pwdRegex.test(password)) {
+      return res.status(400).json({
+        message: 'Le mot de passe doit contenir au moins 8 caractères, une majuscule, un chiffre et un caractère spécial (!@#$%^&*).',
+      });
+    }
+
+    const utilisateur = await Utilisateur.findOne({
+      where: { reset_password_token: token },
+    });
+
+    if (!utilisateur) {
+      return res.status(404).json({ message: 'Lien de réinitialisation invalide.', code: 'TOKEN_INVALID' });
+    }
+    if (new Date() > new Date(utilisateur.reset_password_expires_at)) {
+      return res.status(410).json({ message: 'Ce lien de réinitialisation a expiré.', code: 'TOKEN_EXPIRED' });
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await utilisateur.update({
+      mot_de_passe: hashed,
+      reset_password_token: null,
+      reset_password_expires_at: null,
+    });
+
+    return res.status(200).json({ message: 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.' });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erreur serveur.', error: error.message });

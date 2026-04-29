@@ -65,19 +65,15 @@ export function Institutions() {
       <Navbar />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
-      <div
-        className="py-16 px-4 sm:px-6"
-        style={{
-          background: 'linear-gradient(135deg, var(--edu-blue) 0%, #4F46E5 100%)',
-        }}
-      >
-        <div className="max-w-[1440px] mx-auto text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+      <div className="relative py-16 px-4 sm:px-6 bg-[var(--edu-surface)] border-b border-[var(--edu-border)]">
+        <div className="absolute inset-0 dotted-bg opacity-40 mix-blend-multiply dark:mix-blend-overlay" />
+        <div className="relative max-w-[1440px] mx-auto text-center z-10">
+          <h1 className="text-3xl sm:text-4xl font-bold text-[var(--edu-text-primary)] mb-3">
             Découvrez nos institutions partenaires
           </h1>
 
           {!loading && allInstituts.length > 0 && (
-            <p className="mb-8 text-base" style={{ color: 'rgba(255,255,255,0.85)' }}>
+            <p className="mb-8 text-base text-[var(--edu-text-secondary)]">
               {allInstituts.length} établissement
               {allInstituts.length !== 1 ? 's' : ''} privé
               {allInstituts.length !== 1 ? 's' : ''} partenaire
@@ -93,8 +89,7 @@ export function Institutions() {
               placeholder="Rechercher un établissement..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 h-12 rounded-xl bg-white text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--edu-blue)]"
-              style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}
+              className="w-full pl-12 pr-4 h-12 rounded-xl bg-white dark:bg-[#1D1D1F] border border-[var(--edu-border)] text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--edu-blue)] shadow-sm"
             />
           </div>
 
@@ -108,12 +103,7 @@ export function Institutions() {
               ].map((label) => (
                 <span
                   key={label}
-                  className="px-4 py-1.5 rounded-full text-sm font-medium text-white"
-                  style={{
-                    background: 'rgba(255,255,255,0.2)',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                  }}
+                  className="px-4 py-1.5 rounded-full text-sm font-medium text-[var(--edu-blue)] bg-[var(--edu-blue)]/10"
                 >
                   {label}
                 </span>

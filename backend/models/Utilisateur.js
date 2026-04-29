@@ -45,6 +45,16 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: true,
     },
+    // Token à usage unique pour réinitialisation de mot de passe
+    reset_password_token: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    // Expiration du token de reset (1h par défaut)
+    reset_password_expires_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   }, {
     tableName: 'utilisateurs',
     timestamps: true,

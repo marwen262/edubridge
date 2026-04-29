@@ -153,12 +153,13 @@ backend/
 │   └── Favori.js              # Lien candidat ↔ programme (N:N)
 │
 ├── controllers/               # Endpoints HTTP (couche mince)
-│   ├── authController.js      # POST /register, /login, GET /me
-│   ├── utilisateurController.js # CRUD Utilisateur + profils Candidat/Institut
-│   ├── candidatureController.js # Workflow candidatures (brouillon, soumis, statut)
-│   ├── programmeController.js # CRUD Programmes
-│   ├── institutController.js  # CRUD Instituts
-│   └── favoriController.js    # Toggle/GET favoris
+│   ├── authController.js          # POST /register, /login, GET /me
+│   ├── utilisateurController.js   # CRUD Utilisateur + profils Candidat/Institut
+│   ├── candidatureController.js   # Workflow candidatures (brouillon, soumis, statut)
+│   ├── programmeController.js     # CRUD Programmes
+│   ├── institutController.js      # CRUD Instituts
+│   ├── favoriController.js        # Toggle/GET favoris
+│   └── notificationController.js  # mine, count non-lues, lire, lire-tout
 │
 ├── routes/                    # Montage des routes (factory pattern)
 │   ├── authRoutes.js          # /api/auth
@@ -166,7 +167,8 @@ backend/
 │   ├── candidatureRoutes.js   # /api/candidatures (le plus complexe)
 │   ├── programmeRoutes.js     # /api/programmes
 │   ├── institutRoutes.js      # /api/instituts
-│   └── favoriRoutes.js        # /api/favoris
+│   ├── favoriRoutes.js        # /api/favoris
+│   └── notificationRoutes.js  # /api/notifications
 │
 ├── middleware/                # Middlewares Express
 │   ├── authMiddleware.js      # Vérification JWT + résolution profil
@@ -178,8 +180,10 @@ backend/
 │   └── notificationService.js # Création de notifications automatiques
 │
 ├── migrations/                # Migrations Sequelize (schéma BD)
-│   ├── 20260420120000-creation-tables-edubridge.js  # 8 tables MVP
-│   └── 20260421000000-add-identite-candidat.js      # CIN/Passeport candidat
+│   ├── 20260420120000-creation-tables-edubridge.js                    # 8 tables MVP
+│   ├── 20260421000000-add-identite-candidat.js                        # CIN/Passeport candidat (§12)
+│   ├── 20260422000000-add-champs-manquants-programmes-instituts.js    # Champs additionnels Programme/Institut
+│   └── 20260430000000-workflow-institut.js                            # Workflow institut SaaS (invitation email + first login)
 │
 ├── seeders/                   # Seeders (données de démonstration)
 │   ├── 20260001000000-admin.js          # 1 admin
@@ -1069,7 +1073,10 @@ curl -X POST http://localhost:5000/api/favoris \
 | PATCH | `/lire-tout` | JWT | tout rôle | `{ message }` (200) |
 | PATCH | `/:id/lire` | JWT | tout rôle | `{ message, notification }` (200) |
 
-⚠️ **Attention :** Le client frontend (`notificationService.markAsRead`) appelle `/notifications/:id/lue` au lieu de `/notifications/:id/lire` — désynchronisation à corriger.
+✅ **Synchronisation frontend/backend confirmée :** Le client frontend
+(`notificationService.markAsRead`) appelle bien `PATCH /notifications/:id/lire`
+et (`notificationService.getMine`) appelle `GET /notifications/mine`. La
+divergence historiquement signalée est résolue depuis la Phase 1 d'intégration.
 
 ---
 
@@ -1615,6 +1622,10 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 
 ### 10.2 Problèmes et limitations détectés
 
+> ℹ️ Ces problèmes concernent la v1.0 (MVP). Voir section 11 pour les
+> améliorations planifiées. La Phase 1 d'intégration frontend est complète —
+> ces points sont désormais priorisés pour la phase de stabilisation.
+
 ⚠️ **Pas de pagination**
 - `findAll()` sans `limit/offset` → Épuisement mémoire si N > 10k
 - **Impact :** Lent sur listing instituts/programmes avec beaucoup de data
@@ -1673,6 +1684,12 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 
 ### 11.1 Court terme (Quick wins)
 
+**Priorités stabilisation post-Phase 1 :**
+
+- 🔴 **Rate limiting** (`express-rate-limit`) — **CRITIQUE sécurité** (point 5)
+- 🔴 **Pagination** — **CRITIQUE performance** (point 1)
+- 🟠 **Middleware erreur global** — **Quick win** (point 3)
+
 1. **Ajouter pagination**
    ```javascript
    // routes/programmeRoutes.js
@@ -1730,6 +1747,10 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
    })
    app.use('/api/auth/login', limiter)
    ```
+
+> ℹ️ Le frontend (Phase 1) est pleinement intégré à ce backend. Toute
+> modification de schéma, de route, ou de format de réponse doit être
+> coordonnée avec `frontend/frontend.md` et `CLAUDE.md`.
 
 ### 11.2 Moyen terme
 

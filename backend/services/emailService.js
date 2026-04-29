@@ -219,6 +219,89 @@ function buildInvitationTemplate(nomAffiche, lien) {
   return { html, text };
 }
 
+function buildResetPasswordTemplate(lien) {
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réinitialisation de mot de passe — EduBridge</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .header { background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); padding: 40px 40px 32px; text-align: center; }
+    .header h1 { color: #ffffff; font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
+    .header p { color: rgba(255,255,255,0.85); font-size: 16px; margin: 8px 0 0; }
+    .body { padding: 40px; }
+    .body h2 { color: #1D1D1F; font-size: 22px; font-weight: 600; margin: 0 0 16px; }
+    .body p { color: #6E6E73; font-size: 16px; line-height: 1.6; margin: 0 0 20px; }
+    .cta { text-align: center; margin: 32px 0; }
+    .btn { display: inline-block; background: #007AFF; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 100px; font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+    .info-box { background: #F5F5F7; border-radius: 12px; padding: 20px 24px; margin: 24px 0; }
+    .info-box p { color: #3A3A3C; font-size: 14px; margin: 0; line-height: 1.5; }
+    .warn-box { background: #FFF3CD; border-left: 4px solid #FFC107; border-radius: 12px; padding: 16px 20px; margin: 24px 0; }
+    .warn-box p { color: #856404; font-size: 14px; margin: 0; line-height: 1.5; }
+    .footer { padding: 24px 40px; border-top: 1px solid #E5E5EA; text-align: center; }
+    .footer p { color: #98989D; font-size: 13px; margin: 0; line-height: 1.6; }
+    .link-fallback { word-break: break-all; color: #007AFF; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>EduBridge</h1>
+      <p>Réinitialisation de votre mot de passe</p>
+    </div>
+    <div class="body">
+      <h2>Réinitialisation demandée</h2>
+      <p>
+        Vous avez demandé à réinitialiser le mot de passe de votre compte EduBridge.
+        Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe.
+      </p>
+      <div class="cta">
+        <a href="${lien}" class="btn">Réinitialiser mon mot de passe</a>
+      </div>
+      <div class="info-box">
+        <p>
+          &#9200; <strong>Ce lien est valable 1 heure</strong> à compter de la réception de cet email.
+          Après expiration, vous devrez refaire une demande de réinitialisation.
+        </p>
+      </div>
+      <div class="warn-box">
+        <p>
+          <strong>Vous n'êtes pas à l'origine de cette demande ?</strong><br>
+          Ignorez simplement cet email. Votre mot de passe restera inchangé et votre compte est sécurisé.
+        </p>
+      </div>
+      <p>Si le bouton ne fonctionne pas, copiez et collez le lien suivant dans votre navigateur :</p>
+      <p class="link-fallback">${lien}</p>
+    </div>
+    <div class="footer">
+      <p>
+        Cet email a été envoyé automatiquement par la plateforme EduBridge.<br>
+        Pour toute question, contactez l'équipe support.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = [
+    'Bonjour,',
+    '',
+    'Vous avez demandé à réinitialiser le mot de passe de votre compte EduBridge.',
+    '',
+    'Réinitialisez votre mot de passe via ce lien (valable 1h) :',
+    lien,
+    '',
+    'Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.',
+    '',
+    'Équipe EduBridge',
+  ].join('\n');
+
+  return { html, text };
+}
+
 // ── API publique ──────────────────────────────────────────────────────────────
 
 /**
@@ -238,4 +321,19 @@ async function sendInstitutInviteEmail(to, nomInstitut, token) {
   await envoyerEmail({ to, subject, html, text });
 }
 
-module.exports = { sendInstitutInviteEmail };
+/**
+ * Envoie l'email de réinitialisation de mot de passe.
+ *
+ * @param {string} to    Adresse email du destinataire
+ * @param {string} token Token à usage unique (1h)
+ * @throws {Error} si SMTP est configuré et l'envoi échoue
+ */
+async function sendPasswordResetEmail(to, token) {
+  const lien    = `${FRONTEND_URL}/reset-password?token=${encodeURIComponent(token)}`;
+  const subject = 'Réinitialisation de votre mot de passe EduBridge';
+
+  const { html, text } = buildResetPasswordTemplate(lien);
+  await envoyerEmail({ to, subject, html, text });
+}
+
+module.exports = { sendInstitutInviteEmail, sendPasswordResetEmail };

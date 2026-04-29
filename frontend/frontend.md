@@ -86,8 +86,10 @@ src/
 │   ├── useInstitut.ts                # fetch /instituts/:id
 │   ├── useCandidatures.ts            # useCandidatures / useInstitutCandidatures / useAllCandidatures
 │   ├── useFavoris.ts                 # useFavoris + useToggleFavori
-│   ├── useNotifications.ts           # useNotifications + unreadCount
-│   └── useUtilisateurs.ts            # useUtilisateurs (admin)
+│   ├── useFavoriStatus.ts            # Hook transversal (ProgramCard + ProgramDetail) — état favori synchronisé
+│   ├── useNotifications.ts           # useNotifications + unreadCount + markAsRead
+│   ├── useUtilisateurs.ts            # useUtilisateurs (admin)
+│   └── useComparaison.ts             # localStorage compare list (max 3 programmes)
 ├── app/
 │   ├── App.tsx                       # AuthProvider > RouterProvider > Toaster
 │   ├── routes.tsx                    # 12 routes (3 dashboards wrappés dans ProtectedRoute)
@@ -104,24 +106,28 @@ src/
 │   │   ├── InstitutionDashboard.tsx  # Dashboard institution
 │   │   └── AdminDashboard.tsx        # Dashboard admin
 │   ├── components/                   # Composants réutilisables
-│   │   ├── Navbar.tsx                # Barre de navigation sticky (useAuth pour état)
+│   │   ├── Navbar.tsx                # Barre de navigation sticky (useAuth + dropdown notifications)
 │   │   ├── Footer.tsx                # Footer global
 │   │   ├── DashboardSidebar.tsx      # Sidebar dashboards (useAuth pour profil)
-│   │   ├── ProgramCard.tsx           # Card programme (grid/list)
+│   │   ├── NotificationDropdown.tsx  # Badge unreadCount + dropdown + markAsRead
+│   │   ├── ProgramCard.tsx           # Card programme (grid/list) — utilise useFavoriStatus
 │   │   ├── InstitutionCard.tsx       # Card institution
-│   │   ├── MultiStepDialog.tsx       # Dialog d'application multi-étapes
+│   │   ├── InstitutCard.tsx          # Card institut (listing public)
+│   │   ├── MultiStepDialog.tsx       # Dialog candidature 5 étapes — connecté candidatureService + Multer
 │   │   ├── Stepper.tsx               # Composant stepper
 │   │   ├── StatCard.tsx              # Card de statistiques
 │   │   ├── StatusBadge.tsx           # Badge de statut
 │   │   ├── SkeletonCard.tsx          # Skeleton loading
 │   │   ├── EmptyState.tsx            # État vide
+│   │   ├── admin/                    # Sections AdminDashboard (Overview, Users, Institutes, Programs, Candidatures, Notifications)
+│   │   ├── institution/              # Sections InstitutionDashboard + CreateProgramDialog
 │   │   ├── figma/
 │   │   │   └── ImageWithFallback.tsx # Image avec fallback
 │   │   └── ui/                       # Design system (Radix UI — NE PAS ÉDITER)
 │   │       ├── [30+ composants shadcn/ui]
 │   │       └── utils.ts              # Utilitaire cn()
 │   └── data/
-│       └── mockData.ts               # Données mock (conservées pour Compare/InstitutionProfile)
+│       └── staticData.ts             # Données statiques (référentiels UI — plus aucun mock métier)
 └── styles/
     ├── index.css                     # Entry point styles
     ├── tailwind.css                  # Tailwind directives
@@ -148,7 +154,9 @@ Fichiers racine:
 | `pages/` | Pages complètes du routing (12 routes) |
 | `app/components/` | Composants réutilisables (business logic + présentation) |
 | `app/components/ui/` | Design system primitif (Radix UI wrappé — NE PAS ÉDITER) |
-| `app/data/` | Mock data résiduelle (comparaison, institution profile) |
+| `app/components/admin/` | Sections du dashboard admin (Overview, Users, Institutes, Programs, Candidatures, Notifications) |
+| `app/components/institution/` | Sections du dashboard institut + `CreateProgramDialog` |
+| `app/data/` | `staticData.ts` — référentiels UI statiques (filtres, libellés). Plus de mock métier. |
 | `styles/` | CSS global, tokens de design, thème |
 
 ---
@@ -203,7 +211,7 @@ export const router = createBrowserRouter([
 - Similar programs carousel
 
 #### 4. **InstitutionProfile** (`/institution/:slug`)
-- Profil complet institution
+- Profil complet institution — `GET /api/instituts/:id` via `useInstitut`
 - Cover image + logo
 - Stats (programmes, students, acceptance rate)
 - Programmes publiés par institution
@@ -211,6 +219,8 @@ export const router = createBrowserRouter([
 
 #### 5. **Compare** (`/compare`)
 - Tableau comparatif (max 3 programmes)
+- Liste persistée en `localStorage` via `useComparaison`
+- Hydratation des programmes via `programmeService.getById`
 - Critères side-by-side
 - View Details link par programme
 - Option d'ajouter programmes
@@ -322,13 +332,15 @@ Wrappés Radix UI avec Tailwind CSS
 - `EmptyState.tsx` - Empty state display
 
 **Forms & Dialogs:**
-- `MultiStepDialog.tsx` - 5-step application form
+- `MultiStepDialog.tsx` - 5-step application form, connecté à `candidatureService.create`
   - Step 0: Personal Info
   - Step 1: Academic
-  - Step 2: Documents
+  - Step 2: Documents (upload Multer via `FormData`)
   - Step 3: Motivation
   - Step 4: Review
+  - À la soumission : `candidatureService.create(formData)` → POST `/api/candidatures`
 - `Stepper.tsx` - Stepper UI avec progress bar
+- `NotificationDropdown.tsx` - Dropdown Navbar avec badge `unreadCount`, click sur item → `markAsRead`
 
 **Media:**
 - `ImageWithFallback.tsx` - Image avec fallback
@@ -513,8 +525,10 @@ const { utilisateurs, loading, error, refetch } = useUtilisateurs();          //
 VITE_API_URL=http://localhost:5000/api
 ```
 
-### ⚠️ Divergence connue
-`notificationService.markAsRead` appelle `PATCH /notifications/:id/lue` mais le backend attend `PATCH /notifications/:id/lire`. À corriger dans `src/services/api.ts`.
+### ✅ Divergence notifications — RÉSOLUE
+`notificationService.markAsRead` appelle désormais correctement `PATCH /notifications/:id/lire`
+et `notificationService.getMine` appelle `GET /notifications/mine`. Les routes frontend et
+backend sont alignées (vérifié dans `src/services/api.ts`).
 
 ---
 
@@ -561,7 +575,15 @@ const onSubmit = async (data) => {
 ```
 
 #### **MultiStepDialog** (`components/MultiStepDialog.tsx`)
-- Toujours basé sur `useState` (migration RHF non faite)
+- Basé sur `useState` (5 étapes) ; migration RHF non priorisée tant que l'UX
+  multi-étapes reste stable.
+- Connecté à `candidatureService.create(formData)` — construit un `FormData`
+  pour permettre l'upload Multer (champs `diplome_bac`, `releves_notes`,
+  `lettre_motivation`, `piece_identite`, …) en plus du `programme_id` et de la
+  `lettre_motivation` texte.
+- L'intercepteur axios supprime le `Content-Type` JSON par défaut quand le body
+  est un `FormData` pour laisser le navigateur définir le `multipart/form-data`
+  boundary correct.
 
 ### Notifications
 **Sonner** pour tous les feedbacks :
@@ -981,23 +1003,26 @@ observer.observe(lastElementRef);
 
 ### 🔴 Problèmes Restants
 
-#### 1. **Divergence API notifications**
-- ❌ `markAsRead` appelle `/notifications/:id/lue` (frontend) mais backend attend `/lire`
-- ❌ `getMine` appelle `/notifications` sans suffixe alors que la route est `/notifications/mine`
+#### 1. **Divergence API notifications** — ✅ RÉSOLUE
+- ✅ `markAsRead` appelle désormais `PATCH /notifications/:id/lire`
+- ✅ `getMine` appelle désormais `GET /notifications/mine`
+- ✅ Frontend et backend alignés (vérifié dans `src/services/api.ts`)
 
-**Sévérité:** HAUTE (fonctionnalité cassée)
+**Statut :** Corrigée — Phase 1.
 
-#### 2. **Mock data résiduelle**
-- ⚠️ `Compare.tsx` et `InstitutionProfile.tsx` utilisent encore `mockData.ts`
-- ⚠️ Migration vers vraies données à compléter
+#### 2. **Mock data résiduelle** — ✅ RÉSOLUE
+- ✅ `mockData.ts` supprimé, remplacé par `staticData.ts` (référentiels UI)
+- ✅ `Compare.tsx` migré vers `localStorage` + `programmeService.getById`
+- ✅ `InstitutionProfile.tsx` migré vers `GET /api/instituts/:id` (`useInstitut`)
 
-**Sévérité:** MOYENNE
+**Statut :** Corrigée — Phase 1.
 
-#### 3. **MultiStepDialog non intégré**
-- ❌ Le dialog de candidature utilise encore `useState` (pas RHF)
-- ❌ Pas connecté à `candidatureService.create()`
+#### 3. **MultiStepDialog non intégré** — ✅ RÉSOLUE
+- ✅ Dialog de candidature connecté à `candidatureService.create()`
+- ✅ Upload Multer fonctionnel via `FormData`
+- ⚠️ Toujours basé sur `useState` (migration RHF non priorisée)
 
-**Sévérité:** HAUTE
+**Statut :** Fonctionnel. Migration RHF reportée hors scope MVP.
 
 #### 4. **Performance**
 - ⚠️ Pas de caching (re-fetch à chaque navigation)
