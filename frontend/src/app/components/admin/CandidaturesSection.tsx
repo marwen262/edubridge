@@ -3,17 +3,15 @@ import { motion } from 'motion/react';
 import {
   BarChart3,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   CheckCircle2,
   XCircle,
   AlertTriangle,
   ListFilter,
 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Pagination } from '../Pagination';
 import { useAllCandidatures } from '@/hooks/useCandidatures';
-import type { Candidature } from '@/types/api';
+import type { Candidature, CandidatureFilters } from '@/types/api';
 
 const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }> = {
   soumise:       { label: 'Soumise',        color: 'var(--edu-blue)',    bg: 'rgba(0,113,227,0.1)',  icon: Clock },
@@ -27,32 +25,42 @@ const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; 
 const PAGE_SIZE = 12;
 
 export function CandidaturesSection() {
-  const { candidatures, loading } = useAllCandidatures();
-
   const [search, setSearch] = React.useState('');
   const [statutFilter, setStatutFilter] = React.useState<string>('tous');
   const [page, setPage] = React.useState(1);
 
-  const filtered = React.useMemo(() => {
-    let list = candidatures;
-    if (statutFilter !== 'tous') list = list.filter((c) => c.statut === statutFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (c) =>
-          (c.programme?.titre ?? '').toLowerCase().includes(q) ||
-          (c.programme?.institut?.nom ?? '').toLowerCase().includes(q) ||
-          (c.candidat?.prenom ?? '').toLowerCase().includes(q) ||
-          (c.candidat?.nom ?? '').toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }, [candidatures, statutFilter, search]);
+  // Filtres serveur — `statut` poussé au backend, recherche texte client-side
+  // (le backend n'a pas d'endpoint de recherche full-text sur candidatures).
+  const tableFilters = React.useMemo<CandidatureFilters>(() => ({
+    page,
+    limit: PAGE_SIZE,
+    statut: statutFilter !== 'tous' ? (statutFilter as CandidatureFilters['statut']) : undefined,
+  }), [page, statutFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const { candidatures, pagination, loading } = useAllCandidatures(tableFilters);
 
-  React.useEffect(() => { setPage(1); }, [search, statutFilter]);
+  // Stats globales : second appel non paginé (limit défaut 100) sans filtre
+  // statut. `pagination.total` donne le vrai total backend ; les compteurs
+  // par statut sont dérivés des 100 premières lignes (suffisant pour le MVP ;
+  // un endpoint /candidatures/stats serait l'évolution propre).
+  const { candidatures: candidaturesStats, pagination: statsPagination } = useAllCandidatures();
+
+  // Recherche texte appliquée sur la page courante uniquement (limite admise).
+  const visible = React.useMemo(() => {
+    if (!search.trim()) return candidatures;
+    const q = search.toLowerCase();
+    return candidatures.filter(
+      (c) =>
+        (c.programme?.titre ?? '').toLowerCase().includes(q) ||
+        (c.programme?.institut?.nom ?? '').toLowerCase().includes(q) ||
+        (c.candidat?.prenom ?? '').toLowerCase().includes(q) ||
+        (c.candidat?.nom ?? '').toLowerCase().includes(q)
+    );
+  }, [candidatures, search]);
+
+  // Reset page à 1 quand le filtre statut change (la recherche est client-side
+  // sur la page courante et ne déclenche pas de refetch).
+  React.useEffect(() => { setPage(1); }, [statutFilter]);
 
   const getNomCandidat = (c: Candidature) => {
     const prenom = c.candidat?.prenom ?? '';
@@ -60,12 +68,13 @@ export function CandidaturesSection() {
     return [prenom, nom].filter(Boolean).join(' ') || 'Candidat inconnu';
   };
 
+  const totalGlobal = statsPagination?.total ?? candidaturesStats.length;
   const stats = [
-    { label: 'Total', value: candidatures.length, color: 'var(--edu-text-primary)' },
-    { label: 'Soumises', value: candidatures.filter((c) => c.statut === 'soumise').length, color: 'var(--edu-blue)' },
-    { label: 'En examen', value: candidatures.filter((c) => c.statut === 'en_examen').length, color: 'var(--edu-warning)' },
-    { label: 'Acceptées', value: candidatures.filter((c) => c.statut === 'acceptee').length, color: 'var(--edu-success)' },
-    { label: 'Refusées', value: candidatures.filter((c) => c.statut === 'refusee').length, color: 'var(--edu-danger)' },
+    { label: 'Total', value: totalGlobal, color: 'var(--edu-text-primary)' },
+    { label: 'Soumises', value: candidaturesStats.filter((c) => c.statut === 'soumise').length, color: 'var(--edu-blue)' },
+    { label: 'En examen', value: candidaturesStats.filter((c) => c.statut === 'en_examen').length, color: 'var(--edu-warning)' },
+    { label: 'Acceptées', value: candidaturesStats.filter((c) => c.statut === 'acceptee').length, color: 'var(--edu-success)' },
+    { label: 'Refusées', value: candidaturesStats.filter((c) => c.statut === 'refusee').length, color: 'var(--edu-danger)' },
   ];
 
   return (
@@ -163,7 +172,7 @@ export function CandidaturesSection() {
                       ))}
                     </tr>
                   ))
-                ) : paginated.length === 0 ? (
+                ) : visible.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center">
                       <BarChart3 className="w-8 h-8 mx-auto mb-2 text-[var(--edu-text-tertiary)]" />
@@ -171,7 +180,7 @@ export function CandidaturesSection() {
                     </td>
                   </tr>
                 ) : (
-                  paginated.map((c) => {
+                  visible.map((c) => {
                     const nom = getNomCandidat(c);
                     const initial = nom.charAt(0).toUpperCase();
                     const stCfg = STATUT_CONFIG[c.statut] ?? STATUT_CONFIG.soumise;
@@ -231,19 +240,22 @@ export function CandidaturesSection() {
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-[var(--edu-border)] flex items-center justify-between">
-              <p className="text-xs text-[var(--edu-text-tertiary)]">
-                {filtered.length} candidature{filtered.length !== 1 ? 's' : ''} — page {page}/{totalPages}
-              </p>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="rounded-lg">
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="rounded-lg">
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+          {pagination && pagination.totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-[var(--edu-border)]">
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+                totalItems={pagination.total}
+                itemLabel="candidature"
+                disabled={loading}
+                className="!mt-0"
+              />
+              {search.trim() && (
+                <p className="text-xs text-[var(--edu-text-tertiary)] text-center mt-2 italic">
+                  Recherche appliquée sur la page courante uniquement.
+                </p>
+              )}
             </div>
           )}
         </motion.div>

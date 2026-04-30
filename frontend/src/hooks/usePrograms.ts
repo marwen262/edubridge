@@ -1,17 +1,29 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { programmeService } from '@/services/api';
-import type { ProgrammeFilters, Programme } from '@/types/api';
+import type { Pagination, Programme, ProgrammeFilters } from '@/types/api';
+
+// Limite par défaut quand le caller ne précise rien — préserve le comportement
+// historique (avant pagination) des consommateurs qui veulent "tous les programmes
+// d'un coup" pour calculer des stats ou pour des listings non paginés.
+// Les pages qui veulent une vraie pagination passent un `limit` plus petit.
+const DEFAULT_LIMIT = 100;
 
 export function usePrograms(filters?: ProgrammeFilters) {
   const [programs, setPrograms] = useState<Programme[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
 
-  // JSON.stringify évite les re-renders infinis si filters est un littéral objet
-  const filtersKey = JSON.stringify(filters);
+  // Filtres effectifs envoyés au backend : applique le default `limit` si absent.
+  const effectiveFilters = useMemo<ProgrammeFilters>(
+    () => ({ ...filters, limit: filters?.limit ?? DEFAULT_LIMIT }),
+    [filters],
+  );
+
+  const filtersKey = JSON.stringify(effectiveFilters);
 
   useEffect(() => {
     let cancelled = false;
@@ -19,16 +31,18 @@ export function usePrograms(filters?: ProgrammeFilters) {
     setError(null);
 
     programmeService
-      .getAll(filters)
+      .getAll(effectiveFilters)
       .then(({ data }) => {
         if (cancelled) return;
+        const payload = data as { programmes?: Programme[]; pagination?: Pagination };
         // Le backend renvoie { programmes: [...] } ; on tolère aussi un tableau brut.
-        const liste = Array.isArray((data as { programmes?: unknown }).programmes)
-          ? (data as { programmes: Programme[] }).programmes
+        const liste = Array.isArray(payload.programmes)
+          ? payload.programmes
           : Array.isArray(data)
             ? (data as Programme[])
             : [];
         setPrograms(liste);
+        setPagination(payload.pagination ?? null);
       })
       .catch((err) => {
         if (!cancelled)
@@ -44,5 +58,5 @@ export function usePrograms(filters?: ProgrammeFilters) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, fetchKey]);
 
-  return { programs, loading, error, refetch };
+  return { programs, pagination, loading, error, refetch };
 }

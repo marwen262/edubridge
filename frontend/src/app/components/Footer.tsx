@@ -18,27 +18,27 @@ export function Footer() {
               />
             </Link>
             <p className="text-[#86868B] text-sm">
-              Find your path to the right institution
+              Trouvez votre voie vers l'institution idéale
             </p>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">Product</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">Plateforme</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/search" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Browse Programs
+                  Parcourir les programmes
                 </Link>
               </li>
               <li>
                 <Link to="/search" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Find Institutions
+                  Trouver un institut
                 </Link>
               </li>
               <li>
                 <Link to="/compare" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Compare Programs
+                  Comparer les programmes
                 </Link>
               </li>
             </ul>
@@ -46,21 +46,21 @@ export function Footer() {
 
           {/* For Candidates */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">For Candidates</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">Candidats</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/signup" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Create Account
+                  Créer un compte
                 </Link>
               </li>
               <li>
                 <Link to="/login" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Sign In
+                  Se connecter
                 </Link>
               </li>
               <li>
                 <Link to="/dashboard/candidate" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  My Dashboard
+                  Mon espace
                 </Link>
               </li>
             </ul>
@@ -68,16 +68,16 @@ export function Footer() {
 
           {/* For Institutions */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">For Institutions</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">Instituts</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/login" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Institution Login
+                  Connexion institut
                 </Link>
               </li>
               <li>
                 <Link to="/dashboard/institution" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Dashboard
+                  Tableau de bord
                 </Link>
               </li>
             </ul>
@@ -85,11 +85,11 @@ export function Footer() {
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">Company</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">Entreprise</h4>
             <ul className="space-y-3">
               <li>
                 <a href="#" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  About Us
+                  À propos
                 </a>
               </li>
               <li>
@@ -99,12 +99,12 @@ export function Footer() {
               </li>
               <li>
                 <a href="#" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Privacy Policy
+                  Politique de confidentialité
                 </a>
               </li>
               <li>
                 <a href="#" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Terms of Service
+                  Conditions d'utilisation
                 </a>
               </li>
             </ul>
@@ -112,11 +112,11 @@ export function Footer() {
 
           {/* Resources */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">Resources</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">Ressources</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/guide" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Guide étudiant
+                  Guide candidat
                 </Link>
               </li>
             </ul>
@@ -126,7 +126,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="pt-8 border-t border-[#3A3A3C] flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-[#86868B] text-sm">
-            © 2026 EduBridge. All rights reserved.
+            © 2026 EduBridge. Tous droits réservés.
           </p>
 
           {/* Social Links */}
@@ -165,8 +165,6 @@ export function Footer() {
           <select className="bg-transparent border border-[#3A3A3C] rounded-lg px-4 py-2 text-sm text-[#86868B] focus:outline-none focus:border-[var(--edu-blue)]">
             <option value="en">English</option>
             <option value="fr">Français</option>
-            <option value="es">Español</option>
-            <option value="de">Deutsch</option>
           </select>
         </div>
       </div>

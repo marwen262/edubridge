@@ -104,28 +104,32 @@ export function Navbar({ transparent = false }: NavbarProps) {
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Home
+              Accueil
             </Link>
             <Link
               to="/search"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Programs
+              Programmes
             </Link>
             <Link
               to="/institutions"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Institutions
+              Instituts
             </Link>
             <Link
               to="/compare"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Compare
+              Comparer
             </Link>
             <Link
               to="/guide"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
               Guide
@@ -135,14 +139,14 @@ export function Navbar({ transparent = false }: NavbarProps) {
               onClick={(e) => handleScrollAnchor(e, 'how-it-works')}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              How it works
+              Comment ça marche
             </a>
             <a
               href="#about"
               onClick={(e) => handleScrollAnchor(e, 'about')}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              About
+              À propos
             </a>
           </div>
 
@@ -199,13 +203,13 @@ export function Navbar({ transparent = false }: NavbarProps) {
               <>
                 <Link to="/login">
                   <Button variant="ghost" className="text-[15px] font-medium text-[var(--edu-text-primary)]">
-                    Sign in
+                    Se connecter
                   </Button>
                 </Link>
 
                 <Link to="/signup">
                   <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white text-[15px] font-medium px-6">
-                    Get started
+                    Commencer
                   </Button>
                 </Link>
               </>

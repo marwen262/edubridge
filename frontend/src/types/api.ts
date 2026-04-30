@@ -138,9 +138,26 @@ export interface RegisterData {
   site_web?: string;
 }
 
+// --- Pagination ---
+
+/** Meta pagination renvoyée par les listings backend (cf. utils/pagination.js) */
+export interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/** Filtres communs de pagination acceptés par tous les listings paginés */
+export interface PaginationFilters {
+  page?: number;
+  /** Max 100 côté backend */
+  limit?: number;
+}
+
 // --- Filtres ---
 
-export interface ProgrammeFilters {
+export interface ProgrammeFilters extends PaginationFilters {
   domaine?: 'informatique' | 'genie_civil' | 'electrique' | 'mecanique' | 'chimie' | 'agronomie' | 'finance' | 'management';
   niveau?: 'cycle_preparatoire' | 'licence' | 'master' | 'ingenieur';
   mode?: 'cours_du_jour' | 'cours_du_soir' | 'alternance' | 'formation_continue';
@@ -149,13 +166,13 @@ export interface ProgrammeFilters {
   titre?: string;
 }
 
-export interface InstitutFilters {
+export interface InstitutFilters extends PaginationFilters {
   nom?: string;
   est_verifie?: boolean;
   admin_view?: boolean;
 }
 
-export interface CandidatureFilters {
+export interface CandidatureFilters extends PaginationFilters {
   statut?: 'brouillon' | 'soumise' | 'en_examen' | 'acceptee' | 'refusee' | 'liste_attente';
   programme_id?: string;
 }
