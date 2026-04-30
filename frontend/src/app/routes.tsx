@@ -5,9 +5,11 @@ import { Institutions } from './pages/Institutions';
 import { ProgramDetail } from './pages/ProgramDetail';
 import { InstitutionProfile } from './pages/InstitutionProfile';
 import { Compare } from './pages/Compare';
+import { Guide } from './pages/Guide';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { FirstLogin } from './pages/FirstLogin';
+import { ResetPassword } from './pages/ResetPassword';
 import { CandidateDashboard } from './pages/CandidateDashboard';
 import { InstitutionDashboard } from './pages/InstitutionDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -39,6 +41,10 @@ export const router = createBrowserRouter([
     Component: Compare,
   },
   {
+    path: '/guide',
+    Component: Guide,
+  },
+  {
     path: '/login',
     Component: Login,
   },
@@ -49,6 +55,10 @@ export const router = createBrowserRouter([
   {
     path: '/first-login',
     Component: FirstLogin,
+  },
+  {
+    path: '/reset-password',
+    Component: ResetPassword,
   },
   {
     path: '/dashboard/candidate',
@@ -67,7 +77,23 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/dashboard/institution/:section',
+    element: (
+      <ProtectedRoute requiredRole="institut">
+        <InstitutionDashboard />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: '/dashboard/admin',
+    element: (
+      <ProtectedRoute requiredRole="admin">
+        <AdminDashboard />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/admin/:section',
     element: (
       <ProtectedRoute requiredRole="admin">
         <AdminDashboard />

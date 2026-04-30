@@ -2,12 +2,12 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import type { RegisterData } from '@/types/api';
 import type { User, AuthContextType } from '@/types/auth';
+import type { ValidationStatus } from '@/types/api';
 import { authService } from '@/services/api';
 import { API_URL } from '@/config';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
-// Lecture sécurisée du profil stocké en localStorage
 function lireUtilisateurStocke(): User | null {
   try {
     const stored = localStorage.getItem('auth_user');
@@ -17,28 +17,44 @@ function lireUtilisateurStocke(): User | null {
   }
 }
 
-// Fusion utilisateur + profil backend en objet User local
 function construireUser(
-  utilisateur: { id: string; email: string; role: string },
-  profil?: { id?: string; prenom?: string; nom?: string }
+  utilisateur: {
+    id: string;
+    email: string;
+    role: string;
+    first_login_completed?: boolean;
+  },
+  profil?: {
+    id?: string;
+    prenom?: string;
+    nom?: string | null;
+    validation_status?: ValidationStatus;
+  }
 ): User {
   return {
     id: utilisateur.id,
     email: utilisateur.email,
     role: utilisateur.role as User['role'],
+    first_login_completed: utilisateur.first_login_completed ?? true,
     prenom: profil?.prenom,
-    nom: profil?.nom,
+    nom: profil?.nom ?? undefined,
     candidat_id: utilisateur.role === 'candidat' ? profil?.id : undefined,
     institut_id: utilisateur.role === 'institut' ? profil?.id : undefined,
+    validation_status: utilisateur.role === 'institut' ? profil?.validation_status : undefined,
   };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  // loading=true au montage : empêche ProtectedRoute de rediriger vers /login
-  // avant que la lecture du localStorage soit terminée.
   const [loading, setLoading] = useState(true);
+
+  const persisterAuth = (newToken: string, newUser: User): void => {
+    localStorage.setItem('auth_token', newToken);
+    localStorage.setItem('auth_user', JSON.stringify(newUser));
+    setToken(newToken);
+    setUser(newUser);
+  };
 
   useEffect(() => {
     let storedToken: string | null = null;
@@ -56,36 +72,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Affichage optimiste : on rend l'UI authentifiée pendant la validation.
+    // Affichage optimiste pendant la validation silencieuse
     setToken(storedToken);
     setUser(storedUser);
     setLoading(false);
 
-    // Validation silencieuse du token contre le backend.
-    // → axios direct (pas l'instance `api`) pour bypasser l'intercepteur 401
-    //   qui redirigerait vers /login : sur une page publique on veut juste
-    //   purger l'état auth obsolète, pas expulser l'utilisateur.
+    // Validation silencieuse + rafraîchissement du profil (validation_status, etc.)
     axios
       .get(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${storedToken}` },
         timeout: 10000,
       })
+      .then(({ data }) => {
+        // Rafraîchir les données utilisateur depuis le backend (peut avoir changé)
+        const u = data.utilisateur as {
+          id: string; email: string; role: string;
+          first_login_completed?: boolean;
+          institut?: { id: string; nom: string | null; validation_status: ValidationStatus };
+          candidat?: { id: string; prenom?: string; nom?: string };
+        };
+        const profil = u.role === 'institut' ? u.institut : u.candidat;
+        const freshedUser = construireUser(u, profil ?? undefined);
+        // Mettre à jour localStorage et state avec les données fraîches
+        localStorage.setItem('auth_user', JSON.stringify(freshedUser));
+        setUser(freshedUser);
+      })
       .catch(() => {
-        // Token expiré, révoqué, ou backend reset (ex: db:reset) → purge.
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         setToken(null);
         setUser(null);
       });
   }, []);
-
-  // Persiste token + user dans localStorage et met à jour les states
-  const persisterAuth = (newToken: string, newUser: User): void => {
-    localStorage.setItem('auth_token', newToken);
-    localStorage.setItem('auth_user', JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
-  };
 
   const login = async (email: string, password: string): Promise<void> => {
     const { data } = await authService.login(email, password);

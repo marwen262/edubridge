@@ -7,6 +7,8 @@ import type {
   CandidatureFilters,
   CreateProgrammeData,
   CreateInstitutData,
+  InviterInstitutData,
+  TerminerPremierLoginData,
   UpdateUtilisateurData,
 } from '@/types/api';
 
@@ -62,6 +64,23 @@ export const authService = {
 
   me: () =>
     api.get('/auth/me'),
+
+  // Workflow first login institut
+  validerTokenPremierLogin: (token: string) =>
+    api.get('/auth/premier-login/valider', { params: { token } }),
+
+  terminerPremierLogin: (data: TerminerPremierLoginData) =>
+    api.post('/auth/premier-login/terminer', data),
+
+  // Workflow réinitialisation de mot de passe
+  demanderResetPassword: (email: string) =>
+    api.post('/auth/mot-de-passe/oublie', { email }),
+
+  validerResetToken: (token: string) =>
+    api.get('/auth/mot-de-passe/valider-token', { params: { token } }),
+
+  reinitialiserPassword: (token: string, password: string) =>
+    api.post('/auth/mot-de-passe/reinitialiser', { token, password }),
 };
 
 // --- Service programmes ---
@@ -93,11 +112,34 @@ export const institutService = {
   create: (data: CreateInstitutData) =>
     api.post('/instituts', data),
 
+  // Nouvelle invitation par email (remplace create avec mot de passe temporaire)
+  inviter: (data: InviterInstitutData) =>
+    api.post('/instituts', data),
+
   update: (id: string, data: Partial<CreateInstitutData>) =>
     api.put(`/instituts/${id}`, data),
 
   delete: (id: string) =>
     api.delete(`/instituts/${id}`),
+
+  // Workflow validation admin
+  listerEnAttente: () =>
+    api.get('/instituts/admin/en-attente'),
+
+  approuver: (id: string) =>
+    api.post(`/instituts/${id}/approuver`),
+
+  rejeter: (id: string, motif: string) =>
+    api.post(`/instituts/${id}/rejeter`, { motif }),
+
+  suspendre: (id: string, motif: string) =>
+    api.post(`/instituts/${id}/suspendre`, { motif }),
+
+  reactiver: (id: string) =>
+    api.post(`/instituts/${id}/reactiver`),
+
+  resoumettre: (id: string) =>
+    api.post(`/instituts/${id}/resoumettre`),
 };
 
 // --- Service candidatures (uploads multipart/form-data) ---

@@ -1,0 +1,269 @@
+2026-04-25 17:11:24,293 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:11:24,295 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:11:24,329 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:11:24,330 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:11:24,331 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : No module named 'spacy'
+2026-04-25 17:11:24,331 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:11:24,332 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : No module named 'spacy'
+2026-04-25 17:11:24,333 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:11:26,369 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:11:26,371 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:11:26,404 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:11:26,413 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : No module named 'spacy'
+2026-04-25 17:11:26,413 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:11:26,413 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:11:26,413 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : No module named 'spacy'
+2026-04-25 17:11:26,413 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:11:51,743 - diploma_verifier - INFO - Service arrêté
+2026-04-25 17:11:52,903 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:11:52,928 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:11:58,511 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:11:58,511 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:11:58,511 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:11:59,736 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:11:59,754 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:12:00,400 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:12:00,401 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:12:00,402 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:12:05,302 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:12:05,321 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:12:05,952 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:12:05,953 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:12:05,953 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:15:43,489 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:15:43,509 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:15:44,252 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:15:44,253 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:15:44,254 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:17:01,325 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:17:01,344 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:17:02,001 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:17:02,002 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:17:02,003 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:23:24,250 - diploma_verifier - INFO - Requête de vérification reçue : diplomes-160107163453-thumbnail.jpg
+2026-04-25 17:23:24,251 - diploma_verifier - INFO - Validation du fichier : diplomes-160107163453-thumbnail.jpg
+2026-04-25 17:23:24,259 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-04-25 17:23:24,259 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_8cf6e943000f41fbb33df93627838247.jpg
+2026-04-25 17:23:24,259 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=45870 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_8cf6e943000f41fbb33df93627838247.jpg
+2026-04-25 17:23:24,259 - diploma_verifier - INFO - Début de l'analyse : diplomes-160107163453-thumbnail.jpg
+2026-04-25 17:23:24,259 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_8cf6e943000f41fbb33df93627838247.jpg
+2026-04-25 17:23:24,402 - diploma_verifier - INFO - Image convertie — dimensions=640x469 | mode=RGB
+2026-04-25 17:23:24,402 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 17:23:24,418 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=640x469
+2026-04-25 17:23:24,443 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 17:23:24,452 - diploma_verifier - INFO - Détection signature — détectée=True | confiance=0.92 | candidats=2
+2026-04-25 17:23:24,466 - diploma_verifier - INFO - Détection cachet — détecté=True | confiance=0.42 | couleur=noir | cercles=12 | ellipses=0
+2026-04-25 17:23:24,502 - diploma_verifier - INFO - Détection tampering — score=0.178 | ELA=0.306 (0 régions) | copier-coller=0.000 | fond=0.368 | meta_flags=0
+2026-04-25 17:23:24,502 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.19 | type=unknown | mots-clés=0/1 | layout=0.75
+2026-04-25 17:23:24,502 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 17:23:24,502 - diploma_verifier - INFO - Analyse terminée — fichier=diplomes-160107163453-thumbnail.jpg | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=242ms | flags=[Aucun texte extrait par l'OCR, Texte insuffisant pour l'analyse, Document probablement pas un diplôme (confiance=0.19)]
+2026-04-25 17:23:24,502 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_8cf6e943000f41fbb33df93627838247.jpg
+2026-04-25 17:23:33,735 - diploma_verifier - INFO - Requête de vérification reçue : diplomes-160107163453-thumbnail.jpg
+2026-04-25 17:23:33,735 - diploma_verifier - INFO - Validation du fichier : diplomes-160107163453-thumbnail.jpg
+2026-04-25 17:23:33,735 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-04-25 17:23:33,742 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_0f401ebae1c14791b9c0c65f10de0eaf.jpg
+2026-04-25 17:23:33,742 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=45870 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_0f401ebae1c14791b9c0c65f10de0eaf.jpg
+2026-04-25 17:23:33,742 - diploma_verifier - INFO - Début de l'analyse : diplomes-160107163453-thumbnail.jpg
+2026-04-25 17:23:33,742 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_0f401ebae1c14791b9c0c65f10de0eaf.jpg
+2026-04-25 17:23:33,751 - diploma_verifier - INFO - Image convertie — dimensions=640x469 | mode=RGB
+2026-04-25 17:23:33,751 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 17:23:33,767 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=640x469
+2026-04-25 17:23:33,783 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 17:23:33,783 - diploma_verifier - INFO - Détection signature — détectée=True | confiance=0.92 | candidats=2
+2026-04-25 17:23:33,800 - diploma_verifier - INFO - Détection cachet — détecté=True | confiance=0.42 | couleur=noir | cercles=12 | ellipses=0
+2026-04-25 17:23:33,834 - diploma_verifier - INFO - Détection tampering — score=0.178 | ELA=0.306 (0 régions) | copier-coller=0.000 | fond=0.368 | meta_flags=0
+2026-04-25 17:23:33,834 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.19 | type=unknown | mots-clés=0/1 | layout=0.75
+2026-04-25 17:23:33,834 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 17:23:33,834 - diploma_verifier - INFO - Analyse terminée — fichier=diplomes-160107163453-thumbnail.jpg | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=91ms | flags=[Aucun texte extrait par l'OCR, Texte insuffisant pour l'analyse, Document probablement pas un diplôme (confiance=0.19)]
+2026-04-25 17:23:33,842 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_0f401ebae1c14791b9c0c65f10de0eaf.jpg
+2026-04-25 17:23:39,140 - diploma_verifier - INFO - Requête de vérification reçue : diplome bac.png
+2026-04-25 17:23:39,140 - diploma_verifier - INFO - Validation du fichier : diplome bac.png
+2026-04-25 17:23:39,143 - diploma_verifier - DEBUG - Type MIME détecté : image/png
+2026-04-25 17:23:39,144 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_4ddffbaf407948c6a278c3059e480dc5.png
+2026-04-25 17:23:39,145 - diploma_verifier - INFO - Fichier validé — mime=image/png | taille=732666 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_4ddffbaf407948c6a278c3059e480dc5.png
+2026-04-25 17:23:39,145 - diploma_verifier - INFO - Début de l'analyse : diplome bac.png
+2026-04-25 17:23:39,145 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_4ddffbaf407948c6a278c3059e480dc5.png
+2026-04-25 17:23:39,177 - diploma_verifier - INFO - Image convertie — dimensions=1200x869 | mode=RGB
+2026-04-25 17:23:39,178 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 17:23:39,221 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=1200x869
+2026-04-25 17:23:39,250 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 17:23:39,252 - diploma_verifier - INFO - Détection signature — détectée=True | confiance=1.00 | candidats=19
+2026-04-25 17:23:39,371 - diploma_verifier - ERROR - Erreur lors de la détection de cachet : cannot convert float NaN to integer
+2026-04-25 17:23:39,489 - diploma_verifier - INFO - Détection tampering — score=0.285 | ELA=0.206 (0 régions) | copier-coller=0.674 | fond=0.228 | meta_flags=0
+2026-04-25 17:23:39,493 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.21 | type=unknown | mots-clés=0/1 | layout=0.85
+2026-04-25 17:23:39,493 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 17:23:39,494 - diploma_verifier - INFO - Analyse terminée — fichier=diplome bac.png | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=348ms | flags=[Aucun texte extrait par l'OCR, Erreur détection cachet : cannot convert float NaN to integer, Texte insuffisant pour l'analyse, Possible copier-coller détecté (score=0.67), Document probablement pas un diplôme (confiance=0.21)]
+2026-04-25 17:23:39,495 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_4ddffbaf407948c6a278c3059e480dc5.png
+2026-04-25 17:27:00,218 - diploma_verifier - INFO - Service arrêté
+2026-04-25 17:27:01,401 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:27:01,422 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:27:02,025 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:27:02,025 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:27:02,040 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:27:03,289 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:27:03,309 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:27:03,937 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:27:03,939 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:27:03,939 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:30:27,417 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:30:27,439 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:30:28,071 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:30:28,072 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:30:28,073 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:31:15,536 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:31:15,556 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:31:16,183 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:31:16,184 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:31:16,185 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:32:35,672 - diploma_verifier - INFO - Requête de vérification reçue : diplome hbib.jpg
+2026-04-25 17:32:35,672 - diploma_verifier - INFO - Validation du fichier : diplome hbib.jpg
+2026-04-25 17:32:35,674 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-04-25 17:32:35,675 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_81f684e34f0046f598de040fbffdf82e.jpg
+2026-04-25 17:32:35,676 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=258481 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_81f684e34f0046f598de040fbffdf82e.jpg
+2026-04-25 17:32:35,676 - diploma_verifier - INFO - Début de l'analyse : diplome hbib.jpg
+2026-04-25 17:32:35,676 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_81f684e34f0046f598de040fbffdf82e.jpg
+2026-04-25 17:32:35,711 - diploma_verifier - INFO - Image convertie — dimensions=1478x2047 | mode=RGB
+2026-04-25 17:32:35,712 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 17:32:35,845 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=1478x2047
+2026-04-25 17:32:35,914 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 17:32:37,729 - diploma_verifier - INFO - Détection cachet — détecté=True | confiance=0.80 | couleur=bleu | cercles=385 | ellipses=1
+2026-04-25 17:32:38,112 - diploma_verifier - INFO - Détection tampering — score=0.345 | ELA=0.162 (48 régions) | copier-coller=1.000 | fond=0.204 | meta_flags=0
+2026-04-25 17:32:38,120 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.19 | type=unknown | mots-clés=0/1 | layout=0.75
+2026-04-25 17:32:38,120 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 17:32:38,120 - diploma_verifier - INFO - Analyse terminée — fichier=diplome hbib.jpg | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=2444ms | flags=[Aucun texte extrait par l'OCR, Aucun contour de signature détecté, Texte insuffisant pour l'analyse, ELA : 48 régions suspectes détectées, Possible copier-coller détecté (score=1.00), Document probablement pas un diplôme (confiance=0.19)]
+2026-04-25 17:32:38,124 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_81f684e34f0046f598de040fbffdf82e.jpg
+2026-04-25 17:38:42,825 - diploma_verifier - INFO - Démarrage du service Diploma Verifier...
+2026-04-25 17:38:42,840 - diploma_verifier - WARNING - Tesseract non trouvé dans le PATH. L'OCR ne fonctionnera pas correctement.
+2026-04-25 17:38:43,514 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-04-25 17:38:43,523 - diploma_verifier - WARNING - Impossible de charger les modèles spaCy : [E050] Can't find model 'fr_core_news_sm'. It doesn't seem to be a Python package or a valid path to a data directory.
+2026-04-25 17:38:43,523 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-04-25 17:48:41,524 - diploma_verifier - INFO - Service arrêté
+2026-04-25 17:59:42,177 - diploma_verifier - INFO - Requête de vérification de score reçue : diplome hbib.pdf
+2026-04-25 17:59:42,177 - diploma_verifier - INFO - Validation du fichier : diplome hbib.pdf
+2026-04-25 17:59:42,184 - diploma_verifier - DEBUG - Type MIME détecté : application/pdf
+2026-04-25 17:59:42,186 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_1893db1cab974d20874a2a5e735983ee.pdf
+2026-04-25 17:59:42,186 - diploma_verifier - INFO - Fichier validé — mime=application/pdf | taille=191636 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_1893db1cab974d20874a2a5e735983ee.pdf
+2026-04-25 17:59:42,186 - diploma_verifier - INFO - Début de l'analyse : diplome hbib.pdf
+2026-04-25 17:59:42,187 - diploma_verifier - DEBUG - Conversion PDF → image à 300 DPI : C:\Users\marwe\AppData\Local\Temp\diploma_1893db1cab974d20874a2a5e735983ee.pdf
+2026-04-25 17:59:44,768 - diploma_verifier - INFO - Image convertie — dimensions=2480x3509 | mode=RGB
+2026-04-25 17:59:44,769 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 17:59:45,497 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=2480x3509
+2026-04-25 17:59:45,678 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 17:59:45,688 - diploma_verifier - INFO - Détection signature — détectée=True | confiance=0.50 | candidats=2
+2026-04-25 18:00:05,690 - diploma_verifier - INFO - Détection cachet — détecté=True | confiance=0.80 | couleur=bleu | cercles=1108 | ellipses=1
+2026-04-25 18:00:06,903 - diploma_verifier - INFO - Détection tampering — score=0.357 | ELA=0.187 (39 régions) | copier-coller=1.000 | fond=0.213 | meta_flags=0
+2026-04-25 18:00:06,927 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.19 | type=unknown | mots-clés=0/1 | layout=0.75
+2026-04-25 18:00:06,928 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 18:00:06,928 - diploma_verifier - INFO - Analyse terminée — fichier=diplome hbib.pdf | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=24741ms | flags=[Aucun texte extrait par l'OCR, Texte insuffisant pour l'analyse, ELA : 39 régions suspectes détectées, Possible copier-coller détecté (score=1.00), Document probablement pas un diplôme (confiance=0.19)]
+2026-04-25 18:00:06,932 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_1893db1cab974d20874a2a5e735983ee.pdf
+2026-04-25 18:00:53,024 - diploma_verifier - INFO - Requête de vérification de score reçue : diplome bac.png
+2026-04-25 18:00:53,024 - diploma_verifier - INFO - Validation du fichier : diplome bac.png
+2026-04-25 18:00:53,027 - diploma_verifier - DEBUG - Type MIME détecté : image/png
+2026-04-25 18:00:53,028 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_8b38c911d7de4c8fb43e95a591ba7022.png
+2026-04-25 18:00:53,028 - diploma_verifier - INFO - Fichier validé — mime=image/png | taille=732666 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_8b38c911d7de4c8fb43e95a591ba7022.png
+2026-04-25 18:00:53,028 - diploma_verifier - INFO - Début de l'analyse : diplome bac.png
+2026-04-25 18:00:53,028 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_8b38c911d7de4c8fb43e95a591ba7022.png
+2026-04-25 18:00:53,061 - diploma_verifier - INFO - Image convertie — dimensions=1200x869 | mode=RGB
+2026-04-25 18:00:53,061 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 18:00:53,111 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=1200x869
+2026-04-25 18:00:53,141 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 18:00:53,142 - diploma_verifier - INFO - Détection signature — détectée=True | confiance=1.00 | candidats=19
+2026-04-25 18:00:53,295 - diploma_verifier - ERROR - Erreur lors de la détection de cachet : cannot convert float NaN to integer
+2026-04-25 18:00:53,416 - diploma_verifier - INFO - Détection tampering — score=0.285 | ELA=0.206 (0 régions) | copier-coller=0.674 | fond=0.228 | meta_flags=0
+2026-04-25 18:00:53,420 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.21 | type=unknown | mots-clés=0/1 | layout=0.85
+2026-04-25 18:00:53,420 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 18:00:53,420 - diploma_verifier - INFO - Analyse terminée — fichier=diplome bac.png | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=392ms | flags=[Aucun texte extrait par l'OCR, Erreur détection cachet : cannot convert float NaN to integer, Texte insuffisant pour l'analyse, Possible copier-coller détecté (score=0.67), Document probablement pas un diplôme (confiance=0.21)]
+2026-04-25 18:00:53,423 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_8b38c911d7de4c8fb43e95a591ba7022.png
+2026-04-25 18:01:07,442 - diploma_verifier - INFO - Requête de vérification de score reçue : diplome bac.png
+2026-04-25 18:01:07,442 - diploma_verifier - INFO - Validation du fichier : diplome bac.png
+2026-04-25 18:01:07,445 - diploma_verifier - DEBUG - Type MIME détecté : image/png
+2026-04-25 18:01:07,447 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_ae4e04d1c15644a1927dbe052c49c62c.png
+2026-04-25 18:01:07,447 - diploma_verifier - INFO - Fichier validé — mime=image/png | taille=732666 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_ae4e04d1c15644a1927dbe052c49c62c.png
+2026-04-25 18:01:07,447 - diploma_verifier - INFO - Début de l'analyse : diplome bac.png
+2026-04-25 18:01:07,448 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_ae4e04d1c15644a1927dbe052c49c62c.png
+2026-04-25 18:01:07,480 - diploma_verifier - INFO - Image convertie — dimensions=1200x869 | mode=RGB
+2026-04-25 18:01:07,480 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 18:01:07,528 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=1200x869
+2026-04-25 18:01:07,558 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 18:01:07,559 - diploma_verifier - INFO - Détection signature — détectée=True | confiance=1.00 | candidats=19
+2026-04-25 18:01:07,679 - diploma_verifier - ERROR - Erreur lors de la détection de cachet : cannot convert float NaN to integer
+2026-04-25 18:01:07,795 - diploma_verifier - INFO - Détection tampering — score=0.285 | ELA=0.206 (0 régions) | copier-coller=0.674 | fond=0.228 | meta_flags=0
+2026-04-25 18:01:07,799 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.21 | type=unknown | mots-clés=0/1 | layout=0.85
+2026-04-25 18:01:07,800 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 18:01:07,800 - diploma_verifier - INFO - Analyse terminée — fichier=diplome bac.png | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=353ms | flags=[Aucun texte extrait par l'OCR, Erreur détection cachet : cannot convert float NaN to integer, Texte insuffisant pour l'analyse, Possible copier-coller détecté (score=0.67), Document probablement pas un diplôme (confiance=0.21)]
+2026-04-25 18:01:07,802 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_ae4e04d1c15644a1927dbe052c49c62c.png
+2026-04-25 18:03:10,462 - diploma_verifier - INFO - Requête de vérification de score reçue : diplome hbib.pdf
+2026-04-25 18:03:10,462 - diploma_verifier - INFO - Validation du fichier : diplome hbib.pdf
+2026-04-25 18:03:10,466 - diploma_verifier - DEBUG - Type MIME détecté : application/pdf
+2026-04-25 18:03:10,468 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_7bc70bb2188e42ae99a852096dc68420.pdf
+2026-04-25 18:03:10,468 - diploma_verifier - INFO - Fichier validé — mime=application/pdf | taille=191636 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_7bc70bb2188e42ae99a852096dc68420.pdf
+2026-04-25 18:03:10,468 - diploma_verifier - INFO - Début de l'analyse : diplome hbib.pdf
+2026-04-25 18:03:10,469 - diploma_verifier - DEBUG - Conversion PDF → image à 300 DPI : C:\Users\marwe\AppData\Local\Temp\diploma_7bc70bb2188e42ae99a852096dc68420.pdf
+2026-04-25 18:03:11,912 - diploma_verifier - INFO - Image convertie — dimensions=2480x3509 | mode=RGB
+2026-04-25 18:03:11,914 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 18:03:12,632 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=2480x3509
+2026-04-25 18:03:12,832 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 18:03:12,841 - diploma_verifier - INFO - Détection signature — détectée=True | confiance=0.50 | candidats=2
+2026-04-25 18:03:30,421 - diploma_verifier - INFO - Détection cachet — détecté=True | confiance=0.80 | couleur=bleu | cercles=1108 | ellipses=1
+2026-04-25 18:03:32,043 - diploma_verifier - INFO - Détection tampering — score=0.357 | ELA=0.187 (39 régions) | copier-coller=1.000 | fond=0.213 | meta_flags=0
+2026-04-25 18:03:32,071 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.19 | type=unknown | mots-clés=0/1 | layout=0.75
+2026-04-25 18:03:32,072 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 18:03:32,072 - diploma_verifier - INFO - Analyse terminée — fichier=diplome hbib.pdf | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=21603ms | flags=[Aucun texte extrait par l'OCR, Texte insuffisant pour l'analyse, ELA : 39 régions suspectes détectées, Possible copier-coller détecté (score=1.00), Document probablement pas un diplôme (confiance=0.19)]
+2026-04-25 18:03:32,079 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_7bc70bb2188e42ae99a852096dc68420.pdf
+2026-04-25 18:11:14,712 - diploma_verifier - INFO - Requête de vérification de score reçue : diplome hbib.pdf
+2026-04-25 18:11:14,714 - diploma_verifier - INFO - Validation du fichier : diplome hbib.pdf
+2026-04-25 18:11:14,715 - diploma_verifier - DEBUG - Type MIME détecté : application/pdf
+2026-04-25 18:11:14,717 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_69a7971b2e9a4a8e8c8e958169a79cf0.pdf
+2026-04-25 18:11:14,718 - diploma_verifier - INFO - Fichier validé — mime=application/pdf | taille=191636 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_69a7971b2e9a4a8e8c8e958169a79cf0.pdf
+2026-04-25 18:11:14,718 - diploma_verifier - INFO - Début de l'analyse : diplome hbib.pdf
+2026-04-25 18:11:14,718 - diploma_verifier - DEBUG - Conversion PDF → image à 300 DPI : C:\Users\marwe\AppData\Local\Temp\diploma_69a7971b2e9a4a8e8c8e958169a79cf0.pdf
+2026-04-25 18:11:15,915 - diploma_verifier - INFO - Image convertie — dimensions=2480x3509 | mode=RGB
+2026-04-25 18:11:15,915 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 18:11:16,416 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=2480x3509
+2026-04-25 18:11:16,581 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 18:11:16,588 - diploma_verifier - INFO - Détection signature — détectée=True | confiance=0.50 | candidats=2
+2026-04-25 18:11:32,447 - diploma_verifier - INFO - Détection cachet — détecté=True | confiance=0.80 | couleur=bleu | cercles=1108 | ellipses=1
+2026-04-25 18:11:34,114 - diploma_verifier - INFO - Détection tampering — score=0.357 | ELA=0.187 (39 régions) | copier-coller=1.000 | fond=0.213 | meta_flags=0
+2026-04-25 18:11:34,138 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.19 | type=unknown | mots-clés=0/1 | layout=0.75
+2026-04-25 18:11:34,139 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 18:11:34,139 - diploma_verifier - INFO - Analyse terminée — fichier=diplome hbib.pdf | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=19421ms | flags=[Aucun texte extrait par l'OCR, Texte insuffisant pour l'analyse, ELA : 39 régions suspectes détectées, Possible copier-coller détecté (score=1.00), Document probablement pas un diplôme (confiance=0.19)]
+2026-04-25 18:11:34,144 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_69a7971b2e9a4a8e8c8e958169a79cf0.pdf
+2026-04-25 18:12:36,915 - diploma_verifier - INFO - Requête de vérification de score reçue : Diplome-bac-1-320.webp
+2026-04-25 18:12:36,915 - diploma_verifier - INFO - Validation du fichier : Diplome-bac-1-320.webp
+2026-04-25 18:12:36,916 - diploma_verifier - WARNING - Validation échouée pour Diplome-bac-1-320.webp : Extension non autorisée : .webp. Extensions acceptées : ['.pdf', '.jpg', '.jpeg', '.png']
+2026-04-25 18:12:48,886 - diploma_verifier - INFO - Requête de vérification de score reçue : diplome bac.png
+2026-04-25 18:12:48,887 - diploma_verifier - INFO - Validation du fichier : diplome bac.png
+2026-04-25 18:12:48,889 - diploma_verifier - DEBUG - Type MIME détecté : image/png
+2026-04-25 18:12:48,891 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_f8697eaed64748eb8d9f19c1900fcbee.png
+2026-04-25 18:12:48,891 - diploma_verifier - INFO - Fichier validé — mime=image/png | taille=732666 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_f8697eaed64748eb8d9f19c1900fcbee.png
+2026-04-25 18:12:48,891 - diploma_verifier - INFO - Début de l'analyse : diplome bac.png
+2026-04-25 18:12:48,892 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_f8697eaed64748eb8d9f19c1900fcbee.png
+2026-04-25 18:12:48,930 - diploma_verifier - INFO - Image convertie — dimensions=1200x869 | mode=RGB
+2026-04-25 18:12:48,930 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 18:12:48,978 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=1200x869
+2026-04-25 18:12:49,008 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 18:12:49,011 - diploma_verifier - INFO - Détection signature — détectée=True | confiance=1.00 | candidats=19
+2026-04-25 18:12:49,148 - diploma_verifier - ERROR - Erreur lors de la détection de cachet : cannot convert float NaN to integer
+2026-04-25 18:12:49,273 - diploma_verifier - INFO - Détection tampering — score=0.285 | ELA=0.206 (0 régions) | copier-coller=0.674 | fond=0.228 | meta_flags=0
+2026-04-25 18:12:49,276 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.21 | type=unknown | mots-clés=0/1 | layout=0.85
+2026-04-25 18:12:49,277 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 18:12:49,277 - diploma_verifier - INFO - Analyse terminée — fichier=diplome bac.png | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=385ms | flags=[Aucun texte extrait par l'OCR, Erreur détection cachet : cannot convert float NaN to integer, Texte insuffisant pour l'analyse, Possible copier-coller détecté (score=0.67), Document probablement pas un diplôme (confiance=0.21)]
+2026-04-25 18:12:49,279 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_f8697eaed64748eb8d9f19c1900fcbee.png
+2026-04-25 18:13:20,399 - diploma_verifier - INFO - Requête de vérification de score reçue : Capture d'écran 2025-10-20 160548.png
+2026-04-25 18:13:20,399 - diploma_verifier - INFO - Validation du fichier : Capture d'écran 2025-10-20 160548.png
+2026-04-25 18:13:20,401 - diploma_verifier - DEBUG - Type MIME détecté : image/png
+2026-04-25 18:13:20,402 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_7aa77341b8404348bdbfeefbc0105046.png
+2026-04-25 18:13:20,403 - diploma_verifier - INFO - Fichier validé — mime=image/png | taille=22031 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_7aa77341b8404348bdbfeefbc0105046.png
+2026-04-25 18:13:20,403 - diploma_verifier - INFO - Début de l'analyse : Capture d'écran 2025-10-20 160548.png
+2026-04-25 18:13:20,404 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_7aa77341b8404348bdbfeefbc0105046.png
+2026-04-25 18:13:20,414 - diploma_verifier - INFO - Image convertie — dimensions=569x282 | mode=RGB
+2026-04-25 18:13:20,416 - diploma_verifier - DEBUG - Début du prétraitement de l'image
+2026-04-25 18:13:20,423 - diploma_verifier - DEBUG - Prétraitement terminé — dimensions=569x282
+2026-04-25 18:13:20,438 - diploma_verifier - ERROR - Erreur Tesseract : tesseract is not installed or it's not in your PATH. See README file for more information.
+2026-04-25 18:13:20,447 - diploma_verifier - INFO - Détection cachet — détecté=True | confiance=0.63 | couleur=noir | cercles=0 | ellipses=1
+2026-04-25 18:13:20,464 - diploma_verifier - INFO - Détection tampering — score=0.441 | ELA=1.000 (1 régions) | copier-coller=0.000 | fond=0.274 | meta_flags=0
+2026-04-25 18:13:20,465 - diploma_verifier - INFO - Classification — is_diploma=False | confiance=0.16 | type=unknown | mots-clés=0/1 | layout=0.65
+2026-04-25 18:13:20,465 - diploma_verifier - INFO - Scoring final — score=100.0 | verdict=FALSIFIÉ | confiance=HIGH
+2026-04-25 18:13:20,466 - diploma_verifier - INFO - Analyse terminée — fichier=Capture d'écran 2025-10-20 160548.png | pays=Unknown | score=100.0 | verdict=FALSIFIÉ | durée=61ms | flags=[Aucun texte extrait par l'OCR, Aucun contour de signature détecté, Texte insuffisant pour l'analyse, Document probablement pas un diplôme (confiance=0.16)]
+2026-04-25 18:13:20,466 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_7aa77341b8404348bdbfeefbc0105046.png
+2026-04-25 18:15:34,693 - diploma_verifier - INFO - Service arrêté

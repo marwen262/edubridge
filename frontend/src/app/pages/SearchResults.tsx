@@ -1,17 +1,23 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Search, Grid, List, SlidersHorizontal } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { ProgramCard } from '../components/ProgramCard';
 import { EmptyState } from '../components/EmptyState';
 import { SkeletonCard } from '../components/SkeletonCard';
+import { Pagination } from '../components/Pagination';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Checkbox } from '../components/ui/checkbox';
 import { Slider } from '../components/ui/slider';
-import { fields, countries } from '../data/staticData';
+import { fields } from '../data/staticData';
 import { usePrograms } from '@/hooks/usePrograms';
 import type { ProgrammeFilters } from '@/types/api';
+
+// Taille de page côté serveur. Le filtrage local (tuition, multi-domaine,
+// multi-niveau) est appliqué après la pagination — quand de tels filtres sont
+// actifs, les pages peuvent contenir moins d'items que `PAGE_SIZE`.
+const PAGE_SIZE = 12;
 
 // Niveaux backend disponibles
 const niveauxBackend = ['cycle_preparatoire', 'licence', 'master', 'ingenieur'] as const;
@@ -37,9 +43,9 @@ export function SearchResults() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedFields, setSelectedFields] = React.useState<string[]>([]);
   const [selectedLevels, setSelectedLevels] = React.useState<string[]>([]);
-  const [selectedCountries, setSelectedCountries] = React.useState<string[]>([]);
   const [tuitionRange, setTuitionRange] = React.useState([0, 100000]);
   const [sortBy, setSortBy] = React.useState<SortOption>('relevance');
+  const [page, setPage] = React.useState(1);
 
   // --- Construction des filtres à envoyer au backend ---
   // Règle : toujours undefined (jamais string vide) pour les filtres non actifs.
@@ -54,9 +60,24 @@ export function SearchResults() {
       ? (selectedLevels[0] as ProgrammeFilters['niveau'])
       : undefined,
     titre: searchQuery.trim() || undefined,
-  }), [selectedFields, selectedLevels, searchQuery]);
+    page,
+    limit: PAGE_SIZE,
+  }), [selectedFields, selectedLevels, searchQuery, page]);
 
-  const { programs, loading, error, refetch } = usePrograms(filters);
+  const { programs, pagination, loading, error, refetch } = usePrograms(filters);
+
+  // Reset page à 1 dès que les filtres "métier" changent (hors page elle-même).
+  useEffect(() => {
+    setPage(1);
+  }, [selectedFields, selectedLevels, searchQuery]);
+
+  // Si la page courante dépasse `totalPages` (ex: filtres restreints),
+  // on revient à la première page.
+  useEffect(() => {
+    if (pagination && page > pagination.totalPages && pagination.totalPages > 0) {
+      setPage(1);
+    }
+  }, [pagination, page]);
 
   // --- Filtre tuition côté frontend (le backend n'expose pas ce filtre) ---
   const maxTuition = tuitionRange[1];
@@ -88,15 +109,8 @@ export function SearchResults() {
       result = result.filter((p) => selectedLevels.includes(p.niveau ?? ''));
     }
 
-    // Filtre pays côté frontend (le backend n'expose pas ce filtre)
-    if (selectedCountries.length > 0) {
-      result = result.filter((p) =>
-        selectedCountries.includes(p.institut?.adresse?.pays ?? '')
-      );
-    }
-
     return result;
-  }, [programs, minTuition, maxTuition, selectedCountries, selectedFields, selectedLevels]);
+  }, [programs, minTuition, maxTuition, selectedFields, selectedLevels]);
 
   // --- Tri côté frontend ---
   const sortedPrograms = useMemo(() => {
@@ -133,20 +147,23 @@ export function SearchResults() {
     );
   };
 
-  const toggleCountry = (country: string) => {
-    setSelectedCountries((prev) =>
-      prev.includes(country) ? prev.filter((c) => c !== country) : [...prev, country]
-    );
-  };
-
   const clearFilters = () => {
     setSelectedFields([]);
     setSelectedLevels([]);
-    setSelectedCountries([]);
     setTuitionRange([0, 100000]);
     setSearchQuery('');
     setSortBy('relevance');
+    setPage(1);
   };
+
+  // Indique si un filtre client-side est actif (tuition restreinte, multi-domaine,
+  // multi-niveau) — utile pour afficher un avertissement sur la pagination
+  // approximative. La pagination serveur ignore ces filtres.
+  const hasClientSideFilter =
+    minTuition > 0 ||
+    maxTuition < 100000 ||
+    selectedFields.length > 1 ||
+    selectedLevels.length > 1;
 
   return (
     <div className="min-h-screen bg-[var(--edu-surface)]">
@@ -266,27 +283,6 @@ export function SearchResults() {
 
               <div className="h-px bg-[var(--edu-divider)] my-6" />
 
-              {/* Pays */}
-              <div className="mb-6">
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Pays</h4>
-                <div className="space-y-3 max-h-[200px] overflow-y-auto">
-                  {countries.slice(0, 6).map((country) => (
-                    <div key={country} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`country-${country}`}
-                        checked={selectedCountries.includes(country)}
-                        onCheckedChange={() => toggleCountry(country)}
-                      />
-                      <label htmlFor={`country-${country}`} className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
-                        {country}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="h-px bg-[var(--edu-divider)] my-6" />
-
               {/* Frais d'inscription */}
               <div>
                 <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Frais d'inscription</h4>
@@ -314,14 +310,13 @@ export function SearchResults() {
             {!loading && !error && (
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
-                  {sortedPrograms.length} programme{sortedPrograms.length !== 1 ? 's' : ''} trouvé{sortedPrograms.length !== 1 ? 's' : ''}
+                  {pagination
+                    ? `${pagination.total} programme${pagination.total !== 1 ? 's' : ''}`
+                    : `${sortedPrograms.length} programme${sortedPrograms.length !== 1 ? 's' : ''} trouvé${sortedPrograms.length !== 1 ? 's' : ''}`}
                 </h2>
                 <p className="text-[var(--edu-text-secondary)]">
                   {selectedFields.length > 0 && (
                     <span>dans {selectedFields.join(', ')} </span>
-                  )}
-                  {selectedCountries.length > 0 && (
-                    <span>depuis {selectedCountries.join(', ')}</span>
                   )}
                 </p>
               </div>
@@ -368,27 +363,28 @@ export function SearchResults() {
               </div>
             )}
 
-            {/* Pagination (statique, à brancher en étape suivante) */}
-            {!loading && !error && sortedPrograms.length > 0 && (
-              <div className="flex items-center justify-center gap-2 mt-12">
-                <Button variant="outline" disabled className="rounded-full">
-                  Précédent
-                </Button>
-                {[1, 2, 3, 4, 5].map((page) => (
-                  <Button
-                    key={page}
-                    variant={page === 1 ? 'default' : 'outline'}
-                    className={`rounded-full w-10 h-10 p-0 ${
-                      page === 1 ? 'bg-[var(--edu-blue)] text-white' : ''
-                    }`}
-                  >
-                    {page}
-                  </Button>
-                ))}
-                <Button variant="outline" className="rounded-full">
-                  Suivant
-                </Button>
-              </div>
+            {/* Pagination serveur — branchée sur la meta backend */}
+            {!loading && !error && pagination && (
+              <>
+                <Pagination
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  onPageChange={(p) => {
+                    setPage(p);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  totalItems={pagination.total}
+                  itemLabel="programme"
+                  disabled={loading}
+                />
+                {hasClientSideFilter && pagination.totalPages > 1 && (
+                  <p className="text-xs text-[var(--edu-text-tertiary)] text-center mt-3 italic">
+                    Note : les filtres « frais » et les sélections multiples sont
+                    appliqués côté client — les pages peuvent contenir moins de
+                    résultats que prévu.
+                  </p>
+                )}
+              </>
             )}
           </main>
         </div>

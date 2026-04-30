@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 export function useFavoriStatus(programmeId: string) {
   const { favoris, loading, refetch } = useFavoris();
   const { toggle, loading: toggleLoading } = useToggleFavori();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const isFavori = favoris.some((f) => f.programme_id === programmeId);
 
@@ -16,6 +16,11 @@ export function useFavoriStatus(programmeId: string) {
     if (!isAuthenticated) {
       toast.error('Connectez-vous pour ajouter aux favoris');
       window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+    // L'API favoris est réservée aux candidats
+    if (user?.role !== 'candidat') {
+      toast.info('Les favoris sont réservés aux candidats.');
       return;
     }
     if (!programmeId) return;

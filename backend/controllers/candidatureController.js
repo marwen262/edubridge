@@ -1,6 +1,7 @@
 // controllers/candidatureController.js — Endpoints candidatures (couche mince → services/candidatureWorkflow)
 const { Candidature, Candidat, Programme, Institut } = require('../models');
 const workflow = require('../services/candidatureWorkflow');
+const { lirePagination, construirePaginationMeta } = require('../utils/pagination');
 
 // POST /api/candidatures — Crée un brouillon (candidat)
 exports.creerCandidature = async (req, res) => {
@@ -131,7 +132,7 @@ exports.getCandidaturesInstitut = async (req, res) => {
   }
 };
 
-// GET /api/candidatures — Toutes les candidatures (admin)
+// GET /api/candidatures — Toutes les candidatures (admin) + pagination
 exports.getAllCandidatures = async (req, res) => {
   try {
     const { statut, programme_id } = req.query;
@@ -139,15 +140,25 @@ exports.getAllCandidatures = async (req, res) => {
     if (statut) where.statut = statut;
     if (programme_id) where.programme_id = programme_id;
 
-    const candidatures = await Candidature.findAll({
+    const { page, limit, offset } = lirePagination(req.query);
+
+    // distinct: true pour ne pas sur-compter à cause des includes Candidat/Programme
+    const { rows: candidatures, count: total } = await Candidature.findAndCountAll({
       where,
       include: [
         { model: Candidat,  as: 'candidat',  attributes: ['id', 'prenom', 'nom'] },
         { model: Programme, as: 'programme', attributes: ['id', 'titre', 'institut_id'] },
       ],
       order: [['cree_le', 'DESC']],
+      limit,
+      offset,
+      distinct: true,
     });
-    return res.status(200).json({ candidatures });
+
+    return res.status(200).json({
+      candidatures,
+      pagination: construirePaginationMeta({ total, page, limit }),
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erreur serveur.', error: error.message });

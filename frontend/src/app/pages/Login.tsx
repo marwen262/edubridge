@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle, ShieldOff, Loader2, MailCheck } from 'lucide-react';
 import logoEduBridge from '@/assets/logo/logoedubridge.png';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,8 +8,16 @@ import { z } from 'zod';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { authService } from '@/services/api';
 
 const loginSchema = z.object({
   email: z
@@ -22,6 +30,15 @@ const loginSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
+
+const forgotSchema = z.object({
+  email: z
+    .string({ required_error: 'Email requis' })
+    .min(1, 'Email requis')
+    .email('Email invalide'),
+});
+
+type ForgotFormData = z.infer<typeof forgotSchema>;
 
 const roleToPath: Record<string, string> = {
   candidat: '/dashboard/candidate',
@@ -48,23 +65,66 @@ export function Login() {
     },
   });
 
+  const [loginError, setLoginError] = React.useState<{
+    code?: string;
+    message?: string;
+    reason?: string;
+  } | null>(null);
+
+  // Dialogue mot de passe oublié
+  const [forgotOpen, setForgotOpen] = React.useState(false);
+  const [forgotSent, setForgotSent] = React.useState<string | null>(null);
+
+  const forgotForm = useForm<ForgotFormData>({
+    resolver: zodResolver(forgotSchema),
+    defaultValues: { email: '' },
+  });
+
+  const onForgotSubmit = async (data: ForgotFormData) => {
+    try {
+      await authService.demanderResetPassword(data.email);
+      setForgotSent(data.email);
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      toast.error(apiErr.response?.data?.message ?? 'Erreur lors de la demande.');
+    }
+  };
+
+  const closeForgotDialog = () => {
+    setForgotOpen(false);
+    // Reset après l'animation de fermeture
+    setTimeout(() => {
+      setForgotSent(null);
+      forgotForm.reset();
+    }, 200);
+  };
+
   const onSubmit = async (data: LoginFormData) => {
+    setLoginError(null);
     try {
       await login(data.email, data.password);
-      // persisterAuth() a mis à jour localStorage de façon synchrone
       const stored = localStorage.getItem('auth_user');
       const savedUser = stored ? (JSON.parse(stored) as { role: string }) : null;
       const userRole = savedUser?.role;
 
-      // Redirection prioritaire vers la page d'origine si fournie en query param
-      if (redirectTo) {
+      if (redirectTo && userRole === 'candidat') {
         navigate(redirectTo);
         return;
       }
       navigate(roleToPath[userRole ?? ''] ?? '/');
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { message?: string } } };
-      toast.error(axiosError.response?.data?.message ?? 'Identifiants incorrects');
+      const axiosError = err as {
+        response?: { data?: { message?: string; code?: string; reason?: string } };
+      };
+      const code    = axiosError.response?.data?.code;
+      const message = axiosError.response?.data?.message;
+      const reason  = axiosError.response?.data?.reason;
+
+      if (code === 'FIRST_LOGIN_REQUIRED' || code === 'ACCOUNT_SUSPENDED') {
+        setLoginError({ code, message, reason });
+      } else {
+        toast.error(message ?? 'Identifiants incorrects');
+      }
     }
   };
 
@@ -88,6 +148,43 @@ export function Login() {
           <p className="text-[var(--edu-text-secondary)] text-center mb-8">
             Sign in to your account to continue
           </p>
+
+          {/* Bannières d'erreur login spéciales */}
+          {loginError?.code === 'FIRST_LOGIN_REQUIRED' && (
+            <div className="mb-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Compte non activé</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                  Votre compte établissement n'a pas encore été activé. Veuillez utiliser
+                  le lien d'invitation reçu par email pour définir votre mot de passe.
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  Si vous n'avez pas reçu l'email, contactez l'administrateur.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {loginError?.code === 'ACCOUNT_SUSPENDED' && (
+            <div className="mb-4 p-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 flex gap-3">
+              <ShieldOff className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-red-800 dark:text-red-200">Compte suspendu</p>
+                <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                  Votre compte établissement a été suspendu par l'administration.
+                </p>
+                {loginError.reason && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1 italic">
+                    Motif : {loginError.reason}
+                  </p>
+                )}
+                <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                  Contactez l'équipe EduBridge pour plus d'informations.
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
@@ -128,9 +225,13 @@ export function Login() {
             </div>
 
             <div className="flex items-center justify-end">
-              <a href="#" className="text-sm text-[var(--edu-blue)] hover:underline">
+              <button
+                type="button"
+                onClick={() => setForgotOpen(true)}
+                className="text-sm text-[var(--edu-blue)] hover:underline"
+              >
                 Forgot password?
-              </a>
+              </button>
             </div>
 
             <Button
@@ -156,6 +257,87 @@ export function Login() {
           </Link>
         </div>
       </div>
+
+      {/* Dialogue : mot de passe oublié */}
+      <Dialog open={forgotOpen} onOpenChange={(open) => (open ? setForgotOpen(true) : closeForgotDialog())}>
+        <DialogContent className="sm:max-w-md rounded-3xl">
+          {forgotSent ? (
+            <>
+              <DialogHeader>
+                <div className="w-14 h-14 rounded-full bg-[var(--edu-success)]/10 flex items-center justify-center mx-auto mb-2">
+                  <MailCheck className="w-7 h-7 text-[var(--edu-success)]" />
+                </div>
+                <DialogTitle className="text-center">Email envoyé</DialogTitle>
+                <DialogDescription className="text-center">
+                  Si un compte existe pour <span className="font-medium text-[var(--edu-text-primary)]">{forgotSent}</span>,
+                  vous recevrez un email avec un lien de réinitialisation valable 1 heure.
+                </DialogDescription>
+              </DialogHeader>
+              <p className="text-xs text-[var(--edu-text-tertiary)] text-center">
+                Pensez à vérifier vos spams si vous ne voyez rien arriver.
+              </p>
+              <Button
+                onClick={closeForgotDialog}
+                className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-11"
+              >
+                Fermer
+              </Button>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Mot de passe oublié</DialogTitle>
+                <DialogDescription>
+                  Saisissez l'adresse email associée à votre compte. Nous vous enverrons un lien
+                  de réinitialisation.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={forgotForm.handleSubmit(onForgotSubmit)} className="space-y-4">
+                <div>
+                  <Label htmlFor="forgot-email">Email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="your@email.com"
+                    {...forgotForm.register('email')}
+                    className="rounded-xl mt-1"
+                    autoFocus
+                  />
+                  {forgotForm.formState.errors.email && (
+                    <p className="text-xs text-[var(--edu-danger)] mt-1">
+                      {forgotForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={closeForgotDialog}
+                    className="flex-1 rounded-full h-11"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={forgotForm.formState.isSubmitting}
+                    className="flex-1 rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-11 disabled:opacity-60"
+                  >
+                    {forgotForm.formState.isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Envoi…
+                      </>
+                    ) : (
+                      'Envoyer le lien'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

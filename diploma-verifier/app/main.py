@@ -1,5 +1,5 @@
 """
-Point d'entrée du microservice Diploma Verifier.
+Point d'entrée du microservice Diploma Verifier v2.
 Initialise FastAPI, charge les modèles et configure les middlewares.
 """
 
@@ -21,7 +21,7 @@ from app.utils.logger import logger
 async def lifespan(app: FastAPI):
     """Événements de démarrage et d'arrêt du service."""
     # --- Startup ---
-    logger.info("Démarrage du service Diploma Verifier...")
+    logger.info("Démarrage du service Diploma Verifier v2...")
 
     # Créer le dossier de logs
     os.makedirs(LOG_DIR, exist_ok=True)
@@ -58,11 +58,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Diploma Verifier API",
     description=(
-        "Microservice universel de vérification d'authenticité "
-        "des diplômes — tous pays. Scoring inversé : "
-        "0 = authentique, 100 = falsifié."
+        "Microservice de vérification d'authenticité "
+        "des diplômes — approche probabiliste par règles. "
+        "Retourne : {score, confidence_level, reasons}."
     ),
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -94,6 +94,6 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     return JSONResponse(
         status_code=500,
         content={
-            "detail": "Erreur interne du serveur. Consultez les logs pour plus de détails."
+            "detail": "Erreur interne du serveur."
         },
     )

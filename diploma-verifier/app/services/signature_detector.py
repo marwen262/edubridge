@@ -1,7 +1,10 @@
 """
 Détection de signature manuscrite dans un document.
+
 Analyse la zone inférieure (30 %) et cherche des contours
 complexes et irréguliers typiques d'une signature.
+
+Retourne une confiance (0.0–1.0), jamais un booléen brut.
 """
 
 from __future__ import annotations
@@ -18,62 +21,68 @@ from app.utils.logger import logger
 @dataclass
 class SignatureResult:
     """Résultat de la détection de signature."""
-    signature_detected: bool = False
+
     confidence: float = 0.0
     location: dict[str, int] | None = None
     flags: list[str] = field(default_factory=list)
 
 
-def _extract_bottom_region(image: NDArray[np.uint8], ratio: float = 0.30) -> tuple[NDArray[np.uint8], int]:
-    """Extrait la zone inférieure de l'image (par défaut 30 %).
+def _extract_zone(
+    image: NDArray[np.uint8],
+    top_ratio: float = 0.70,
+    bottom_ratio: float = 1.0,
+) -> tuple[NDArray[np.uint8], int]:
+    """Extrait une bande horizontale de l'image.
 
-    Retourne la zone recadrée et l'offset Y pour recalculer les coordonnées.
+    Retourne (zone, offset_y).
     """
-    h: int = image.shape[0]
-    y_start: int = int(h * (1.0 - ratio))
-    return image[y_start:, :], y_start
+    h = image.shape[0]
+    y_start = int(h * top_ratio)
+    y_end = int(h * bottom_ratio)
+    return image[y_start:y_end, :], y_start
 
 
-def _analyze_contours(binary: NDArray[np.uint8]) -> list[tuple[NDArray, cv2.typing.Rect]]:
-    """Trouve et filtre les contours qui pourraient être des signatures.
+def _analyze_contours(
+    binary: NDArray[np.uint8],
+) -> list[tuple[NDArray, tuple[int, int, int, int]]]:
+    """Trouve et filtre les contours pouvant être des signatures.
 
-    Critères : complexité suffisante, taille raisonnable, ratio d'aspect typique.
+    Critères : complexité, taille, ratio d'aspect, compacité.
     """
     contours, _ = cv2.findContours(
-        binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE,
     )
 
-    candidates: list[tuple[NDArray, cv2.typing.Rect]] = []
+    candidates: list[tuple[NDArray, tuple[int, int, int, int]]] = []
 
     for contour in contours:
-        # Nombre de points du contour (complexité)
-        num_points: int = len(contour)
-        if num_points < 30:
+        num_points = len(contour)
+        if num_points < 25:
             continue
 
         x, y, w, h = cv2.boundingRect(contour)
-        area: float = cv2.contourArea(contour)
+        area = cv2.contourArea(contour)
 
-        # Filtrer par taille
-        if w < 40 or h < 15:
+        # Taille minimale
+        if w < 35 or h < 12:
             continue
-        if w > binary.shape[1] * 0.8:
-            continue
-
-        # Ratio d'aspect : une signature est généralement plus large que haute
-        aspect_ratio: float = w / max(h, 1)
-        if aspect_ratio < 1.2 or aspect_ratio > 12.0:
+        # Pas trop large (tout l'image)
+        if w > binary.shape[1] * 0.80:
             continue
 
-        # Vérifier que le contour est assez complexe (pas un simple rectangle)
-        perimeter: float = cv2.arcLength(contour, True)
-        if perimeter < 100:
+        # Ratio d'aspect : signature = plus large que haute
+        aspect = w / max(h, 1)
+        if aspect < 1.0 or aspect > 14.0:
             continue
 
-        # Compacité (forme irrégulière = faible compacité)
-        compactness: float = (4 * np.pi * area) / max(perimeter ** 2, 1)
-        if compactness > 0.5:
-            # Trop régulier pour être une signature
+        # Périmètre minimal
+        perimeter = cv2.arcLength(contour, True)
+        if perimeter < 80:
+            continue
+
+        # Compacité : forme irrégulière = faible compacité
+        compactness = (4 * np.pi * area) / max(perimeter ** 2, 1)
+        if compactness > 0.55:
             continue
 
         candidates.append((contour, (x, y, w, h)))
@@ -81,94 +90,94 @@ def _analyze_contours(binary: NDArray[np.uint8]) -> list[tuple[NDArray, cv2.typi
     return candidates
 
 
-def _compute_ink_density(binary: NDArray[np.uint8], x: int, y: int, w: int, h: int) -> float:
-    """Calcule la densité d'encre (pixels noirs) dans une zone donnée."""
-    roi = binary[y:y + h, x:x + w]
+def _compute_ink_density(
+    binary: NDArray[np.uint8], x: int, y: int, w: int, h: int,
+) -> float:
+    """Densité d'encre (pixels noirs) dans une ROI."""
+    roi = binary[y : y + h, x : x + w]
     if roi.size == 0:
         return 0.0
-    # Pixels noirs (0) dans une image binarisée inversée, ou blancs si inversée
-    black_pixels: int = int(np.sum(roi == 0))
-    density: float = black_pixels / roi.size
-    return density
+    return float(np.sum(roi == 0)) / roi.size
 
 
 def detect_signature(image: NDArray[np.uint8]) -> SignatureResult:
-    """Détecte la présence d'une signature dans la zone inférieure du document.
+    """Détecte la présence d'une signature dans la zone inférieure.
 
-    Utilise la détection de contours, le filtrage par complexité et taille,
-    et l'analyse de densité d'encre.
+    Retourne un SignatureResult avec une confiance continue (0.0–1.0).
     """
     result = SignatureResult()
 
     try:
-        # Convertir en niveaux de gris si nécessaire
+        # Niveaux de gris
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image.copy()
 
-        # Extraire la zone inférieure (30 %)
-        bottom_region, y_offset = _extract_bottom_region(gray, ratio=0.30)
+        # Zone inférieure (30 %)
+        bottom, y_offset = _extract_zone(gray, top_ratio=0.70)
 
-        if bottom_region.size == 0:
+        if bottom.size == 0:
             result.flags.append("Zone inférieure vide")
             return result
 
-        # Binarisation
+        # Binarisation Otsu inversée
         _, binary = cv2.threshold(
-            bottom_region, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+            bottom, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
         )
 
-        # Détection et filtrage des contours
+        # Nettoyage morphologique léger
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+        # Détection de contours candidats
         candidates = _analyze_contours(binary)
 
         if not candidates:
-            result.flags.append("Aucun contour de signature détecté")
+            # Aucun candidat → confiance nulle
             return result
 
-        # Sélectionner le meilleur candidat (le plus complexe)
-        best_candidate = max(candidates, key=lambda c: len(c[0]))
-        contour, (x, y, w, h) = best_candidate
+        # Meilleur candidat = le plus complexe
+        best = max(candidates, key=lambda c: len(c[0]))
+        contour, (x, y, w, h) = best
 
-        # Calculer la densité d'encre
-        ink_density = _compute_ink_density(binary, x, y, w, h)
+        # Densité d'encre
+        ink = _compute_ink_density(binary, x, y, w, h)
 
-        # Calculer la confiance basée sur plusieurs critères
-        complexity_score: float = min(1.0, len(contour) / 200.0)
-        density_score: float = min(1.0, ink_density * 5.0)
-        size_score: float = min(1.0, (w * h) / (bottom_region.shape[0] * bottom_region.shape[1] * 0.05))
+        # Sous-scores
+        complexity = min(1.0, len(contour) / 200.0)
+        density_score = min(1.0, ink * 5.0)
+        size_score = min(
+            1.0,
+            (w * h) / max(bottom.shape[0] * bottom.shape[1] * 0.05, 1),
+        )
 
-        confidence: float = (
-            complexity_score * 0.5
-            + density_score * 0.3
-            + size_score * 0.2
+        # Confiance pondérée
+        confidence = (
+            complexity * 0.50
+            + density_score * 0.30
+            + size_score * 0.20
         )
         confidence = min(1.0, max(0.0, confidence))
 
-        # Seuil de détection
-        if confidence > 0.3:
-            result.signature_detected = True
-            result.confidence = round(confidence, 2)
+        result.confidence = round(confidence, 2)
+        if confidence > 0.25:
             result.location = {
                 "x": int(x),
                 "y": int(y + y_offset),
                 "w": int(w),
                 "h": int(h),
             }
-        else:
-            result.flags.append(
-                f"Candidat signature trouvé mais confiance trop basse : {confidence:.2f}"
-            )
 
         logger.info(
-            "Détection signature — détectée=%s | confiance=%.2f | candidats=%d",
-            result.signature_detected,
+            "Signature — confiance=%.2f | candidats=%d | encre=%.3f",
             result.confidence,
             len(candidates),
+            ink,
         )
 
     except Exception as e:
-        logger.error("Erreur lors de la détection de signature : %s", e)
-        result.flags.append(f"Erreur détection signature : {str(e)}")
+        logger.error("Erreur détection signature : %s", e)
+        result.flags.append("Erreur détection signature")
 
     return result

@@ -11,7 +11,8 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true,
     },
-    nom: { type: DataTypes.STRING, allowNull: false },
+    // Nullable : rempli lors du first login si non fourni à l'invitation
+    nom: { type: DataTypes.STRING, allowNull: true },
     sigle: { type: DataTypes.STRING, allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: true },
     site_web: { type: DataTypes.STRING, allowNull: true },
@@ -27,6 +28,22 @@ module.exports = (sequelize, DataTypes) => {
     image_couverture: { type: DataTypes.STRING, allowNull: true },
     taux_acceptation: { type: DataTypes.FLOAT, allowNull: true },
     nombre_etudiants: { type: DataTypes.INTEGER, allowNull: true },
+
+    // Statut de validation dans le workflow SaaS
+    validation_status: {
+      type: DataTypes.ENUM(
+        'invited',            // invitation envoyée, first login non effectué
+        'pending_admin_review', // first login terminé, en attente de validation admin
+        'approved',           // validé et visible dans le catalogue
+        'rejected',           // rejeté par l'admin (peut corriger et resoumettre)
+        'suspended'           // suspendu par l'admin (retiré du catalogue)
+      ),
+      allowNull: false,
+      defaultValue: 'invited',
+    },
+    suspension_reason: { type: DataTypes.TEXT, allowNull: true },
+    suspended_at: { type: DataTypes.DATE, allowNull: true },
+    suspended_by: { type: DataTypes.UUID, allowNull: true },
   }, {
     tableName: 'instituts',
     timestamps: true,

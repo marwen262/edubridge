@@ -14,7 +14,7 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const utilisateur = await Utilisateur.findByPk(decoded.id, {
-      attributes: ['id', 'role', 'est_actif'],
+      attributes: ['id', 'role', 'est_actif', 'first_login_completed'],
     });
     if (!utilisateur) {
       return res.status(401).json({ message: 'Utilisateur introuvable.' });
@@ -30,13 +30,23 @@ const authMiddleware = async (req, res, next) => {
       candidat_id: null,
     };
 
-    // Résolution du profil selon le rôle (requête ciblée)
     if (utilisateur.role === 'institut') {
       const institut = await Institut.findOne({
         where: { utilisateur_id: utilisateur.id },
-        attributes: ['id'],
+        attributes: ['id', 'validation_status', 'suspension_reason'],
       });
-      user.institut_id = institut ? institut.id : null;
+
+      if (institut) {
+        // Bloquer l'accès aux instituts suspendus sur toutes les routes protégées
+        if (institut.validation_status === 'suspended') {
+          return res.status(403).json({
+            message: 'Votre compte a été suspendu par l\'administration.',
+            code: 'ACCOUNT_SUSPENDED',
+            reason: institut.suspension_reason || null,
+          });
+        }
+        user.institut_id = institut.id;
+      }
     } else if (utilisateur.role === 'candidat') {
       const candidat = await Candidat.findOne({
         where: { utilisateur_id: utilisateur.id },
@@ -70,6 +80,28 @@ const restrictTo = (...roles) => (req, res, next) => {
   next();
 };
 
+// optionalAuth — populate req.user if a valid token is present, continue silently otherwise.
+// Used on public routes that need role-awareness (ex: GET /api/instituts avec admin_view).
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return next();
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const utilisateur = await Utilisateur.findByPk(decoded.id, {
+      attributes: ['id', 'role', 'est_actif'],
+    });
+    if (utilisateur && utilisateur.est_actif) {
+      req.user = { id: utilisateur.id, role: utilisateur.role };
+    }
+  } catch {
+    // token invalide ou expiré → on continue comme visiteur anonyme
+  }
+  next();
+};
+
 module.exports = authMiddleware;
 module.exports.isAdmin = isAdmin;
 module.exports.restrictTo = restrictTo;
+module.exports.optionalAuth = optionalAuth;

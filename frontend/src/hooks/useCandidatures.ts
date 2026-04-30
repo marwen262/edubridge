@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { candidatureService } from '@/services/api';
-import type { Candidature, CandidatureFilters } from '@/types/api';
+import type { Candidature, CandidatureFilters, Pagination } from '@/types/api';
+
+// Cf. usePrograms / useInstituts.
+const DEFAULT_LIMIT = 100;
 
 export function useCandidatures() {
   const [candidatures, setCandidatures] = useState<Candidature[]>([]);
@@ -70,16 +73,22 @@ export function useInstitutCandidatures() {
   return { candidatures, loading, error, refetch };
 }
 
-// Pour admin uniquement
+// Pour admin uniquement — expose `pagination` (cf. backend utils/pagination.js)
 export function useAllCandidatures(filters?: CandidatureFilters) {
   const [candidatures, setCandidatures] = useState<Candidature[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
 
-  const filtersKey = JSON.stringify(filters);
+  const effectiveFilters = useMemo<CandidatureFilters>(
+    () => ({ ...filters, limit: filters?.limit ?? DEFAULT_LIMIT }),
+    [filters],
+  );
+
+  const filtersKey = JSON.stringify(effectiveFilters);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,9 +96,12 @@ export function useAllCandidatures(filters?: CandidatureFilters) {
     setError(null);
 
     candidatureService
-      .getAll(filters)
+      .getAll(effectiveFilters)
       .then(({ data }) => {
-        if (!cancelled) setCandidatures((data as { candidatures: Candidature[] }).candidatures ?? []);
+        if (cancelled) return;
+        const payload = data as { candidatures?: Candidature[]; pagination?: Pagination };
+        setCandidatures(payload.candidatures ?? []);
+        setPagination(payload.pagination ?? null);
       })
       .catch((err) => {
         if (!cancelled)
@@ -105,5 +117,5 @@ export function useAllCandidatures(filters?: CandidatureFilters) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, fetchKey]);
 
-  return { candidatures, loading, error, refetch };
+  return { candidatures, pagination, loading, error, refetch };
 }

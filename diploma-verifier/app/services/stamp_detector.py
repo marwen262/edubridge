@@ -1,7 +1,12 @@
 """
 Détection de cachet officiel (tampon) dans un document.
-Cherche les formes circulaires / ovales et les zones de couleur
-caractéristiques (bleu, rouge, noir, violet).
+
+Combine :
+  - Détection de cercles (Hough Circle Transform) → fonctionne en N&B
+  - Analyse de couleur HSV (bleu, rouge, violet, noir)
+  - Détection d'ellipses par contours
+
+Retourne une confiance continue (0.0–1.0), jamais un booléen brut.
 """
 
 from __future__ import annotations
@@ -18,36 +23,49 @@ from app.utils.logger import logger
 @dataclass
 class StampResult:
     """Résultat de la détection de cachet."""
-    stamp_detected: bool = False
+
     confidence: float = 0.0
     stamp_color: str = "inconnu"
     location: dict[str, int] | None = None
     flags: list[str] = field(default_factory=list)
 
 
+# ──────────────────────────────────────────────
 # Plages HSV pour les couleurs d'encre courantes
+# ──────────────────────────────────────────────
 INK_COLORS: dict[str, list[tuple[NDArray[np.uint8], NDArray[np.uint8]]]] = {
     "bleu": [
-        (np.array([100, 50, 50], dtype=np.uint8), np.array([130, 255, 255], dtype=np.uint8)),
+        (np.array([100, 50, 50], dtype=np.uint8),
+         np.array([130, 255, 255], dtype=np.uint8)),
     ],
     "rouge": [
-        (np.array([0, 70, 50], dtype=np.uint8), np.array([10, 255, 255], dtype=np.uint8)),
-        (np.array([170, 70, 50], dtype=np.uint8), np.array([180, 255, 255], dtype=np.uint8)),
+        (np.array([0, 70, 50], dtype=np.uint8),
+         np.array([10, 255, 255], dtype=np.uint8)),
+        (np.array([170, 70, 50], dtype=np.uint8),
+         np.array([180, 255, 255], dtype=np.uint8)),
     ],
     "violet": [
-        (np.array([130, 50, 50], dtype=np.uint8), np.array([160, 255, 255], dtype=np.uint8)),
+        (np.array([130, 50, 50], dtype=np.uint8),
+         np.array([160, 255, 255], dtype=np.uint8)),
     ],
     "noir": [
-        (np.array([0, 0, 0], dtype=np.uint8), np.array([180, 50, 80], dtype=np.uint8)),
+        (np.array([0, 0, 0], dtype=np.uint8),
+         np.array([180, 50, 80], dtype=np.uint8)),
     ],
 }
 
 
-def _detect_colored_regions(hsv: NDArray[np.uint8]) -> tuple[NDArray[np.uint8], str]:
-    """Crée un masque combiné pour les couleurs d'encre et retourne la couleur dominante."""
-    best_color: str = "inconnu"
-    best_pixel_count: int = 0
-    combined_mask: NDArray[np.uint8] = np.zeros(hsv.shape[:2], dtype=np.uint8)
+# ──────────────────────────────────────────────
+# Détection par couleur (HSV)
+# ──────────────────────────────────────────────
+
+def _detect_colored_regions(
+    hsv: NDArray[np.uint8],
+) -> tuple[NDArray[np.uint8], str]:
+    """Masque combiné des couleurs d'encre + couleur dominante."""
+    best_color = "inconnu"
+    best_count = 0
+    combined = np.zeros(hsv.shape[:2], dtype=np.uint8)
 
     for color_name, ranges in INK_COLORS.items():
         color_mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
@@ -55,30 +73,30 @@ def _detect_colored_regions(hsv: NDArray[np.uint8]) -> tuple[NDArray[np.uint8], 
             mask = cv2.inRange(hsv, lower, upper)
             color_mask = cv2.bitwise_or(color_mask, mask)
 
-        pixel_count: int = int(cv2.countNonZero(color_mask))
-        if pixel_count > best_pixel_count:
-            best_pixel_count = pixel_count
+        count = int(cv2.countNonZero(color_mask))
+        if count > best_count:
+            best_count = count
             best_color = color_name
 
-        combined_mask = cv2.bitwise_or(combined_mask, color_mask)
+        combined = cv2.bitwise_or(combined, color_mask)
 
-    return combined_mask, best_color
+    return combined, best_color
 
 
-def _find_circles(
+# ──────────────────────────────────────────────
+# Détection de cercles (Hough) — fonctionne en N&B
+# ──────────────────────────────────────────────
+
+def _find_circles_hough(
     gray: NDArray[np.uint8],
-    color_mask: NDArray[np.uint8],
-) -> list[tuple[int, int, int, float]]:
-    """Détecte les cercles via HoughCircles et analyse de masque couleur.
+) -> list[tuple[int, int, int]]:
+    """Détecte les cercles via HoughCircles.
 
-    Retourne une liste de (x, y, rayon, score_couleur).
+    Retourne [(cx, cy, radius), …].
     """
-    circles_found: list[tuple[int, int, int, float]] = []
-
-    # Flou pour réduire le bruit avant HoughCircles
     blurred = cv2.GaussianBlur(gray, (9, 9), 2)
+    max_radius = min(gray.shape[0], gray.shape[1]) // 4
 
-    # Détection de cercles avec Hough
     circles = cv2.HoughCircles(
         blurred,
         cv2.HOUGH_GRADIENT,
@@ -87,145 +105,226 @@ def _find_circles(
         param1=100,
         param2=40,
         minRadius=20,
-        maxRadius=min(gray.shape[0], gray.shape[1]) // 4,
+        maxRadius=max_radius,
     )
 
+    results: list[tuple[int, int, int]] = []
     if circles is not None:
-        circles_arr = np.uint16(np.around(circles))
-        for circle in circles_arr[0, :]:
-            cx, cy, radius = int(circle[0]), int(circle[1]), int(circle[2])
+        rounded = np.uint16(np.around(circles))
+        for c in rounded[0, :]:
+            results.append((int(c[0]), int(c[1]), int(c[2])))
 
-            # Vérifier la densité de couleur dans la zone circulaire
-            mask_circle = np.zeros(gray.shape[:2], dtype=np.uint8)
-            cv2.circle(mask_circle, (cx, cy), radius, 255, -1)
-            color_in_circle = cv2.bitwise_and(color_mask, color_mask, mask=mask_circle)
-            circle_area: float = np.pi * radius * radius
-            colored_pixels: int = int(cv2.countNonZero(color_in_circle))
-            color_score: float = colored_pixels / max(circle_area, 1)
-
-            circles_found.append((cx, cy, radius, color_score))
-
-    return circles_found
+    return results
 
 
-def _find_ellipses(binary: NDArray[np.uint8]) -> list[tuple[int, int, int, int, float]]:
-    """Détecte les contours elliptiques qui pourraient être des cachets.
+# ──────────────────────────────────────────────
+# Détection d'ellipses par contours
+# ──────────────────────────────────────────────
 
-    Retourne une liste de (x, y, major_axis, minor_axis, angle).
+def _find_ellipses(
+    binary: NDArray[np.uint8],
+) -> list[tuple[int, int, int, int, float]]:
+    """Détecte les contours elliptiques potentiellement des cachets.
+
+    Retourne [(cx, cy, r_major, r_minor, angle), …].
     """
-    ellipses_found: list[tuple[int, int, int, int, float]] = []
+    contours, _ = cv2.findContours(
+        binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE,
+    )
 
-    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    results: list[tuple[int, int, int, int, float]] = []
 
     for contour in contours:
         if len(contour) < 5:
             continue
 
-        # Ajuster une ellipse
         try:
             (cx, cy), (ma, MA), angle = cv2.fitEllipse(contour)
         except cv2.error:
             continue
 
-        # Vérifier que c'est approximativement circulaire (ratio des axes)
         if ma < 40 or MA < 40:
             continue
-        axis_ratio: float = min(ma, MA) / max(ma, MA)
-        if axis_ratio < 0.5:
+
+        # Ratio des axes → quasi-circulaire
+        axis_ratio = min(ma, MA) / max(ma, MA)
+        if axis_ratio < 0.45:
             continue
 
-        # Vérifier que le contour est assez circulaire
-        area: float = cv2.contourArea(contour)
-        ellipse_area: float = np.pi * (ma / 2) * (MA / 2)
+        # Remplissage
+        area = cv2.contourArea(contour)
+        ellipse_area = np.pi * (ma / 2) * (MA / 2)
         if ellipse_area == 0:
             continue
-        fill_ratio: float = area / ellipse_area
-        if fill_ratio < 0.3:
+        fill = area / ellipse_area
+        if fill < 0.25:
             continue
 
-        ellipses_found.append((int(cx), int(cy), int(MA / 2), int(ma / 2), angle))
+        results.append((int(cx), int(cy), int(MA / 2), int(ma / 2), angle))
 
-    return ellipses_found
+    return results
 
+
+# ──────────────────────────────────────────────
+# Détection de cercles par contours (fallback N&B)
+# ──────────────────────────────────────────────
+
+def _find_circular_contours(
+    gray: NDArray[np.uint8],
+) -> list[tuple[int, int, int, float]]:
+    """Détecte les contours circulaires dans une image en niveaux de gris.
+
+    Complément de Hough pour les scans N&B à faible contraste.
+    Retourne [(cx, cy, radius, circularity), …].
+    """
+    # Binarisation adaptative
+    binary = cv2.adaptiveThreshold(
+        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV, blockSize=15, C=8,
+    )
+
+    # Nettoyage
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    contours, _ = cv2.findContours(
+        binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE,
+    )
+
+    results: list[tuple[int, int, int, float]] = []
+
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area < 800:
+            continue
+
+        perimeter = cv2.arcLength(contour, True)
+        if perimeter == 0:
+            continue
+
+        circularity = 4 * np.pi * area / (perimeter * perimeter)
+
+        # Un cercle parfait a circularity = 1.0
+        if circularity < 0.55:
+            continue
+
+        (cx, cy), radius = cv2.minEnclosingCircle(contour)
+        radius = int(radius)
+        if radius < 20:
+            continue
+
+        results.append((int(cx), int(cy), radius, float(circularity)))
+
+    return results
+
+
+# ──────────────────────────────────────────────
+# Pipeline principal
+# ──────────────────────────────────────────────
 
 def detect_stamp(image: NDArray[np.uint8]) -> StampResult:
-    """Détecte la présence d'un cachet officiel dans le document.
+    """Détecte la présence d'un cachet officiel.
 
-    Combine la détection de cercles (Hough), l'analyse de couleur HSV
-    et la détection de contours elliptiques.
+    Combine trois approches :
+      1. Hough Circle Transform (fonctionne en N&B)
+      2. Couleur HSV + ellipses par contour
+      3. Contours circulaires (fallback N&B)
+
+    Retourne une confiance continue (0.0–1.0).
     """
     result = StampResult()
 
     try:
-        # S'assurer que l'image est en couleur
-        if len(image.shape) == 2:
-            result.flags.append("Image en niveaux de gris — détection couleur limitée")
-            # Convertir en BGR factice pour continuer
-            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        is_grayscale = len(image.shape) == 2
 
-        # Conversion HSV
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        if is_grayscale:
+            gray = image.copy()
+            bgr = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        else:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            bgr = image
 
-        # Étape 1 : détecter les régions colorées
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+
+        # ── Approche 1 : Hough circles (shape-based, N&B friendly) ──
+        hough_circles = _find_circles_hough(gray)
+
+        # ── Approche 2 : Couleur + ellipses ──
         color_mask, dominant_color = _detect_colored_regions(hsv)
 
-        # Filtrage morphologique pour nettoyer le masque
+        # Nettoyage morphologique du masque couleur
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
         color_mask = cv2.dilate(color_mask, kernel, iterations=1)
         color_mask = cv2.erode(color_mask, kernel, iterations=1)
 
-        # Étape 2 : détecter les cercles
-        circles = _find_circles(gray, color_mask)
-
-        # Étape 3 : détecter les ellipses dans le masque couleur
         _, binary_color = cv2.threshold(color_mask, 127, 255, cv2.THRESH_BINARY)
         ellipses = _find_ellipses(binary_color)
 
-        # Évaluer les résultats
+        # ── Approche 3 : Contours circulaires (fallback N&B) ──
+        circular_contours = _find_circular_contours(gray)
+
+        # ── Évaluation combinée ──
         best_confidence: float = 0.0
         best_location: dict[str, int] | None = None
 
-        # Analyser les cercles détectés
-        for cx, cy, radius, color_score in circles:
-            # Score basé sur la couleur et la taille
-            size_score: float = min(1.0, radius / 80.0)
-            confidence: float = color_score * 0.6 + size_score * 0.4
-            if confidence > best_confidence:
-                best_confidence = confidence
+        # Score Hough circles
+        for cx, cy, radius in hough_circles:
+            # Vérifier couleur dans le cercle
+            mask_circle = np.zeros(gray.shape[:2], dtype=np.uint8)
+            cv2.circle(mask_circle, (cx, cy), radius, 255, -1)
+            color_in_circle = cv2.bitwise_and(
+                color_mask, color_mask, mask=mask_circle,
+            )
+            circle_area = max(np.pi * radius * radius, 1)
+            colored_px = int(cv2.countNonZero(color_in_circle))
+            color_score = colored_px / circle_area
+
+            size_score = min(1.0, radius / 80.0)
+
+            # Confiance : shape (Hough) + couleur + taille
+            conf = 0.35 + color_score * 0.35 + size_score * 0.30
+            if conf > best_confidence:
+                best_confidence = conf
                 best_location = {"x": cx, "y": cy, "radius": radius}
 
-        # Analyser les ellipses détectées
+        # Score ellipses
         for cx, cy, r1, r2, _ in ellipses:
-            avg_radius: int = (r1 + r2) // 2
-            size_score = min(1.0, avg_radius / 80.0)
-            # Les ellipses colorées sont un bon indice
-            confidence = 0.5 + size_score * 0.3
-            if confidence > best_confidence:
-                best_confidence = confidence
-                best_location = {"x": cx, "y": cy, "radius": avg_radius}
+            avg_r = (r1 + r2) // 2
+            size_score = min(1.0, avg_r / 80.0)
+            conf = 0.40 + size_score * 0.35
+            if conf > best_confidence:
+                best_confidence = conf
+                best_location = {"x": cx, "y": cy, "radius": avg_r}
 
-        # Seuil de détection
-        if best_confidence > 0.25 and best_location is not None:
-            result.stamp_detected = True
-            result.confidence = round(min(1.0, best_confidence), 2)
-            result.stamp_color = dominant_color
-            result.location = best_location
-        else:
-            result.flags.append("Aucun cachet circulaire/ovale détecté")
+        # Score contours circulaires (fallback)
+        for cx, cy, radius, circularity in circular_contours:
+            size_score = min(1.0, radius / 80.0)
+            # circularity bonus
+            conf = circularity * 0.40 + size_score * 0.30 + 0.10
+            if conf > best_confidence:
+                best_confidence = conf
+                best_location = {"x": cx, "y": cy, "radius": radius}
+
+        # Finaliser
+        result.confidence = round(min(1.0, best_confidence), 2)
+        result.stamp_color = dominant_color if best_confidence > 0.20 else "inconnu"
+        result.location = best_location if best_confidence > 0.20 else None
+
+        if is_grayscale and best_confidence > 0.0:
+            result.stamp_color = "noir"
 
         logger.info(
-            "Détection cachet — détecté=%s | confiance=%.2f | couleur=%s "
-            "| cercles=%d | ellipses=%d",
-            result.stamp_detected,
+            "Cachet — confiance=%.2f | couleur=%s | "
+            "hough=%d | ellipses=%d | contours=%d",
             result.confidence,
             result.stamp_color,
-            len(circles),
+            len(hough_circles),
             len(ellipses),
+            len(circular_contours),
         )
 
     except Exception as e:
-        logger.error("Erreur lors de la détection de cachet : %s", e)
-        result.flags.append(f"Erreur détection cachet : {str(e)}")
+        logger.error("Erreur détection cachet : %s", e)
+        result.flags.append("Erreur détection cachet")
 
     return result

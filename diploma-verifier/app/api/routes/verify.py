@@ -1,6 +1,11 @@
 """
 Routes de l'API de vérification de diplômes.
-Endpoints : /api/verify, /api/health, /api/info, /api/supported-countries.
+
+Endpoints :
+  POST /api/verify   → {score, confidence_level, reasons}
+  GET  /api/health
+  GET  /api/info
+  GET  /api/supported-countries
 """
 
 from __future__ import annotations
@@ -32,15 +37,14 @@ async def verify_diploma(
         description="Indice optionnel du pays d'origine",
     ),
 ) -> VerifyResponse:
-    """Analyse un diplôme et retourne un rapport d'authenticité complet.
+    """Analyse un diplôme et retourne un rapport concis.
 
     Accepte un fichier PDF, JPEG ou PNG (max 10 Mo).
-    Le scoring est inversé : 0 = authentique, 100 = falsifié.
+    Retourne uniquement : score, confidence_level, reasons.
     """
     temp_path: str | None = None
 
     try:
-        # Lire le contenu du fichier
         content: bytes = await file.read()
         filename: str = file.filename or "unknown"
 
@@ -68,11 +72,10 @@ async def verify_diploma(
         logger.error("Erreur inattendue : %s", e)
         raise HTTPException(
             status_code=500,
-            detail=f"Erreur interne lors de l'analyse : {str(e)}",
+            detail="Erreur interne lors de l'analyse.",
         )
 
     finally:
-        # Nettoyage du fichier temporaire
         if temp_path:
             cleanup_temp_file(temp_path)
 
@@ -83,14 +86,12 @@ async def health_check() -> HealthResponse:
     tesseract_ok: bool = False
     spacy_ok: bool = False
 
-    # Vérifier Tesseract
     try:
         tesseract_path = shutil.which("tesseract")
         tesseract_ok = tesseract_path is not None
     except Exception:
         pass
 
-    # Vérifier les modèles spaCy
     try:
         from app.services.ocr_service import _spacy_fr, _spacy_xx
         spacy_ok = _spacy_fr is not None and _spacy_xx is not None
@@ -99,7 +100,7 @@ async def health_check() -> HealthResponse:
 
     return HealthResponse(
         status="ok" if (tesseract_ok and spacy_ok) else "degraded",
-        version="1.0.0",
+        version="2.0.0",
         tesseract_available=tesseract_ok,
         spacy_models_loaded=spacy_ok,
     )

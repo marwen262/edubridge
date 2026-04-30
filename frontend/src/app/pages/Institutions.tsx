@@ -5,9 +5,14 @@ import { Footer } from '../components/Footer';
 import { SkeletonCard } from '../components/SkeletonCard';
 import { EmptyState } from '../components/EmptyState';
 import { InstitutCard } from '../components/InstitutCard';
+import { Pagination } from '../components/Pagination';
 import { useInstituts } from '@/hooks/useInstituts';
 import { usePrograms } from '@/hooks/usePrograms';
-import type { Institut } from '@/types/api';
+import type { Institut, InstitutFilters } from '@/types/api';
+
+// Taille de page côté serveur. Le filtrage local (recherche par nom, tri par
+// note ou nb de programmes) s'applique sur la page courante uniquement.
+const PAGE_SIZE = 12;
 
 // ── Types ────────────────────────────────────────────────────
 type FilterKey = 'all' | 'verified' | 'top_rated' | 'most_programs';
@@ -23,15 +28,33 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 export function Institutions() {
   const [searchQuery,  setSearchQuery]  = React.useState('');
   const [activeFilter, setActiveFilter] = React.useState<FilterKey>('all');
+  const [page, setPage] = React.useState(1);
 
-  const { instituts, loading, error, refetch } = useInstituts();
-  const { programs: allPrograms } = usePrograms();
+  // Filtres serveur : pagination + filtre `est_verifie` quand l'onglet "Vérifiés"
+  // est actif (les autres tris restent côté client sur la page courante).
+  const filters = React.useMemo<InstitutFilters>(() => ({
+    page,
+    limit: PAGE_SIZE,
+    est_verifie: activeFilter === 'verified' ? true : undefined,
+  }), [page, activeFilter]);
+
+  const { instituts, pagination, loading, error, refetch } = useInstituts(filters);
+  // `usePrograms()` sert uniquement au compteur du hero — `pagination.total` du
+  // backend est la source de vérité.
+  const { pagination: progPagination } = usePrograms();
 
   const allInstituts = (instituts as Institut[]).filter(Boolean);
 
-  // Stats hero
-  const verifiedCount = allInstituts.filter((i) => i.est_verifie).length;
-  const verifiedPct   = allInstituts.length > 0
+  // Reset page à 1 quand on change l'onglet ou la recherche
+  React.useEffect(() => {
+    setPage(1);
+  }, [activeFilter, searchQuery]);
+
+  // Stats hero — on s'appuie sur la meta backend pour les totaux globaux.
+  const totalInstituts = pagination?.total ?? allInstituts.length;
+  const totalProgrammes = progPagination?.total ?? 0;
+  const verifiedCount   = allInstituts.filter((i) => i.est_verifie).length;
+  const verifiedPct     = allInstituts.length > 0
     ? Math.round((verifiedCount / allInstituts.length) * 100)
     : 0;
 
@@ -65,23 +88,19 @@ export function Institutions() {
       <Navbar />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
-      <div
-        className="py-16 px-4 sm:px-6"
-        style={{
-          background: 'linear-gradient(135deg, var(--edu-blue) 0%, #4F46E5 100%)',
-        }}
-      >
-        <div className="max-w-[1440px] mx-auto text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+      <div className="relative py-16 px-4 sm:px-6 bg-[var(--edu-surface)] border-b border-[var(--edu-border)]">
+        <div className="absolute inset-0 dotted-bg opacity-40 mix-blend-multiply dark:mix-blend-overlay" />
+        <div className="relative max-w-[1440px] mx-auto text-center z-10">
+          <h1 className="text-3xl sm:text-4xl font-bold text-[var(--edu-text-primary)] mb-3">
             Découvrez nos institutions partenaires
           </h1>
 
-          {!loading && allInstituts.length > 0 && (
-            <p className="mb-8 text-base" style={{ color: 'rgba(255,255,255,0.85)' }}>
-              {allInstituts.length} établissement
-              {allInstituts.length !== 1 ? 's' : ''} privé
-              {allInstituts.length !== 1 ? 's' : ''} partenaire
-              {allInstituts.length !== 1 ? 's' : ''} en Tunisie
+          {!loading && totalInstituts > 0 && (
+            <p className="mb-8 text-base text-[var(--edu-text-secondary)]">
+              {totalInstituts} établissement
+              {totalInstituts !== 1 ? 's' : ''} privé
+              {totalInstituts !== 1 ? 's' : ''} partenaire
+              {totalInstituts !== 1 ? 's' : ''} en Tunisie
             </p>
           )}
 
@@ -93,27 +112,21 @@ export function Institutions() {
               placeholder="Rechercher un établissement..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 h-12 rounded-xl bg-white text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--edu-blue)]"
-              style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}
+              className="w-full pl-12 pr-4 h-12 rounded-xl bg-white dark:bg-[#1D1D1F] border border-[var(--edu-border)] text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--edu-blue)] shadow-sm"
             />
           </div>
 
           {/* Stat chips dynamiques */}
-          {!loading && allInstituts.length > 0 && (
+          {!loading && totalInstituts > 0 && (
             <div className="flex flex-wrap justify-center gap-3">
               {[
-                `${allInstituts.length} Institution${allInstituts.length !== 1 ? 's' : ''}`,
-                `${allPrograms.length} Programme${allPrograms.length !== 1 ? 's' : ''}`,
+                `${totalInstituts} Institution${totalInstituts !== 1 ? 's' : ''}`,
+                `${totalProgrammes} Programme${totalProgrammes !== 1 ? 's' : ''}`,
                 `${verifiedPct}% Vérifiés`,
               ].map((label) => (
                 <span
                   key={label}
-                  className="px-4 py-1.5 rounded-full text-sm font-medium text-white"
-                  style={{
-                    background: 'rgba(255,255,255,0.2)',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                  }}
+                  className="px-4 py-1.5 rounded-full text-sm font-medium text-[var(--edu-blue)] bg-[var(--edu-blue)]/10"
                 >
                   {label}
                 </span>
@@ -225,6 +238,21 @@ export function Institutions() {
               <InstitutCard key={inst.id} institut={inst as Institut} />
             ))}
           </div>
+        )}
+
+        {/* Pagination serveur */}
+        {!loading && !error && pagination && (
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={(p) => {
+              setPage(p);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            totalItems={pagination.total}
+            itemLabel="institut"
+            disabled={loading}
+          />
         )}
       </div>
 
