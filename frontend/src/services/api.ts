@@ -71,6 +71,16 @@ export const authService = {
 
   terminerPremierLogin: (data: TerminerPremierLoginData) =>
     api.post('/auth/premier-login/terminer', data),
+
+  // Workflow réinitialisation de mot de passe
+  demanderResetPassword: (email: string) =>
+    api.post('/auth/mot-de-passe/oublie', { email }),
+
+  validerResetToken: (token: string) =>
+    api.get('/auth/mot-de-passe/valider-token', { params: { token } }),
+
+  reinitialiserPassword: (token: string, password: string) =>
+    api.post('/auth/mot-de-passe/reinitialiser', { token, password }),
 };
 
 // --- Service programmes ---

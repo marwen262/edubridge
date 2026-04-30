@@ -1,110 +1,114 @@
 """
-Moteur de scoring : agrège les résultats de tous les services
-en un score final, un verdict et un niveau de confiance.
+Moteur de scoring probabiliste et déterministe.
 
-SCORING INVERSÉ : 0 = authentique, 100 = falsifié.
+Règles :
+  - Score entre 3 et 98 (jamais 0 ni 100).
+  - Bruit déterministe (même document → même score).
+  - Pas de verdict "fake" / "real" / "authentic".
+  - Retourne (score, confidence_level).
 """
 
 from __future__ import annotations
 
-from app.config import AUTHENTIC_THRESHOLD, SUSPECT_THRESHOLD, WEIGHTS
+import hashlib
+import random
+
 from app.utils.logger import logger
 
 
-def calculate_score(results: dict) -> float:
-    """Calcule le score final de suspicion (0 = authentique, 100 = falsifié).
+# ──────────────────────────────────────────────
+# Poids des critères (total ≈ 1.0)
+# ──────────────────────────────────────────────
+WEIGHTS: dict[str, float] = {
+    "has_person_name":     0.18,
+    "has_institution":     0.18,
+    "has_degree_keyword":  0.14,
+    "has_date":            0.10,
+    "signature_confidence": 0.15,
+    "stamp_confidence":    0.15,
+    "official_mention":    0.10,
+}
 
-    Chaque critère absent ou négatif AUGMENTE le score.
+
+def _deterministic_noise(text: str, amplitude: float = 5.0) -> float:
+    """Génère un bruit déterministe basé sur le hash du texte.
+
+    Le même texte produit toujours le même décalage.
+    Plage : [-amplitude, +amplitude].
     """
-    score: float = 0.0
-
-    # Si ce n'est pas un diplôme → score maximal
-    if not results.get("is_diploma", False):
-        return 100.0
-
-    # Signature absente → +15 points de suspicion
-    if not results.get("signature_detected", False):
-        score += WEIGHTS["signature_present"] * 100
-
-    # Cachet absent → +15 points
-    if not results.get("stamp_detected", False):
-        score += WEIGHTS["stamp_present"] * 100
-
-    # Mention officielle absente → +10 points
-    if not results.get("official_mention_found", False):
-        score += WEIGHTS["official_mention"] * 100
-
-    # Texte incohérent → proportionnel
-    text_coherence: float = results.get("text_coherence_score", 0.0)
-    text_incoherence: float = 1.0 - text_coherence
-    score += WEIGHTS["text_coherence"] * text_incoherence * 100
-
-    # Altérations détectées → proportionnel
-    tampering: float = results.get("tampering_score", 0.0)
-    score += WEIGHTS["tampering_score"] * tampering * 100
-
-    # Métadonnées suspectes → proportionnel
-    metadata_suspicion: float = results.get("metadata_suspicion", 0.0)
-    score += WEIGHTS["metadata_score"] * metadata_suspicion * 100
-
-    # Pénalités supplémentaires par flags
-    total_flags: int = len(results.get("all_flags", []))
-    if total_flags > 3:
-        score += (total_flags - 3) * 2
-
-    # Bonus cohérence : signature + cachet + mention tous présents
-    if (
-        results.get("signature_detected", False)
-        and results.get("stamp_detected", False)
-        and results.get("official_mention_found", False)
-    ):
-        score -= 5
-
-    return max(0.0, min(100.0, round(score, 1)))
+    digest = hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
+    seed = int(digest[:12], 16)
+    rng = random.Random(seed)
+    return rng.uniform(-amplitude, amplitude)
 
 
-def determine_verdict(score: float) -> str:
-    """Détermine le verdict à partir du score.
+def _clamp(value: float, lo: float = 3.0, hi: float = 98.0) -> float:
+    """Clamp une valeur dans [lo, hi]."""
+    return max(lo, min(hi, value))
 
-    - score <= 20 → AUTHENTIQUE
-    - score <= 50 → SUSPECT
-    - score > 50  → FALSIFIÉ
+
+def determine_confidence_level(score: float) -> str:
+    """Détermine le niveau de confiance à partir du score.
+
+    - score >= 70  → high
+    - score >= 40  → medium
+    - sinon        → low
     """
-    if score <= AUTHENTIC_THRESHOLD:
-        return "AUTHENTIQUE"
-    if score <= SUSPECT_THRESHOLD:
-        return "SUSPECT"
-    return "FALSIFIÉ"
+    if score >= 70:
+        return "high"
+    if score >= 40:
+        return "medium"
+    return "low"
 
 
-def determine_confidence(score: float) -> str:
-    """Détermine le niveau de confiance du verdict.
+def compute_score(
+    analysis: dict,
+    raw_text: str,
+) -> tuple[float, str]:
+    """Calcule le score probabiliste et le confidence_level.
 
-    - score <= 10 ou score > 80 → HIGH  (le résultat est clair)
-    - score <= 30 ou score > 60 → MEDIUM
-    - sinon                     → LOW   (zone d'incertitude)
+    Parameters
+    ----------
+    analysis : dict
+        Clés attendues (chacune entre 0.0 et 1.0) :
+        - has_person_name      (0 ou 1)
+        - has_institution      (0 ou 1)
+        - has_degree_keyword   (0 ou 1)
+        - has_date             (0 ou 1)
+        - signature_confidence (0.0 – 1.0)
+        - stamp_confidence     (0.0 – 1.0)
+        - official_mention     (0 ou 1)
+    raw_text : str
+        Texte extrait (utilisé comme graine de bruit).
+
+    Returns
+    -------
+    (score, confidence_level)
     """
-    if score <= 10 or score > 80:
-        return "HIGH"
-    if score <= 30 or score > 60:
-        return "MEDIUM"
-    return "LOW"
+    # Somme pondérée → base_score sur [0, 1]
+    base: float = 0.0
+    for key, weight in WEIGHTS.items():
+        value = float(analysis.get(key, 0.0))
+        base += weight * value
 
+    # Normaliser sur [0, 100]
+    raw_score = base * 100.0
 
-def compute_final_score(results: dict) -> tuple[float, str, str]:
-    """Point d'entrée principal du moteur de scoring.
+    # Bruit déterministe
+    noise = _deterministic_noise(raw_text, amplitude=4.0)
+    raw_score += noise
 
-    Retourne (score, verdict, confidence).
-    """
-    score: float = calculate_score(results)
-    verdict: str = determine_verdict(score)
-    confidence: str = determine_confidence(score)
+    # Clamp strict
+    score = round(_clamp(raw_score), 1)
+
+    confidence_level = determine_confidence_level(score)
 
     logger.info(
-        "Scoring final — score=%.1f | verdict=%s | confiance=%s",
+        "Scoring — raw=%.1f | noise=%.2f | final=%.1f | confidence=%s",
+        base * 100.0,
+        noise,
         score,
-        verdict,
-        confidence,
+        confidence_level,
     )
 
-    return score, verdict, confidence
+    return score, confidence_level

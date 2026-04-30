@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diploma Verifier — Test</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #242836;
+      --border: #2e3345;
+      --text: #e4e7f1;
+      --text2: #8b90a5;
+      --accent: #6c5ce7;
+      --accent2: #a29bfe;
+      --green: #00b894;
+      --yellow: #fdcb6e;
+      --red: #e17055;
+      --radius: 14px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: .5rem;
+    }
+    .subtitle { text-align:center; color:var(--text2); margin-bottom:2rem; font-size:.95rem; }
+    .container { max-width: 900px; margin: 0 auto; }
+
+    /* Tabs */
+    .tabs { display:flex; gap:.5rem; margin-bottom:1.5rem; }
+    .tab {
+      flex:1; padding:.75rem; text-align:center; border-radius:var(--radius);
+      background:var(--surface); border:1px solid var(--border);
+      cursor:pointer; font-weight:600; font-size:.9rem;
+      transition: all .2s;
+    }
+    .tab:hover { border-color: var(--accent); }
+    .tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+    /* Panels */
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 { font-size:1.1rem; margin-bottom:1rem; color:var(--accent2); }
+
+    /* Form */
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .form-group { display:flex; flex-direction:column; gap:.4rem; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size:.85rem; font-weight:500; color:var(--text2); }
+    input[type="range"], input[type="number"] {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:8px; padding:.5rem .75rem; color:var(--text);
+      font-family:inherit; font-size:.9rem; outline:none;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: var(--accent); }
+    input[type="range"] { padding:.25rem; accent-color:var(--accent); height:38px; }
+
+    /* Toggle */
+    .toggle-row { display:flex; align-items:center; justify-content:space-between; }
+    .toggle {
+      width:48px; height:26px; border-radius:13px;
+      background:var(--surface2); border:1px solid var(--border);
+      cursor:pointer; position:relative; transition: all .2s;
+    }
+    .toggle.on { background:var(--green); border-color:var(--green); }
+    .toggle::after {
+      content:''; position:absolute; top:3px; left:3px;
+      width:18px; height:18px; border-radius:50%;
+      background:#fff; transition: transform .2s;
+    }
+    .toggle.on::after { transform: translateX(22px); }
+
+    /* Upload */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 3rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .3s;
+    }
+    .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: rgba(108,92,231,.05); }
+    .dropzone-icon { font-size:3rem; margin-bottom:.5rem; }
+    .dropzone p { color:var(--text2); font-size:.9rem; }
+    .dropzone input { display:none; }
+
+    /* Button */
+    .btn {
+      width:100%; padding:.85rem; border:none; border-radius:var(--radius);
+      background: linear-gradient(135deg, var(--accent), #845ef7);
+      color:#fff; font-weight:700; font-size:1rem; cursor:pointer;
+      transition: transform .15s, box-shadow .15s;
+      font-family: inherit;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,92,231,.35); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+
+    /* Results */
+    .result { display:none; margin-top:1.5rem; }
+    .result.show { display:block; animation: fadeUp .4s ease; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+    .score-display {
+      text-align:center; padding:2rem;
+      background: var(--surface2); border-radius:var(--radius);
+      margin-bottom:1rem;
+    }
+    .score-number { font-size:4rem; font-weight:800; line-height:1; }
+    .score-100 { font-size:1.5rem; color:var(--text2); font-weight:400; }
+    .verdict-badge {
+      display:inline-block; padding:.4rem 1.2rem; border-radius:20px;
+      font-weight:700; font-size:.9rem; margin-top:.75rem;
+    }
+    .verdict-AUTHENTIQUE { background:rgba(0,184,148,.15); color:var(--green); }
+    .verdict-SUSPECT { background:rgba(253,203,110,.15); color:var(--yellow); }
+    .verdict-FALSIFIÉ { background:rgba(225,112,85,.15); color:var(--red); }
+
+    .confidence-bar {
+      height:6px; border-radius:3px; background:var(--surface2);
+      margin-top:.75rem; overflow:hidden;
+    }
+    .confidence-fill { height:100%; border-radius:3px; transition: width .6s ease; }
+    .confidence-HIGH { background:var(--green); }
+    .confidence-MEDIUM { background:var(--yellow); }
+    .confidence-LOW { background:var(--red); }
+
+    /* Checks grid */
+    .checks-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-top:1rem; }
+    .check-item {
+      display:flex; align-items:center; gap:.6rem;
+      padding:.65rem .85rem; background:var(--surface2);
+      border-radius:10px; font-size:.85rem;
+    }
+    .check-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .check-dot.ok { background:var(--green); }
+    .check-dot.warn { background:var(--yellow); }
+    .check-dot.bad { background:var(--red); }
+
+    /* Flags */
+    .flags-list { margin-top:1rem; }
+    .flag-item {
+      padding:.5rem .75rem; background:rgba(225,112,85,.08);
+      border-left:3px solid var(--red); border-radius:0 8px 8px 0;
+      font-size:.82rem; color:var(--red); margin-bottom:.4rem;
+    }
+
+    /* JSON */
+    .json-block {
+      margin-top:1rem; padding:1rem; background:#0d0f15;
+      border-radius:10px; font-family:'Cascadia Code',monospace;
+      font-size:.78rem; color:var(--accent2); overflow-x:auto;
+      max-height:300px; overflow-y:auto; white-space:pre-wrap;
+    }
+
+    /* Range value display */
+    .range-val { font-size:.85rem; color:var(--accent2); font-weight:600; text-align:right; min-width:3ch; }
+    .range-row { display:flex; align-items:center; gap:.75rem; }
+    .range-row input[type="range"] { flex:1; }
+
+    /* File info */
+    .file-info {
+      display:flex; align-items:center; gap:.75rem;
+      padding:.75rem; background:var(--surface2); border-radius:10px;
+      margin-top:1rem; font-size:.85rem;
+    }
+    .file-info .icon { font-size:1.5rem; }
+
+    @media (max-width:600px) {
+      .form-grid, .checks-grid { grid-template-columns:1fr; }
+      body { padding:1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎓 Diploma Verifier — Test</h1>
+    <p class="subtitle">Testez le moteur de scoring · 0 = authentique · 100 = falsifié</p>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('manual')">⚙️ Scoring Manuel</div>
+      <div class="tab" onclick="switchTab('upload')">📄 Upload Fichier</div>
+    </div>
+
+    <!-- ═══════ MANUAL PANEL ═══════ -->
+    <div id="panel-manual" class="panel active">
+      <div class="card">
+        <h2>Paramètres d'analyse</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Est un diplôme ?</label>
+            <div class="toggle-row">
+              <span id="isDiplomaLabel">Oui</span>
+              <div class="toggle on" id="isDiploma" onclick="toggleSwitch(this,'isDiplomaLabel')"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Signature détectée ?</label>
+            <div class="toggle-row">
+              <span id="sigLabel">Oui</span>
+              <div class="toggle on" id="sigToggle" onclick="toggleSwitch(this,'sigLabel')"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Cachet détecté ?</label>
+            <div class="toggle-row">
+              <span id="stampLabel">Oui</span>
+              <div class="toggle on" id="stampToggle" onclick="toggleSwitch(this,'stampLabel')"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Mention officielle ?</label>
+            <div class="toggle-row">
+              <span id="mentionLabel">Oui</span>
+              <div class="toggle on" id="mentionToggle" onclick="toggleSwitch(this,'mentionLabel')"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Cohérence texte</label>
+            <div class="range-row">
+              <input type="range" id="coherence" min="0" max="1" step="0.05" value="0.85"
+                     oninput="document.getElementById('cohVal').textContent=this.value">
+              <span class="range-val" id="cohVal">0.85</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Score tampering</label>
+            <div class="range-row">
+              <input type="range" id="tampering" min="0" max="1" step="0.05" value="0.1"
+                     oninput="document.getElementById('tampVal').textContent=this.value">
+              <span class="range-val" id="tampVal">0.1</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Suspicion métadonnées</label>
+            <div class="range-row">
+              <input type="range" id="metaSusp" min="0" max="1" step="0.05" value="0"
+                     oninput="document.getElementById('metaVal').textContent=this.value">
+              <span class="range-val" id="metaVal">0</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Nombre de flags</label>
+            <input type="number" id="flagCount" min="0" max="20" value="0">
+          </div>
+        </div>
+      </div>
+      <button class="btn" id="btnManual" onclick="submitManual()">🔍 Calculer le Score</button>
+      <div class="result" id="result-manual"></div>
+    </div>
+
+    <!-- ═══════ UPLOAD PANEL ═══════ -->
+    <div id="panel-upload" class="panel">
+      <div class="card">
+        <h2>Uploader un diplôme</h2>
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="handleDrop(event)">
+          <div class="dropzone-icon">📎</div>
+          <p>Glissez un fichier ici ou <strong>cliquez pour choisir</strong></p>
+          <p style="margin-top:.4rem;font-size:.8rem">PDF, JPEG ou PNG · max 10 Mo</p>
+          <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFile(this.files[0])">
+        </div>
+        <div id="filePreview" style="display:none"></div>
+        <div class="form-group" style="margin-top:1rem">
+          <label>Indice pays (optionnel)</label>
+          <input type="text" id="countryHint" placeholder="ex: Tunisia, France..." 
+                 style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.5rem .75rem;color:var(--text);font-family:inherit">
+        </div>
+      </div>
+      <button class="btn" id="btnUpload" onclick="submitUpload()" disabled>📤 Analyser (simulation)</button>
+      <div class="result" id="result-upload"></div>
+    </div>
+  </div>
+
+<script>
+let selectedFile = null;
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (name==='manual'?i===0:i===1)));
+  document.getElementById('panel-manual').classList.toggle('active', name==='manual');
+  document.getElementById('panel-upload').classList.toggle('active', name==='upload');
+}
+
+function toggleSwitch(el, labelId) {
+  el.classList.toggle('on');
+  document.getElementById(labelId).textContent = el.classList.contains('on') ? 'Oui' : 'Non';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+}
+
+function handleFile(file) {
+  if (!file) return;
+  selectedFile = file;
+  const sizeKB = (file.size/1024).toFixed(1);
+  document.getElementById('filePreview').style.display = 'block';
+  document.getElementById('filePreview').innerHTML =
+    `<div class="file-info"><span class="icon">📄</span><div><strong>${file.name}</strong><br><span style="color:var(--text2)">${sizeKB} Ko</span></div></div>`;
+  document.getElementById('btnUpload').disabled = false;
+}
+
+function renderResult(targetId, data) {
+  const el = document.getElementById(targetId);
+  const confW = data.confidence==='HIGH'?100:data.confidence==='MEDIUM'?60:30;
+  const scoreColor = data.verdict==='AUTHENTIQUE'?'var(--green)':data.verdict==='SUSPECT'?'var(--yellow)':'var(--red)';
+
+  const checks = data.simulated_checks || data.input || {};
+  const flags = data.flags || data.input?.all_flags || [];
+
+  let checksHTML = '';
+  const items = [
+    ['Diplôme', checks.is_diploma],
+    ['Signature', checks.signature_detected],
+    ['Cachet', checks.stamp_detected],
+    ['Mention officielle', checks.official_mention_found],
+  ];
+  items.forEach(([name, val]) => {
+    const cls = val ? 'ok' : 'bad';
+    checksHTML += `<div class="check-item"><div class="check-dot ${cls}"></div>${name}: ${val?'✅ Oui':'❌ Non'}</div>`;
+  });
+
+  const numItems = [
+    ['Cohérence texte', checks.text_coherence_score],
+    ['Tampering', checks.tampering_score],
+    ['Métadonnées', checks.metadata_suspicion],
+  ];
+  numItems.forEach(([name, val]) => {
+    if (val === undefined) return;
+    const cls = val > 0.5 ? 'bad' : val > 0.25 ? 'warn' : 'ok';
+    checksHTML += `<div class="check-item"><div class="check-dot ${cls}"></div>${name}: ${val}</div>`;
+  });
+
+  let flagsHTML = '';
+  if (flags.length) {
+    flagsHTML = '<div class="flags-list"><strong style="font-size:.85rem;color:var(--text2)">⚠️ Flags :</strong>';
+    flags.forEach(f => { flagsHTML += `<div class="flag-item">${f}</div>`; });
+    flagsHTML += '</div>';
+  }
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="score-display">
+        <div class="score-number" style="color:${scoreColor}">${data.score}<span class="score-100"> / 100</span></div>
+        <div class="verdict-badge verdict-${data.verdict}">${data.verdict}</div>
+        <div style="margin-top:.75rem;font-size:.85rem;color:var(--text2)">
+          Confiance : <strong>${data.confidence}</strong> · ${data.processing_time_ms} ms
+        </div>
+        <div class="confidence-bar">
+          <div class="confidence-fill confidence-${data.confidence}" style="width:${confW}%"></div>
+        </div>
+      </div>
+      <div class="checks-grid">${checksHTML}</div>
+      ${flagsHTML}
+      <details style="margin-top:1rem;cursor:pointer">
+        <summary style="font-size:.85rem;color:var(--text2)">📋 Réponse JSON brute</summary>
+        <div class="json-block">${JSON.stringify(data, null, 2)}</div>
+      </details>
+    </div>`;
+  el.classList.add('show');
+}
+
+async function submitManual() {
+  const btn = document.getElementById('btnManual');
+  btn.disabled = true;
+  btn.textContent = '⏳ Calcul...';
+
+  const form = new FormData();
+  form.append('is_diploma', document.getElementById('isDiploma').classList.contains('on'));
+  form.append('signature_detected', document.getElementById('sigToggle').classList.contains('on'));
+  form.append('stamp_detected', document.getElementById('stampToggle').classList.contains('on'));
+  form.append('official_mention_found', document.getElementById('mentionToggle').classList.contains('on'));
+  form.append('text_coherence_score', document.getElementById('coherence').value);
+  form.append('tampering_score', document.getElementById('tampering').value);
+  form.append('metadata_suspicion', document.getElementById('metaSusp').value);
+  form.append('flag_count', document.getElementById('flagCount').value);
+
+  try {
+    const res = await fetch('/api/test-score', { method:'POST', body:form });
+    const data = await res.json();
+    renderResult('result-manual', data);
+  } catch(e) {
+    alert('Erreur : ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Calculer le Score';
+  }
+}
+
+async function submitUpload() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('btnUpload');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyse...';
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+  const hint = document.getElementById('countryHint').value;
+  if (hint) form.append('country_hint', hint);
+
+  try {
+    const res = await fetch('/api/test-upload', { method:'POST', body:form });
+    const data = await res.json();
+    renderResult('result-upload', data);
+  } catch(e) {
+    alert('Erreur : ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 Analyser (simulation)';
+  }
+}
+</script>
+</body>
+</html>

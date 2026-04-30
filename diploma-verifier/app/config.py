@@ -8,16 +8,7 @@ MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 Mo
 ALLOWED_MIME_TYPES: list[str] = ["application/pdf", "image/jpeg", "image/png"]
 ALLOWED_EXTENSIONS: list[str] = [".pdf", ".jpg", ".jpeg", ".png"]
 
-# --- Poids des critères pour le scoring (total ≈ 1.0) ---
-WEIGHTS: dict[str, float] = {
-    "is_diploma": 0.15,
-    "signature_present": 0.15,
-    "stamp_present": 0.15,
-    "official_mention": 0.10,
-    "text_coherence": 0.15,
-    "tampering_score": 0.20,
-    "metadata_score": 0.10,
-}
+# --- Poids et seuils de scoring gérés dans scoring_engine.py ---
 
 # --- Mots-clés universels de diplômes (multi-langues) ---
 DIPLOMA_KEYWORDS: dict[str, list[str]] = {
@@ -116,9 +107,6 @@ DIPLOMA_TYPES: dict[str, list[str]] = {
 # --- Langues OCR supportées ---
 OCR_LANGUAGES: str = "fra+eng+ara+spa+deu"
 
-# --- Seuils de verdict (scoring inversé : 0 = bon, 100 = mauvais) ---
-AUTHENTIC_THRESHOLD: int = 20
-SUSPECT_THRESHOLD: int = 50
 
 # --- Logging ---
 LOG_DIR: str = "logs"
