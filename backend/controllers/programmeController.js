@@ -1,6 +1,7 @@
 // controllers/programmeController.js — CRUD des programmes (formations) d'un institut
 const { Op } = require('sequelize');
 const { Programme, Institut } = require('../models');
+const { lirePagination, construirePaginationMeta } = require('../utils/pagination');
 
 // Champs éditables par un admin ou par l'institut propriétaire
 const CHAMPS_EDITABLES = [
@@ -18,7 +19,7 @@ function pick(body, keys) {
   return out;
 }
 
-// GET /api/programmes — public, filtres par ENUMs et recherche texte
+// GET /api/programmes — public, filtres par ENUMs et recherche texte + pagination
 exports.getAllProgrammes = async (req, res) => {
   try {
     const { domaine, niveau, mode, institut_id, est_actif, titre } = req.query;
@@ -30,14 +31,25 @@ exports.getAllProgrammes = async (req, res) => {
     if (est_actif !== undefined) where.est_actif = est_actif === 'true';
     if (titre)       where.titre       = { [Op.iLike]: `%${titre}%` };
 
-    const programmes = await Programme.findAll({
+    const { page, limit, offset } = lirePagination(req.query);
+
+    // findAndCountAll : count distinct sur Programme.id pour éviter le sur-comptage
+    // induit par les jointures (include Institut).
+    const { rows: programmes, count: total } = await Programme.findAndCountAll({
       where,
       include: [
         { model: Institut, as: 'institut', attributes: ['id', 'nom', 'sigle'] },
       ],
       order: [['cree_le', 'DESC']],
+      limit,
+      offset,
+      distinct: true,
     });
-    return res.status(200).json({ programmes });
+
+    return res.status(200).json({
+      programmes,
+      pagination: construirePaginationMeta({ total, page, limit }),
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erreur serveur.', error: error.message });

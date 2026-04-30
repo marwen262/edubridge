@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { Op }  = require('sequelize');
 const { sequelize, Institut, Utilisateur, Programme } = require('../models');
 const { sendInstitutInviteEmail } = require('../services/emailService');
+const { lirePagination, construirePaginationMeta } = require('../utils/pagination');
 
 const CHAMPS_EDITABLES = [
   'nom', 'sigle', 'description', 'site_web', 'logo',
@@ -18,7 +19,7 @@ function pick(body, keys) {
   return out;
 }
 
-// GET /api/instituts — public (catalogue) ou admin (liste complète)
+// GET /api/instituts — public (catalogue) ou admin (liste complète) + pagination
 exports.getAllInstituts = async (req, res) => {
   try {
     const { nom, est_verifie, admin_view } = req.query;
@@ -34,14 +35,24 @@ exports.getAllInstituts = async (req, res) => {
     if (nom) where.nom = { [Op.iLike]: `%${nom}%` };
     if (est_verifie !== undefined && isAdmin) where.est_verifie = est_verifie === 'true';
 
-    const instituts = await Institut.findAll({
+    const { page, limit, offset } = lirePagination(req.query);
+
+    // distinct: true pour ne pas sur-compter à cause de l'include programmes
+    const { rows: instituts, count: total } = await Institut.findAndCountAll({
       where,
       include: [
         { model: Programme, as: 'programmes', attributes: ['id', 'titre', 'domaine', 'niveau', 'est_actif'] },
       ],
       order: [['nom', 'ASC']],
+      limit,
+      offset,
+      distinct: true,
     });
-    return res.status(200).json({ instituts });
+
+    return res.status(200).json({
+      instituts,
+      pagination: construirePaginationMeta({ total, page, limit }),
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erreur serveur.', error: error.message });

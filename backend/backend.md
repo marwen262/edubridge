@@ -153,11 +153,11 @@ backend/
 │   └── Favori.js              # Lien candidat ↔ programme (N:N)
 │
 ├── controllers/               # Endpoints HTTP (couche mince)
-│   ├── authController.js          # POST /register, /login, GET /me
+│   ├── authController.js          # /register, /login, /me, premier-login (institut), mot-de-passe/oublie + valider-token + reinitialiser
 │   ├── utilisateurController.js   # CRUD Utilisateur + profils Candidat/Institut
-│   ├── candidatureController.js   # Workflow candidatures (brouillon, soumis, statut)
-│   ├── programmeController.js     # CRUD Programmes
-│   ├── institutController.js      # CRUD Instituts
+│   ├── candidatureController.js   # Workflow candidatures (brouillon, soumis, statut) + pagination admin
+│   ├── programmeController.js     # CRUD Programmes + pagination GET /
+│   ├── institutController.js      # CRUD Instituts + workflow validation admin + pagination GET /
 │   ├── favoriController.js        # Toggle/GET favoris
 │   └── notificationController.js  # mine, count non-lues, lire, lire-tout
 │
@@ -173,17 +173,23 @@ backend/
 ├── middleware/                # Middlewares Express
 │   ├── authMiddleware.js      # Vérification JWT + résolution profil
 │   ├── upload.js              # Configuration Multer (stockage disque, filtres)
+│   ├── rateLimiter.js         # express-rate-limit : limiteur global + strict /auth/login
 │   └── candidatureGuards.js   # Garde-fous métier (propriété, statut terminal)
+│
+├── utils/                     # Helpers transverses
+│   └── pagination.js          # lirePagination + construirePaginationMeta (pour findAndCountAll)
 │
 ├── services/                  # Logique métier (épaisse)
 │   ├── candidatureWorkflow.js # Moteur de workflow complet (transitions, validations)
+│   ├── emailService.js        # SMTP Nodemailer : invitation institut + reset password
 │   └── notificationService.js # Création de notifications automatiques
 │
 ├── migrations/                # Migrations Sequelize (schéma BD)
 │   ├── 20260420120000-creation-tables-edubridge.js                    # 8 tables MVP
 │   ├── 20260421000000-add-identite-candidat.js                        # CIN/Passeport candidat (§12)
 │   ├── 20260422000000-add-champs-manquants-programmes-instituts.js    # Champs additionnels Programme/Institut
-│   └── 20260430000000-workflow-institut.js                            # Workflow institut SaaS (invitation email + first login)
+│   ├── 20260430000000-workflow-institut.js                            # Workflow institut SaaS (invitation email + first login)
+│   └── 20260501000000-reset-password-token.js                         # Colonnes reset_password_token + expires_at sur utilisateurs
 │
 ├── seeders/                   # Seeders (données de démonstration)
 │   ├── 20260001000000-admin.js          # 1 admin
@@ -227,16 +233,25 @@ backend/
 **Rôle :** Gestion des comptes utilisateurs, inscription, connexion, tokens JWT
 
 **Endpoints principaux :**
-- `POST /api/auth/register` — Inscription (candidat ou institut)
-- `POST /api/auth/login` — Connexion par email + mot de passe
+- `POST /api/auth/register` — Inscription candidat (les instituts passent par invitation admin)
+- `POST /api/auth/login` — Connexion par email + mot de passe (limité à 5 req / 15 min / IP)
 - `GET /api/auth/me` — Profil courant + profil lié (candidat ou institut)
+- `GET /api/auth/premier-login/valider?token=…` — Valide le token d'invitation institut
+- `POST /api/auth/premier-login/terminer` — Finalise le premier login institut (mot de passe + profil minimal)
+- `POST /api/auth/mot-de-passe/oublie` — Demande de réinitialisation par email (réponse générique anti-énumération)
+- `GET /api/auth/mot-de-passe/valider-token?token=…` — Valide un token de reset
+- `POST /api/auth/mot-de-passe/reinitialiser` — Applique le nouveau mot de passe
 
 **Responsabilités :**
-- Validation emails et mots de passe
+- Validation emails et mots de passe (8+ caractères, majuscule, chiffre, spécial)
 - Hash bcryptjs (10 rounds)
 - Génération JWT (7j par défaut)
 - Transactions atomiques (Utilisateur + profil liés)
-- Excluir mots de passe en réponse
+- Exclusion des mots de passe en réponse
+- Tokens à usage unique pour invitation institut (24h) et reset password (1h),
+  via `crypto.randomBytes(32).toString('hex')`
+- Envoi d'emails transactionnels via `services/emailService.js` (Nodemailer SMTP).
+  En l'absence de config SMTP, l'email est simulé en console (mode dev).
 
 **Hypothèse détectée :** Refresh tokens (`jeton_rafraichissement`) sont sauvegardés en BD mais **pas utilisés** actuellement.
 
@@ -403,6 +418,53 @@ Constantes:
 ```
 
 Chaque opération est dans une **transaction Sequelize** pour garantir consistance.
+
+#### **emailService.js** — Emails transactionnels SMTP
+
+Service centralisé d'envoi d'emails via Nodemailer :
+
+```javascript
+Exports:
+├── sendInstitutInviteEmail(to, nomInstitut, token)  # Lien /first-login?token=…  (24h)
+└── sendPasswordResetEmail(to, token)                # Lien /reset-password?token=…  (1h)
+```
+
+- Singleton du transporter Nodemailer + `verify()` paresseux (1 fois au premier appel)
+- Vars requises : `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` (`.env`)
+  + optionnels : `SMTP_PORT` (587), `SMTP_SECURE` (false), `SMTP_FROM`, `FRONTEND_URL`
+- **Mode console** : si `SMTP_HOST` est absent, les emails sont simulés en stdout
+  (pratique pour le dev sans SMTP)
+- Templates HTML stylés (Apple-inspired) + fallback texte plain
+- Timeouts production (`connectionTimeout: 10s`, `socketTimeout: 30s`)
+
+#### **rateLimiter.js (middleware)** — Anti brute-force / DoS basique
+
+Deux limiteurs `express-rate-limit` exposés :
+
+```javascript
+Exports:
+├── limiteurGlobal   # 100 req / 15 min / IP, monté sur app.use('/api', …)
+└── limiteurLogin    # 5 req / 15 min / IP, monté sur app.use('/api/auth/login', …)
+                     # skipSuccessfulRequests: true (ne pénalise pas les succès)
+```
+
+- Réponse JSON conforme convention projet : `{ message: 'Trop de requêtes, réessayez plus tard.' }`
+- `standardHeaders: true` (RFC `RateLimit-*`), pas de `X-RateLimit-*` legacy
+- Log `console.warn('[RATE LIMIT] …')` à chaque blocage avec IP + URL
+- Tracking par défaut sur `req.ip` (pour proxy : ajouter `app.set('trust proxy', 1)`)
+
+#### **utils/pagination.js** — Helpers pagination
+
+```javascript
+Exports:
+├── lirePagination(query)            # → { page, limit, offset } depuis req.query
+└── construirePaginationMeta(args)   # → { total, page, limit, totalPages }
+```
+
+Defaults : `page=1`, `limit=10`, `LIMIT_MAX=100`. Utilisé dans
+`programmeController.getAllProgrammes`, `institutController.getAllInstituts` et
+`candidatureController.getAllCandidatures` (admin) avec `findAndCountAll` et
+`distinct: true` pour éviter le sur-comptage induit par les `include`.
 
 #### **notificationService.js** — Notifications automatiques
 
@@ -882,8 +944,13 @@ L'association Sequelize Institut dans Programme est déclarée `as: 'institut'`
 | Méthode | Route | Auth | Réponse |
 |---------|-------|------|---------|
 | POST | `/register` | Non | `{ token, utilisateur, profil }` (201) |
-| POST | `/login` | Non | `{ token, utilisateur }` (200) |
+| POST | `/login` | Non | `{ token, utilisateur, profil }` (200) — **rate limité** (5 / 15min / IP) |
 | GET | `/me` | JWT | `{ utilisateur: {..., candidat/institut} }` (200) |
+| GET | `/premier-login/valider?token=…` | Non | `{ valide, email, nom }` (200) ou 404/410 (TOKEN_*) |
+| POST | `/premier-login/terminer` | Non | `{ token, utilisateur, profil }` (200) — active compte institut |
+| POST | `/mot-de-passe/oublie` | Non | `{ message: '…' }` (200) — réponse générique anti-énumération |
+| GET | `/mot-de-passe/valider-token?token=…` | Non | `{ valide, email }` (200) ou 404/410 |
+| POST | `/mot-de-passe/reinitialiser` | Non | `{ message: '…' }` (200) — applique nouveau mot de passe |
 
 **Exemple POST /register (candidat) :**
 
@@ -945,11 +1012,17 @@ curl -X POST http://localhost:5000/api/auth/register \
 **Filtres GET / :**
 - `nom=<string>` — Recherche case-insensitive
 - `est_verifie=true|false`
+- `admin_view=true` (admin uniquement) — bypass du filtre `validation_status='approved'`
+
+**Pagination GET / :** `page` (défaut 1), `limit` (défaut 10, max 100). Réponse :
+```json
+{ "instituts": [...], "pagination": { "total": 42, "page": 1, "limit": 10, "totalPages": 5 } }
+```
 
 **Exemple GET / :**
 
 ```bash
-curl "http://localhost:5000/api/instituts?nom=ENIS&est_verifie=true"
+curl "http://localhost:5000/api/instituts?nom=ENIS&est_verifie=true&page=2&limit=20"
 ```
 
 ---
@@ -971,6 +1044,11 @@ curl "http://localhost:5000/api/instituts?nom=ENIS&est_verifie=true"
 - `institut_id=<uuid>`
 - `est_actif=true|false`
 - `titre=<string>` — Recherche case-insensitive
+
+**Pagination GET / :** `page` (défaut 1), `limit` (défaut 10, max 100). Réponse :
+```json
+{ "programmes": [...], "pagination": { "total": 120, "page": 1, "limit": 10, "totalPages": 12 } }
+```
 
 ---
 
@@ -1042,6 +1120,11 @@ curl -X POST http://localhost:5000/api/candidatures \
 **Filtres GET / (admin) :**
 - `statut=brouillon|soumise|en_examen|acceptee|refusee|liste_attente`
 - `programme_id=<uuid>`
+
+**Pagination GET / (admin) :** `page` (défaut 1), `limit` (défaut 10, max 100). Réponse :
+```json
+{ "candidatures": [...], "pagination": { "total": 87, "page": 1, "limit": 10, "totalPages": 9 } }
+```
 
 ---
 
@@ -1626,9 +1709,13 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 > améliorations planifiées. La Phase 1 d'intégration frontend est complète —
 > ces points sont désormais priorisés pour la phase de stabilisation.
 
-⚠️ **Pas de pagination**
-- `findAll()` sans `limit/offset` → Épuisement mémoire si N > 10k
-- **Impact :** Lent sur listing instituts/programmes avec beaucoup de data
+✅ **Pagination — partiellement résolu (mai 2026)**
+- `GET /api/programmes`, `/api/instituts`, `/api/candidatures` (admin) utilisent
+  désormais `findAndCountAll` + `lirePagination` + `construirePaginationMeta`
+  (`utils/pagination.js`). Limites bornées (`limit` max = 100).
+- ⚠️ **Reste à faire :** étendre la pagination aux listings restants
+  (`/candidatures/mine`, `/candidatures/institute/list`, `/utilisateurs`,
+  `/notifications/mine`, `/favoris/mine`).
 
 ⚠️ **Pas de validation schemas**
 - Pas de Joi, Yup, ou zod
@@ -1650,10 +1737,14 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 - `.include()` sur `hasMany` sans `separate: true`
 - Exemple : `GET /api/instituts` charge tous programmes de tous instituts
 
-⚠️ **Pas de rate limiting**
-- Aucune protection DoS/brute-force
-- `/api/auth/login` pas limité
-- **Impact :** Vulnerability connue (OWASP)
+✅ **Rate limiting — résolu (mai 2026)**
+- `middleware/rateLimiter.js` (`express-rate-limit` 8) :
+  - **Global** : 100 req / 15 min / IP sur tout `/api/*`
+  - **Strict login** : 5 req / 15 min / IP sur `/api/auth/login`
+    (`skipSuccessfulRequests: true`)
+- Réponse JSON standard + log `[RATE LIMIT]` à chaque blocage
+- ⚠️ Pour un déploiement derrière reverse proxy : configurer
+  `app.set('trust proxy', 1)` pour que `req.ip` reflète bien l'IP cliente.
 
 ⚠️ **Upload fichiers non sécurisé en production**
 - Pas de scan antivirus
@@ -1686,9 +1777,12 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 
 **Priorités stabilisation post-Phase 1 :**
 
-- 🔴 **Rate limiting** (`express-rate-limit`) — **CRITIQUE sécurité** (point 5)
-- 🔴 **Pagination** — **CRITIQUE performance** (point 1)
+- ✅ **Rate limiting** (`express-rate-limit`) — **FAIT** (`middleware/rateLimiter.js`, point 5)
+- ✅ **Pagination listings principaux** — **FAIT** (programmes, instituts, candidatures admin, point 1)
+- ✅ **Reset password** (token email + page front) — **FAIT** (mai 2026)
 - 🟠 **Middleware erreur global** — **Quick win** (point 3)
+- 🟠 **Étendre pagination** aux listings restants (`/utilisateurs`, `/favoris/mine`,
+  `/notifications/mine`, `/candidatures/mine`, `/candidatures/institute/list`)
 
 1. **Ajouter pagination**
    ```javascript

@@ -5,6 +5,7 @@ const cors    = require('cors');
 const path    = require('path');
 
 const { sequelize } = require('./models');
+const { limiteurGlobal, limiteurLogin } = require('./middleware/rateLimiter');
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -16,6 +17,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serveur de fichiers statiques (uploads)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ── Rate limiting ─────────────────────────────────────────────────────
+// Limiteur global appliqué à toutes les routes /api/* (avant les routes).
+// Le limiteur strict /auth/login est monté juste avant le router /api/auth
+// pour cibler uniquement POST /api/auth/login.
+app.use('/api', limiteurGlobal);
+app.use('/api/auth/login', limiteurLogin);
 
 // ── Routes ────────────────────────────────────────────────────────────
 app.use('/api/auth',         require('./routes/authRoutes'));

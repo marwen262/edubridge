@@ -99,9 +99,10 @@ src/
 │   │   ├── ProgramDetail.tsx         # Détail d'un programme
 │   │   ├── InstitutionProfile.tsx    # Profil d'institution
 │   │   ├── Compare.tsx               # Comparaison de programmes
-│   │   ├── Login.tsx                 # Login réel (useAuth + RHF + zod)
+│   │   ├── Login.tsx                 # Login réel (useAuth + RHF + zod) + dialog "Forgot password?"
 │   │   ├── Signup.tsx                # Inscription réelle (useAuth + RHF + zod)
-│   │   ├── FirstLogin.tsx            # Réinitialisation mot de passe institution
+│   │   ├── FirstLogin.tsx            # Activation premier login institut (token email — invitation admin)
+│   │   ├── ResetPassword.tsx         # Réinitialisation mot de passe via lien email (token 1h)
 │   │   ├── CandidateDashboard.tsx    # Dashboard candidat
 │   │   ├── InstitutionDashboard.tsx  # Dashboard institution
 │   │   └── AdminDashboard.tsx        # Dashboard admin
@@ -175,6 +176,7 @@ export const router = createBrowserRouter([
   { path: '/login',               Component: Login },
   { path: '/signup',              Component: Signup },
   { path: '/first-login',         Component: FirstLogin },
+  { path: '/reset-password',      Component: ResetPassword },
   // Dashboards protégés par rôle
   { path: '/dashboard/candidate',
     element: <ProtectedRoute requiredRole="candidat"><CandidateDashboard /></ProtectedRoute> },
@@ -229,7 +231,12 @@ export const router = createBrowserRouter([
 - Form: email + password (react-hook-form + zod)
 - Appelle `useAuth().login()` → POST `/api/auth/login`
 - Redirection selon `user.role` (candidat/institut/admin)
-- Gestion erreurs Axios (toast)
+- Gestion erreurs Axios (toast) + bannières spéciales `FIRST_LOGIN_REQUIRED`,
+  `ACCOUNT_SUSPENDED`
+- **Dialog « Forgot password? »** (shadcn `Dialog`) :
+  saisie email → `authService.demanderResetPassword(email)` →
+  POST `/api/auth/mot-de-passe/oublie` → écran de confirmation générique
+  (anti-énumération côté backend)
 
 #### 7. **Signup** (`/signup`)
 - Form pour candidats (react-hook-form + zod)
@@ -238,10 +245,20 @@ export const router = createBrowserRouter([
 - Terms acceptance
 
 #### 8. **FirstLogin** (`/first-login`)
-- Réinitialisation password pour institutions
-- Current (temporaire) + new password
-- Password requirements checklist
-- Validation avant soumission
+- Activation **premier login institut** via token d'invitation admin
+- Lit `?token=…` → `authService.validerTokenPremierLogin(token)`
+- Étape 1 : nouveau mot de passe + checklist critères
+- Étape 2 : profil minimal (nom, téléphone, description)
+- Soumission → `authService.terminerPremierLogin(...)` → connecte automatiquement
+  + redirige vers `/dashboard/institution`
+
+#### 8 bis. **ResetPassword** (`/reset-password`)
+- Réinitialisation de mot de passe via lien email (token 1h)
+- Lit `?token=…` → `authService.validerResetToken(token)` au montage
+- Affiche le formulaire RHF + zod (même checklist que FirstLogin) si token valide,
+  sinon écran d'erreur (`TOKEN_EXPIRED` / `TOKEN_INVALID`)
+- Soumission → `authService.reinitialiserPassword(token, password)` →
+  toast succès + redirection `/login`
 
 #### 9. **CandidateDashboard** (`/dashboard/candidate`)
 - Sidebar navigation
@@ -492,7 +509,7 @@ L'alias Sequelize est `as: 'institut'` (minuscule) → la clé imbriquée est `p
 
 | Service | Méthodes | Routes backend |
 |---------|----------|----------------|
-| `authService` | `login`, `register`, `me` | `/api/auth/*` |
+| `authService` | `login`, `register`, `me`, `validerTokenPremierLogin`, `terminerPremierLogin`, `demanderResetPassword`, `validerResetToken`, `reinitialiserPassword` | `/api/auth/*` |
 | `programmeService` | `getAll`, `getById`, `create`, `update`, `delete` | `/api/programmes/*` |
 | `institutService` | `getAll`, `getById`, `create`, `update`, `delete` | `/api/instituts/*` |
 | `candidatureService` | `create`, `update`, `soumettre`, `changerStatut`, `getMine`, `getInstituteList`, `getAll`, `getById`, `delete` | `/api/candidatures/*` |
@@ -1414,10 +1431,20 @@ Testing:             ❌ Absent
 ```
 
 ### Prochaines étapes prioritaires
-1. Pagination SearchResults (infinite scroll)
+1. **Brancher l'UI de pagination** sur SearchResults / Institutions / AdminCandidatures —
+   le backend renvoie déjà `pagination: { total, page, limit, totalPages }` à côté
+   de la clé ressource. Étendre les hooks `usePrograms`, `useInstituts`,
+   `useAllCandidatures` pour exposer ces meta + accepter `page` / `limit` en filtres.
 2. Refresh token automatique
 3. Tests RTL + Jest
 4. Optimisation images (lazy loading, WebP)
+
+### Reset password (mai 2026)
+- Page `/reset-password` (token URL, validité 1h)
+- Dialog « Forgot password? » dans `Login.tsx` (saisie email + écran de confirmation)
+- Backend : 3 endpoints `/api/auth/mot-de-passe/{oublie,valider-token,reinitialiser}` +
+  email transactionnel SMTP via `services/emailService.js` (mêmes vars `SMTP_*` que
+  l'invitation institut)
 
 ### Points de Contact Clés
 - **Entry Point:** `src/main.tsx` → `src/app/App.tsx`

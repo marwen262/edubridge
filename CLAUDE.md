@@ -21,8 +21,10 @@ Le repo contient trois composants indépendants :
 - **Sequelize 6.37** + **PostgreSQL** (via `pg` 8.12 / `pg-hstore`)
 - Migrations : **sequelize-cli** 6.6 (dev)
 - Auth : **JWT** (`jsonwebtoken` 9) + **bcryptjs** 2.4 (10 rounds)
+- Email : **Nodemailer** (SMTP, vars `SMTP_*` dans `.env`) — invitation institut, reset password
 - Upload fichiers : **Multer** 1.4 (disque local, 5 Mo max, jpeg/png/pdf)
 - UUIDs : **uuid** 9 (v4 pour PK, polymorphe pour `Media`)
+- Rate limiting : **express-rate-limit** 8 (global + strict /auth/login)
 - Dev : **nodemon** 3.1
 
 ### Frontend (`frontend/`)
@@ -111,12 +113,16 @@ edubridge/
 │   ├── middleware/
 │   │   ├── authMiddleware.js     # Vérif JWT + résolution profil (candidat_id, institut_id)
 │   │   ├── candidatureGuards.js  # Garde-fous : statut terminal + propriété dossier
+│   │   ├── rateLimiter.js        # Limiteurs express-rate-limit (global + login)
 │   │   └── upload.js             # Config Multer (5 Mo, jpeg/png/pdf)
+│   ├── utils/
+│   │   └── pagination.js         # Helpers lirePagination + construirePaginationMeta
 │   ├── migrations/               # Migrations Sequelize CLI
 │   │   ├── 20260420120000-creation-tables-edubridge.js
 │   │   ├── 20260421000000-add-identite-candidat.js
 │   │   ├── 20260422000000-add-champs-manquants-programmes-instituts.js
-│   │   └── 20260430000000-workflow-institut.js  # invitation email + first login
+│   │   ├── 20260430000000-workflow-institut.js  # invitation email + first login
+│   │   └── 20260501000000-reset-password-token.js  # reset_password_token + expires_at
 │   ├── models/                   # 8 modèles Sequelize MVP (schéma FR)
 │   │   ├── index.js              # Charge tous les modèles + associations
 │   │   ├── Utilisateur.js        # Compte auth (candidat|institut|admin)
@@ -141,6 +147,7 @@ edubridge/
 │   │   └── 20260007000000-notifications.js
 │   ├── services/                 # Logique métier (découplée des controllers)
 │   │   ├── candidatureWorkflow.js    # Moteur de workflow : transitions, validations, horodatage
+│   │   ├── emailService.js           # SMTP Nodemailer : invitation institut + reset password
 │   │   └── notificationService.js    # Notifications automatiques (table + console)
 │   ├── uploads/                  # Fichiers uploadés (servi sur /uploads)
 │   └── index.js                  # Point d'entrée Express
@@ -214,7 +221,7 @@ Routes montées dans `backend/index.js`, toutes préfixées `/api/` :
 
 | Préfixe | Fichier | Description |
 |---|---|---|
-| `/api/auth` | `authRoutes.js` | `register`, `login`, `me` |
+| `/api/auth` | `authRoutes.js` | `register`, `login`, `me`, premier-login (institut), `mot-de-passe/oublie`, `mot-de-passe/valider-token`, `mot-de-passe/reinitialiser` |
 | `/api/utilisateurs` | `utilisateurRoutes.js` | Comptes + profils (Candidat/Institut) |
 | `/api/instituts` | `institutRoutes.js` | Écoles d'ingénieurs |
 | `/api/programmes` | `programmeRoutes.js` | Formations |
@@ -222,6 +229,18 @@ Routes montées dans `backend/index.js`, toutes préfixées `/api/` :
 | `/api/favoris` | `favoriRoutes.js` | Favoris candidat |
 | `/api/notifications` | `notificationRoutes.js` | Notifications (mine, count, lire, lire-tout) |
 | `/api/health` | (inline) | Ping de santé |
+
+**Rate limiting** (`middleware/rateLimiter.js`) : limiteur global appliqué à tout
+`/api/*` (100 req / 15 min / IP) ; limiteur strict sur `/api/auth/login`
+(5 req / 15 min / IP, `skipSuccessfulRequests: true`). Réponse JSON standard
+`{ message: 'Trop de requêtes, réessayez plus tard.' }` + log `[RATE LIMIT]`.
+
+**Pagination** (`utils/pagination.js`) : appliquée sur les listings
+`GET /api/programmes`, `GET /api/instituts`, `GET /api/candidatures` (admin)
+via query params `page` (défaut 1) et `limit` (défaut 10, max 100). Réponse
+**additive** : la clé ressource est conservée et `pagination: { total, page,
+limit, totalPages }` est ajoutée à côté — les hooks frontend continuent à
+fonctionner sans modification.
 
 **Workflow candidature** (`services/candidatureWorkflow.js`) — machine à états :
 
@@ -395,14 +414,21 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - [x] MultiStepDialog → POST /api/candidatures + upload Multer
   - [x] Notifications Navbar → badge + dropdown temps réel
   - [x] mockData.ts supprimé (staticData.ts pour données statiques)
+- **Stabilisation (mai 2026)** :
+  - [x] Reset password complet : email SMTP + page `/reset-password` + dialog
+        « Forgot password » dans Login
+  - [x] Rate limiting backend (`express-rate-limit`) : global `/api/*` +
+        strict `/api/auth/login`
+  - [x] Pagination backend (`page` / `limit` + meta `pagination`) sur
+        `GET /api/programmes`, `/api/instituts`, `/api/candidatures` (admin)
 - **Améliorations futures (hors scope MVP)** :
-  - Pagination sur SearchResults (infinite scroll ou pages)
+  - Brancher l'UI de pagination côté frontend (consommer `r.data.pagination`
+    dans `usePrograms`, `useInstituts`, `useAllCandidatures` — back déjà prêt)
   - Refresh token (actuellement expire après 7j sans reconnexion)
   - Tests unitaires (RTL + Jest)
   - Optimisation images (lazy loading, WebP)
   - i18n (stratégie à décider)
   - Scan antivirus fichiers uploadés
-  - Rate limiting frontend
 - **Priorité immédiate** : Phase 1 d'intégration terminée. Prochaine priorité :
   stabilisation, corrections de bugs, préparation intégration diploma-verifier.
 - Commits descriptifs en **français**, format court style :
