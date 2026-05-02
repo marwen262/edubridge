@@ -20,7 +20,7 @@
 ├── [Country Detector] → Pays d'origine (regex + langdetect)
 ├── [Signature Detector] → Détection signatures (OpenCV)
 ├── [Stamp Detector] → Détection cachets (OpenCV)
-├── [Text Analyzer] → Analyse cohérence texte (spaCy + regex)
+├── [Text Analyzer] → Analyse sémantique V5 (cohérence, classification, stuffing)
 ├── [Tampering Detector] → Détection falsifications (metadata + image analysis)
 ├── [Diploma Classifier] → Classification document (NLP)
 └── [Scoring Engine] → Calcul score final (pondération)
@@ -34,7 +34,7 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 ## 2. Liste des microservices
 
 ### Orchestrator Service
-- **Responsabilité principale** : Coordination du pipeline d'analyse complet, appel séquentiel des services spécialisés, agrégation des résultats.
+- **Responsabilité principale** : Coordination du pipeline d'analyse complet V5, sorties anticipées (early exits), intégration des couches d'intelligence V5 (classification, cohérence, pénalités), et agrégation des résultats selon un schéma strict et concis avec des raisons contextuelles enrichies.
 - **Technologies utilisées** : Python pur, asyncio pour les appels asynchrones.
 - **Dépendances** : Tous les autres services internes.
 
@@ -44,9 +44,9 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 - **Dépendances** : Aucune (traitement d'image brute).
 
 ### OCR Service
-- **Responsabilité principale** : Extraction de texte via OCR, détection de langue, extraction de champs clés via regex et NLP.
-- **Technologies utilisées** : Tesseract OCR, spaCy (modèles fr_core_news_sm, xx_ent_wiki_sm), langdetect, regex Python.
-- **Dépendances** : Modèles spaCy chargés au démarrage.
+- **Responsabilité principale** : Extraction de texte via pipeline OCR V6 incluant l'auto-rotation (OSD), un prétraitement optimisé (grayscale/resize), et une exécution en 3 passes séparées (ara/fra/eng). La sélection du meilleur texte repose sur un score sémantique strict (avec fallback sur la longueur si score nul), suivie d'un filtrage de sécurité tolérant et d'une extraction des champs clés via regex/NLP.
+- **Technologies utilisées** : Tesseract OCR (OSD, 3-pass), spaCy (modèles fr_core_news_sm, xx_ent_wiki_sm), langdetect, regex Python, OpenCV (preprocessing).
+- **Dépendances** : Tesseract OCR, Poppler, OpenCV, modèles spaCy chargés au démarrage.
 
 ### Country Detector
 - **Responsabilité principale** : Détection automatique du pays d'origine basé sur le texte extrait et patterns regex.
@@ -59,13 +59,13 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 - **Dépendances** : Image originale (non prétraitée).
 
 ### Stamp Detector
-- **Responsabilité principale** : Détection de cachets officiels via analyse de formes circulaires et couleurs.
+- **Responsabilité principale** : Détection de cachets officiels via analyse de formes circulaires (Transformée de Hough) et analyse morphologique (scans N&B), avec scores de confiance continus.
 - **Technologies utilisées** : OpenCV, NumPy.
 - **Dépendances** : Image originale.
 
 ### Text Analyzer
-- **Responsabilité principale** : Analyse de la cohérence du texte (présence de mentions officielles, grammaire, structure).
-- **Technologies utilisées** : spaCy, regex, dictionnaires de mots-clés multilingues.
+- **Responsabilité principale** : Analyse sémantique avancée V5. Détecte les entités (noms, institutions, dates, diplômes), classifie le type de document (diplôme vs certificat), vérifie la cohérence sémantique, et détecte le keyword stuffing (bourrage de mots-clés).
+- **Technologies utilisées** : spaCy, regex, dictionnaires de mots-clés multilingues, heuristiques déterministes.
 - **Dépendances** : Texte extrait par OCR, langue détectée.
 
 ### Tampering Detector
@@ -79,9 +79,9 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 - **Dépendances** : Texte OCR + image.
 
 ### Scoring Engine
-- **Responsabilité principale** : Calcul du score final d'authenticité basé sur les résultats de tous les services, avec pondération configurable.
-- **Technologies utilisées** : Python pur, calculs mathématiques.
-- **Dépendances** : Résultats de tous les services.
+- **Responsabilité principale** : Calcul déterministe du score final d'authenticité V6 (borné entre 3 et 98 avec variabilité seedée) basé sur une évaluation probabiliste. Intègre les heuristiques anti-fraude V5/V6 : pondération dynamique, boost de cohérence, pénalités (keyword stuffing, doc type, incohérence visuelle), un **boost visuel V6 (sauvetage des documents à OCR faible mais signaux visuels forts)**, et un **plafond de sécurité strict V6 (blocage des images sans sémantique)**.
+- **Technologies utilisées** : Python pur, calculs mathématiques et heuristiques pondérées.
+- **Dépendances** : Résultats de tous les services (analyse textuelle et visuelle).
 
 ## 3. API Gateway
 **Absente** - L'application utilise directement FastAPI comme framework web sans couche de gateway intermédiaire.
@@ -169,7 +169,7 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 
 ## 11. Résilience & scalabilité
 ### Retry / circuit breaker
-**Non implémenté** - Pas de mécanismes de résilience (l'application plante en cas d'erreur).
+**Partiellement implémenté** - Mécanismes de "graceful failure" pour les dépendances externes comme Tesseract OCR (le système peut continuer avec des capacités réduites). Pas de retry automatique complexe global.
 
 ### Load balancing
 **Non applicable** - Un seul conteneur, scaling horizontal possible via multiple instances derrière un load balancer externe.

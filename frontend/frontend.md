@@ -198,7 +198,7 @@ export const router = createBrowserRouter([
 - Dark mode support
 
 #### 2. **SearchResults** (`/search`)
-- Filtrage multi-critères (field, level, pays, tuition)
+- Filtrage multi-critères (field, level, tuition) — *le filtre "Pays" a été retiré*
 - Grid/List view toggle
 - Sort options (relevance, deadline, tuition)
 - Affichage des ProgramCards
@@ -276,11 +276,12 @@ export const router = createBrowserRouter([
 - Line charts (recharts)
 
 #### 11. **AdminDashboard** (`/dashboard/admin`)
-- Vue globale (5 stat cards)
+- Vue globale (stat cards modernisées)
 - Pending decisions relay table
 - Users management table
 - Charts: registrations, role distribution
 - Institutional analytics
+- Interface modernisée et unifiée avec le branding officiel EduBridge
 
 ### Navigation Globale
 - **Navbar** (sticky, z-50)
@@ -1427,6 +1428,7 @@ Notifications API:   ✅ Routes corrigées (/lire, /mine)
 Mock data:           ✅ Supprimé (staticData.ts pour données statiques)
 Favoris:             ✅ useFavoriStatus transversal (ProgramCard + ProgramDetail)
 Notifications Navbar:✅ Badge unreadCount + dropdown + markAsRead
+Branding & UI:       ✅ Refonte UI Admin/Institution, suppression filtres obsolètes (Pays), intégration Logo officiel
 Testing:             ❌ Absent
 ```
 

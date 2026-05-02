@@ -1,16 +1,17 @@
 """
 Détection de cachet officiel (tampon) dans un document.
 
-Combine :
-  - Détection de cercles (Hough Circle Transform) → fonctionne en N&B
-  - Analyse de couleur HSV (bleu, rouge, violet, noir)
-  - Détection d'ellipses par contours
-
-Retourne une confiance continue (0.0–1.0), jamais un booléen brut.
+V4 — Expert anti-fraud :
+  - Combine Hough circles, HSV color analysis, ellipses, circular contours
+  - Filtres anti-bruit renforcés (rayon min, circularité stricte)
+  - Seuil de confiance minimum (évite les faux positifs)
+  - Lissage des scores (évite les fluctuations extrêmes)
+  - Retourne une confiance continue (0.0–1.0), jamais un booléen brut
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 import cv2
@@ -18,6 +19,18 @@ import numpy as np
 from numpy.typing import NDArray
 
 from app.utils.logger import logger
+
+# Seuil minimum de confiance — sous ce seuil, on considère 0.0
+_MIN_CONFIDENCE_THRESHOLD = 0.12
+
+# V4: Taille minimale de cachet (rayon en pixels)
+_MIN_STAMP_RADIUS = 30
+
+# V4: Aire minimale de contour pour être considéré
+_MIN_CONTOUR_AREA = 1200
+
+# V4: Circularité minimale plus stricte
+_MIN_CIRCULARITY = 0.60
 
 
 @dataclass
@@ -104,7 +117,7 @@ def _find_circles_hough(
         minDist=50,
         param1=100,
         param2=40,
-        minRadius=20,
+        minRadius=_MIN_STAMP_RADIUS,
         maxRadius=max_radius,
     )
 
@@ -143,6 +156,15 @@ def _find_ellipses(
         except cv2.error:
             continue
 
+        # V6: garde anti-NaN — fitEllipse peut retourner NaN sur certains
+        # contours dégénérés. Sans ce check, le cast int() crash plus bas.
+        if not (
+            np.isfinite(cx) and np.isfinite(cy)
+            and np.isfinite(ma) and np.isfinite(MA)
+            and np.isfinite(angle)
+        ):
+            continue
+
         if ma < 40 or MA < 40:
             continue
 
@@ -154,7 +176,7 @@ def _find_ellipses(
         # Remplissage
         area = cv2.contourArea(contour)
         ellipse_area = np.pi * (ma / 2) * (MA / 2)
-        if ellipse_area == 0:
+        if ellipse_area == 0 or not np.isfinite(ellipse_area):
             continue
         fill = area / ellipse_area
         if fill < 0.25:
@@ -195,7 +217,7 @@ def _find_circular_contours(
 
     for contour in contours:
         area = cv2.contourArea(contour)
-        if area < 800:
+        if area < _MIN_CONTOUR_AREA:
             continue
 
         perimeter = cv2.arcLength(contour, True)
@@ -205,17 +227,34 @@ def _find_circular_contours(
         circularity = 4 * np.pi * area / (perimeter * perimeter)
 
         # Un cercle parfait a circularity = 1.0
-        if circularity < 0.55:
+        if circularity < _MIN_CIRCULARITY:
             continue
 
         (cx, cy), radius = cv2.minEnclosingCircle(contour)
         radius = int(radius)
-        if radius < 20:
+        if radius < _MIN_STAMP_RADIUS:
             continue
 
         results.append((int(cx), int(cy), radius, float(circularity)))
 
     return results
+
+
+# ──────────────────────────────────────────────
+# Lissage de confiance
+# ──────────────────────────────────────────────
+
+def _smooth_confidence(raw_confidence: float) -> float:
+    """Lissage sigmoïde pour éviter les scores extrêmes.
+
+    Transforme la confiance brute via une courbe sigmoïde douce
+    centrée sur 0.5, qui compresse les extrêmes et amplifie
+    les valeurs moyennes.
+    """
+    k = 6.0
+    center = 0.45
+    smoothed = 1.0 / (1.0 + math.exp(-k * (raw_confidence - center)))
+    return min(1.0, max(0.0, smoothed))
 
 
 # ──────────────────────────────────────────────
@@ -225,10 +264,14 @@ def _find_circular_contours(
 def detect_stamp(image: NDArray[np.uint8]) -> StampResult:
     """Détecte la présence d'un cachet officiel.
 
-    Combine trois approches :
-      1. Hough Circle Transform (fonctionne en N&B)
-      2. Couleur HSV + ellipses par contour
-      3. Contours circulaires (fallback N&B)
+    V4 — Expert anti-fraud :
+      - Filtres anti-bruit renforcés
+      - Seuil minimum de confiance
+      - Lissage sigmoïde des scores
+      - Combine trois approches :
+        1. Hough Circle Transform (fonctionne en N&B)
+        2. Couleur HSV + ellipses par contour
+        3. Contours circulaires (fallback N&B)
 
     Retourne une confiance continue (0.0–1.0).
     """
@@ -305,17 +348,25 @@ def detect_stamp(image: NDArray[np.uint8]) -> StampResult:
                 best_confidence = conf
                 best_location = {"x": cx, "y": cy, "radius": radius}
 
-        # Finaliser
-        result.confidence = round(min(1.0, best_confidence), 2)
-        result.stamp_color = dominant_color if best_confidence > 0.20 else "inconnu"
-        result.location = best_location if best_confidence > 0.20 else None
+        # Lissage sigmoïde
+        smoothed_confidence = _smooth_confidence(best_confidence)
 
-        if is_grayscale and best_confidence > 0.0:
+        # Appliquer le seuil minimum
+        if smoothed_confidence < _MIN_CONFIDENCE_THRESHOLD:
+            smoothed_confidence = 0.0
+
+        # Finaliser
+        result.confidence = round(min(1.0, smoothed_confidence), 2)
+        result.stamp_color = dominant_color if smoothed_confidence > 0.20 else "inconnu"
+        result.location = best_location if smoothed_confidence > 0.20 else None
+
+        if is_grayscale and smoothed_confidence > 0.0:
             result.stamp_color = "noir"
 
         logger.info(
-            "Cachet — confiance=%.2f | couleur=%s | "
+            "Cachet V4 — raw_conf=%.3f | smoothed=%.2f | couleur=%s | "
             "hough=%d | ellipses=%d | contours=%d",
+            best_confidence,
             result.confidence,
             result.stamp_color,
             len(hough_circles),

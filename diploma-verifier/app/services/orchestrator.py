@@ -1,13 +1,26 @@
 """
-Orchestrateur v2 : coordonne l'analyse et retourne le format strict.
+Orchestrateur v5 : coordonne l'analyse et retourne le format strict.
+
+V5 — Enhanced anti-fraud pipeline :
+  - Pipeline déterministe (même fichier → même score toujours)
+  - Semantic scoring intégré dans le scoring pipeline
+  - Anti-fake heuristics (random image rejection, suspicious pattern)
+  - Structure-aware scoring (boost/penalty)
+  - Confidence calibration avec semantic override
+  - Raisons améliorées et contextuelles
+  - Visual detectors toujours exécutés
+  - V5: Document type classification + penalty
+  - V5: Semantic coherence validation
+  - V5: Keyword stuffing detection
+  - V5: Visual consistency check
+  - V5: Final safety rule
 
 Pipeline :
-  1. Conversion → Prétraitement → OCR
-  2. Analyse textuelle (sémantique)
-  3. Détection diploma_confidence → early return si < 0.3
-  4. Détection signature + cachet (confiance continue)
-  5. Scoring probabiliste déterministe
-  6. Construction de la réponse stricte {score, confidence_level, reasons}
+  1. Conversion → Prétraitement → OCR (avec rotation + sélection sémantique)
+  2. Analyse textuelle sémantique V5 (classification, coherence, stuffing)
+  3. Détection signature + cachet (toujours exécutées)
+  4. Scoring V5 : dynamic weights + structure + anti-fake + V5 layers
+  5. Construction de la réponse stricte {score, confidence_level, reasons}
 """
 
 from __future__ import annotations
@@ -17,8 +30,7 @@ import random
 import time
 
 from app.models.response import VerifyResponse
-from app.services.ocr_service import extract_text
-from app.services.preprocessing import preprocess
+from app.services.ocr_service import extract_text, normalize_ocr_text, compute_text_hash
 from app.services.scoring_engine import compute_score, _clamp
 from app.services.signature_detector import detect_signature
 from app.services.stamp_detector import detect_stamp
@@ -38,11 +50,40 @@ def _deterministic_low_score(content_hash: str, lo: float, hi: float) -> float:
 
 
 def _content_hash(text: str, file_path: str) -> str:
-    """Hash combiné du texte extrait et du chemin fichier."""
+    """Hash combiné du texte NORMALISÉ et du chemin fichier.
+
+    Utilise le texte normalisé (pas brut) pour garantir
+    le déterminisme même si l'OCR brut varie légèrement.
+    """
+    clean = normalize_ocr_text(text) if text else "empty_document"
+    if not clean:
+        clean = "empty_document"
+
     h = hashlib.sha256()
-    h.update(text.encode("utf-8", errors="replace"))
+    h.update(clean.encode("utf-8"))
     h.update(file_path.encode("utf-8", errors="replace"))
     return h.hexdigest()
+
+
+def _is_document_truly_empty(
+    raw_text: str,
+    ocr_confidence: float,
+    sig_confidence: float,
+    stamp_confidence: float,
+) -> bool:
+    """Détermine si le document est VRAIMENT vide.
+
+    Un document est vide SEULEMENT si :
+      - Aucun texte détecté
+      - ET aucune signature détectée
+      - ET aucun cachet détecté
+
+    Cela évite de rejeter un document scanné à faible
+    qualité OCR mais qui contient des éléments visuels.
+    """
+    has_no_text = not raw_text or len(raw_text.strip()) < 10
+    has_no_visual = sig_confidence < 0.15 and stamp_confidence < 0.15
+    return has_no_text and has_no_visual
 
 
 async def analyze_document(
@@ -54,55 +95,62 @@ async def analyze_document(
 ) -> VerifyResponse:
     """Pipeline complet d'analyse d'un document.
 
+    V5 — Enhanced anti-fraud pipeline :
+      1. Conversion + prétraitement + OCR (sélection sémantique)
+      2. Analyse textuelle sémantique V5
+      3. Détection visuelle (signature + cachet)
+      4. Scoring V5 avec structure + anti-fake + V5 layers
+      5. Construction de réponse avec raisons contextuelles
+
     Retourne UNIQUEMENT {score, confidence_level, reasons}.
     """
     start = time.time()
 
     try:
-        logger.info("Début de l'analyse : %s", filename)
+        logger.info("Début de l'analyse V5 : %s", filename)
 
         # ── 1. Conversion en image ──
         _pil_image, cv_image = convert_file(file_path, mime_type)
 
-        # ── 2. Prétraitement (pour OCR) ──
-        preprocessed = preprocess(cv_image)
-
-        # ── 3. OCR ──
-        ocr_result = extract_text(preprocessed)
+        # ── 2. OCR (avec rotation auto + multi-pass sémantique) ──
+        # Note : pas de preprocess() ici — le service OCR gère son
+        # propre pipeline (rotation + grayscale + upscale x2). Une
+        # binarisation préalable dégrade fortement Tesseract LSTM.
+        ocr_result = extract_text(cv_image)
         raw_text = ocr_result.full_text
+        ocr_confidence = ocr_result.ocr_confidence
         language = ocr_result.language_detected
         c_hash = _content_hash(raw_text, file_path)
 
-        # ── 4. Gestion du document vide ──
-        if not raw_text or len(raw_text.strip()) < 10:
-            score = _deterministic_low_score(c_hash, 5.0, 25.0)
-            score = _clamp(score)
-            elapsed = int((time.time() - start) * 1000)
-            log_analysis_result(
-                filename=filename, country="unknown",
-                score=score, verdict="low",
-                processing_time_ms=elapsed, flags=[],
-            )
-            return VerifyResponse(
-                score=score,
-                confidence_level="low",
-                reasons=["Document vide ou contenu insuffisant"],
-            )
+        # ── 4. Détection signature + cachet (TOUJOURS exécutées) ──
+        # Exécutées sur l'image originale, pas la prétraitée
+        sig_result = detect_signature(cv_image)
+        stamp_result = detect_stamp(cv_image)
 
-        # ── 5. Analyse textuelle sémantique ──
-        text_result = analyze_text(raw_text, language)
+        # ── Logging diagnostique (interne uniquement) ──
+        logger.info(
+            "ORCH V5 DIAG — ocr_len=%d | ocr_conf=%.3f | "
+            "sig_conf=%.2f | stamp_conf=%.2f | hash=%s",
+            len(raw_text),
+            ocr_confidence,
+            sig_result.confidence,
+            stamp_result.confidence,
+            c_hash[:16],
+        )
 
-        # ── 6. Early return si pas un diplôme ──
-        if text_result.diploma_confidence < 0.3:
-            score = _deterministic_low_score(c_hash, 5.0, 30.0)
+        # ── 5. Early return : document VRAIMENT vide ──
+        if _is_document_truly_empty(
+            raw_text, ocr_confidence,
+            sig_result.confidence, stamp_result.confidence,
+        ):
+            score = _deterministic_low_score(c_hash, 5.0, 18.0)
             score = _clamp(score)
-            reasons = ["Document non reconnu comme académique"]
-            # Ajouter les raisons textuelles (max 4 restantes)
-            for r in text_result.reasons:
-                if len(reasons) >= _MAX_REASONS:
-                    break
-                if r not in reasons:
-                    reasons.append(r)
+
+            reasons = [
+                "Document sans caractéristiques officielles visibles",
+            ]
+            if ocr_confidence == 0.0:
+                reasons.insert(0, "Texte non détecté dans le document")
 
             elapsed = int((time.time() - start) * 1000)
             log_analysis_result(
@@ -116,11 +164,49 @@ async def analyze_document(
                 reasons=reasons[:_MAX_REASONS],
             )
 
-        # ── 7. Détection signature + cachet (sur image originale) ──
-        sig_result = detect_signature(cv_image)
-        stamp_result = detect_stamp(cv_image)
+        # ── 6. Analyse textuelle sémantique V5 ──
+        text_result = analyze_text(raw_text, language)
 
-        # ── 8. Construire les données pour le scoring ──
+        # ── 7. Early return si pas un diplôme ET pas de signaux visuels ──
+        # V6: seuil textuel abaissé à 0.2 — les diplômes arabes ont
+        # souvent une diploma_confidence faible (regex name/inst Latin
+        # uniquement). On évite ainsi les faux rejets.
+        if text_result.diploma_confidence < 0.2:
+            visual_signal = (
+                sig_result.confidence * 0.5
+                + stamp_result.confidence * 0.5
+            )
+
+            if visual_signal < 0.3:
+                # Ni le texte ni les signaux visuels ne confirment un diplôme
+                score = _deterministic_low_score(c_hash, 5.0, 25.0)
+                score = _clamp(score)
+
+                reasons = _build_rejection_reasons(
+                    text_result, ocr_confidence,
+                )
+
+                elapsed = int((time.time() - start) * 1000)
+                log_analysis_result(
+                    filename=filename, country="unknown",
+                    score=score, verdict="low",
+                    processing_time_ms=elapsed, flags=[],
+                )
+                return VerifyResponse(
+                    score=score,
+                    confidence_level="low",
+                    reasons=reasons[:_MAX_REASONS],
+                )
+
+            # Signaux visuels forts → continuer le scoring normal
+            logger.info(
+                "diploma_confidence basse (%.2f) mais signaux visuels "
+                "forts (%.2f) — poursuite du scoring V5",
+                text_result.diploma_confidence,
+                visual_signal,
+            )
+
+        # ── 8. Construire les données pour le scoring V5 ──
         analysis_data: dict = {
             "has_person_name": 1.0 if text_result.has_person_name else 0.0,
             "has_institution": 1.0 if text_result.has_institution else 0.0,
@@ -129,13 +215,30 @@ async def analyze_document(
             "signature_confidence": sig_result.confidence,
             "stamp_confidence": stamp_result.confidence,
             "official_mention": 1.0 if text_result.official_mention_found else 0.0,
+            "certification_phrase": (
+                1.0 if text_result.has_certification_phrase else 0.0
+            ),
+            "keyword_density": text_result.keyword_density,
         }
 
-        # ── 9. Scoring probabiliste déterministe ──
-        score, confidence_level = compute_score(analysis_data, raw_text)
+        # ── 9. Scoring V5 : structure + anti-fake + V5 layers ──
+        score, confidence_level = compute_score(
+            analysis_data,
+            raw_text,
+            ocr_confidence=ocr_confidence,
+            semantic_score=text_result.semantic_score,
+            structure_count=text_result.structure_count,
+            doc_type=text_result.doc_type,
+            coherence_score=text_result.coherence_score,
+            keyword_penalty=text_result.keyword_penalty,
+        )
 
-        # ── 10. Construire les raisons ──
-        reasons = _build_reasons(text_result, sig_result, stamp_result)
+        # ── 10. Construire les raisons V5 ──
+        reasons = _build_reasons_v5(
+            text_result, sig_result, stamp_result,
+            ocr_confidence=ocr_confidence,
+            score=score,
+        )
 
         # ── 11. Log ──
         elapsed = int((time.time() - start) * 1000)
@@ -169,32 +272,122 @@ async def analyze_document(
         )
 
 
-def _build_reasons(text_result, sig_result, stamp_result) -> list[str]:
-    """Construit la liste de raisons courtes et humaines (max 5)."""
+# ──────────────────────────────────────────────
+# Rejection reasons (early return)
+# ──────────────────────────────────────────────
+
+def _build_rejection_reasons(
+    text_result,
+    ocr_confidence: float,
+) -> list[str]:
+    """Construit les raisons pour un rejet anticipé (non-diplôme).
+
+    Utilise des raisons descriptives et contextuelles.
+    """
     reasons: list[str] = []
 
-    # Raisons textuelles
-    for r in text_result.reasons:
-        if len(reasons) >= _MAX_REASONS:
-            break
-        if r not in reasons:
-            reasons.append(r)
+    if text_result.structure_count == 0:
+        reasons.append("Document non reconnu comme académique")
+    else:
+        reasons.append("Structure du document incomplète")
 
-    # Signature
+    if text_result.keyword_density == 0.0:
+        reasons.append("Absence de mentions académiques clés")
+
+    if ocr_confidence == 0.0:
+        reasons.append("Texte non détecté dans le document")
+
+    # Add specific missing fields
+    if not text_result.has_person_name and len(reasons) < _MAX_REASONS:
+        reasons.append("Nom du titulaire non détecté")
+
+    if not reasons:
+        reasons.append("Document non reconnu comme académique")
+
+    return reasons[:_MAX_REASONS]
+
+
+# ──────────────────────────────────────────────
+# V5 Reasons builder
+# ──────────────────────────────────────────────
+
+def _build_reasons_v5(
+    text_result,
+    sig_result,
+    stamp_result,
+    ocr_confidence: float = 1.0,
+    score: float = 50.0,
+) -> list[str]:
+    """Construit la liste de raisons V5 — descriptives et contextuelles.
+
+    V5 améliorations :
+      - Raisons positives pour les documents bien validés
+      - Raisons descriptives plutôt que techniques
+      - V5: Raisons pour doc_type, cohérence, keyword stuffing
+      - Maximum 5 raisons, ordonnées par importance
+    """
+    reasons: list[str] = []
+
+    # ── Raisons positives (pour les bons scores) ──
+    if score >= 60:
+        if text_result.has_certification_phrase and len(reasons) < _MAX_REASONS:
+            reasons.append("Formulation de certification détectée")
+        if text_result.structure_count >= 3 and len(reasons) < _MAX_REASONS:
+            reasons.append("Informations académiques cohérentes")
+        if stamp_result.confidence >= 0.5 and len(reasons) < _MAX_REASONS:
+            reasons.append("Présence de cachet officiel")
+        if sig_result.confidence >= 0.5 and len(reasons) < _MAX_REASONS:
+            reasons.append("Signature manuscrite détectée")
+
+    # ── V5: Document type reason ──
+    if text_result.doc_type != "diploma" and len(reasons) < _MAX_REASONS:
+        reasons.append("Type de document non académique")
+
+    # ── V5: Coherence reason ──
+    if text_result.coherence_score < 0.5 and len(reasons) < _MAX_REASONS:
+        reasons.append("Cohérence sémantique faible")
+
+    # ── V5: Keyword stuffing reason ──
+    if text_result.keyword_penalty > 0.0 and len(reasons) < _MAX_REASONS:
+        reasons.append("Utilisation excessive de mots-clés")
+
+    # ── Raisons négatives ──
+    # OCR failure
+    if ocr_confidence == 0.0 and len(reasons) < _MAX_REASONS:
+        reasons.append("Texte non détecté dans le document")
+
+    # Structure
+    if text_result.structure_count < 2 and len(reasons) < _MAX_REASONS:
+        reasons.append("Structure du document incomplète")
+
+    # Keyword density
+    if text_result.keyword_density == 0.0 and ocr_confidence > 0.0:
+        if len(reasons) < _MAX_REASONS:
+            reasons.append("Absence de mentions académiques clés")
+
+    # Specific missing fields (V6: institution non requise)
+    if not text_result.has_person_name and len(reasons) < _MAX_REASONS:
+        reasons.append("Nom du titulaire non détecté")
+
+    if not text_result.has_degree_keyword and len(reasons) < _MAX_REASONS:
+        reasons.append("Type de diplôme non reconnu")
+
+    # Visual signals
     if sig_result.confidence < 0.3 and len(reasons) < _MAX_REASONS:
         reasons.append("Signature absente ou incertaine")
 
-    # Cachet
     if stamp_result.confidence < 0.3 and len(reasons) < _MAX_REASONS:
         reasons.append("Cachet officiel absent")
 
-    # Mentions officielles
+    # Official mentions
     if not text_result.official_mention_found and len(reasons) < _MAX_REASONS:
-        if "Institution non identifiée" not in reasons:
-            reasons.append("Structure partiellement reconnue")
+        reasons.append("Structure partiellement reconnue")
 
-    # Si aucune raison mais score moyen
+    # Fallback
     if not reasons:
-        reasons.append("Informations incomplètes")
+        if score >= 50:
+            reasons.append("Document partiellement vérifié")
+        else:
+            reasons.append("Document sans caractéristiques officielles visibles")
 
     return reasons[:_MAX_REASONS]

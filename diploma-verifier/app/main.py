@@ -27,13 +27,17 @@ async def lifespan(app: FastAPI):
     os.makedirs(LOG_DIR, exist_ok=True)
 
     # Vérifier Tesseract
-    import shutil
-    tesseract_path = shutil.which("tesseract")
-    if tesseract_path:
-        logger.info("Tesseract trouvé : %s", tesseract_path)
-    else:
+    try:
+        import pytesseract
+        import sys
+        if sys.platform.startswith("win"):
+            if pytesseract.pytesseract.tesseract_cmd == 'tesseract':
+                pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        version = pytesseract.get_tesseract_version()
+        logger.info("Tesseract trouvé (version %s)", version)
+    except Exception as e:
         logger.warning(
-            "Tesseract non trouvé dans le PATH. "
+            "Tesseract non trouvé ou non configuré. "
             "L'OCR ne fonctionnera pas correctement."
         )
 

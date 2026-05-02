@@ -1,7 +1,7 @@
 # Documentation Architecturale - Backend EduBridge
 
 **Version:** 1.0.0  
-**Date:** Avril 2026  
+**Date:** Mai 2026  
 **Stack:** Node.js + Express + PostgreSQL + Sequelize ORM  
 **Environnement:** Production / Développement
 

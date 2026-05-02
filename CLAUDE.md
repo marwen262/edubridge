@@ -38,16 +38,17 @@ Le repo contient trois composants indépendants :
 - **react-hook-form** 7 + **zod 4** + **@hookform/resolvers 5** (formulaires Login/Signup)
 - **AuthContext** (`src/context/AuthContext.tsx`) — JWT + localStorage + intercepteurs
 - **ProtectedRoute** (`src/components/ProtectedRoute.tsx`) — garde routes dashboard
-- Scaffold d'origine : **Figma Make** (d'où le `name` `@figma/my-make-file`)
+- Scaffold d'origine : **Figma Make** (refonte UI, branding uniformisé EduBridge, dashboards modernisés)
 
 ### Diploma Verifier (`diploma-verifier/`)
 - **Python 3.11** + **FastAPI** (API async)
-- **Tesseract OCR** + **spaCy** (modèles `fr_core_news_sm`, `xx_ent_wiki_sm`)
-- **OpenCV** / **scikit-image** / **NumPy** (prétraitement + détection signatures/cachets)
+- **V5 Engine** : Système de vérification expert (anti-fraude, déterministe, OCR-robuste)
+- **Tesseract OCR** + **spaCy** (compréhension sémantique, modèles `fr_core_news_sm`, `xx_ent_wiki_sm`)
+- **OpenCV** / **scikit-image** / **NumPy** (validation visuelle, consistance de la forme, détection de tampons par Transformée de Hough)
+- Classification de type de document, validation de cohérence sémantique, pénalités de densité de mots-clés
 - **PyMuPDF** + **python-magic** (analyse PDF / détection falsification)
-- **langdetect** (détection langue)
 - Conteneurisé (Dockerfile + docker-compose), exposé sur port 8000
-- **Stateless** : aucune base de données, pas d'authentification
+- **Stateless** : aucune base de données, pas d'authentification, pas de machine learning aléatoire
 
 ## Commandes utiles
 
@@ -429,7 +430,6 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - Optimisation images (lazy loading, WebP)
   - i18n (stratégie à décider)
   - Scan antivirus fichiers uploadés
-- **Priorité immédiate** : Phase 1 d'intégration terminée. Prochaine priorité :
-  stabilisation, corrections de bugs, préparation intégration diploma-verifier.
+- **Priorité immédiate** : Stabilisation, corrections de bugs, intégration diploma-verifier V5 experte.
 - Commits descriptifs en **français**, format court style :
   `feat(auth): ajouter endpoint /me` ou `fix(front): corriger navigation sidebar`.
