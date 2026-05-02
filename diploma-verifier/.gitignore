@@ -1,0 +1,32 @@
+# Python bytecode (régénéré à chaque exécution)
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs runtime
+logs/*.log
+
+# Tesseract language data (installé via apt-get dans le Dockerfile)
+*.traineddata
+
+# Artefact de lancement local
+uvicorn
+
+# Fichiers de test scratch (à la racine)
+/test.jpg
+/test.png
+/check_deps.py
+/create_test_img.py
+/test_ocr_manual.py
+/test_v4.py
+
+# Environnements / secrets
+.env
+.env.local
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp

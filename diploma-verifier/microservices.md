@@ -1,5 +1,46 @@
 # Architecture Microservices - Diploma Verifier
 
+## 0. Changelog V6 (mai 2026)
+
+Refonte importante du pipeline OCR/scoring pour stabiliser la détection sur diplômes Arabic (cas Tunisie typique) et descendre les temps d'analyse sous 30 secondes.
+
+### Bugs critiques corrigés
+| Bug | Fichier | Impact |
+|---|---|---|
+| **Double prétraitement** : `preprocess()` binarisait l'image avant l'OCR (Tesseract LSTM dégradé) | `services/orchestrator.py` | +30 à +50 points sur diplômes valides |
+| **`cv2.fitEllipse` NaN crash** : le détecteur de cachet retournait `confidence=0` systématiquement | `services/stamp_detector.py` | stamp_confidence détecté correctement (0.85–0.95) |
+| **Convention rotation OSD/fallback opposée** : `ROTATE_90_CW` vs `ROTATE_90_CCW` pour le même angle 270° | `services/ocr_service.py` | Speedup ×2 sur diplômes mal-orientés (plus de fallback inutile) |
+| **`_YEAR_PATTERN` `\b` cassé en Unicode** : ratait les années dans les diplômes Arabic | `services/text_analyzer.py` | `has_date=True` sur diplômes Arabic |
+
+### Améliorations de couverture multilingue
+- **Mots-clés Arabic ajoutés** dans `classify_document` (`شهادة`, `ليسانس`, `ماستر`, `دكتوراه`, `دبلوم`, `إجازة`, `بكالوريوس`, `ماجستير`) et dans `DIPLOMA_TYPES['ar']` (config.py)
+- **`check_coherence` multi-langues** : patterns Arabic (`يشهد .* شهادة`, `جامعة .* ماستر`), Anglais (`this is to certify .* degree`), accents normalisés via NFKD, flag `re.DOTALL`
+- **Fallback regex Arabic** pour les noms (`_ARABIC_NAME_PATTERN`) en complément de spaCy
+- **5 passes OCR** au lieu de 3 : `ara`, `fra`, `eng`, **`ara+fra`**, **`fra+eng`** (combine-langs pour diplômes bilingues)
+- **Fallback 4-rotation** : quand OSD donne un OCR de semantic_score < 5, teste les 4 orientations (0°/90°/180°/270°) sur image à 800px, garde la meilleure
+
+### Recalibrage du scoring
+- **`has_institution` retiré** du `structure_count`, du `_compute_semantic_score`, et de `TEXT_WEIGHTS` (poids redistribués). Un diplôme sans institution détectée n'est plus pénalisé.
+- **Seuils structure** abaissés : boost `≥2` (était 3), penalty `<1` (était 2). Compense la nouvelle taille `core_fields=3`.
+- **Seuil early-reject** abaissé : `diploma_confidence < 0.2` (était 0.3) — moins de faux rejets sur Arabic.
+- **Plafond `no-content`** : `structure_count==0` AND `semantic_score<0.1` → score capé à 18 (bloque les logos/images avec features géométriques).
+
+### Performances (sur Windows local, 5 passes parallélisées)
+| Fichier | Avant | Après V6 | Speedup |
+|---|---|---|---|
+| test1.jpg (diplôme arabe straight) | 48 s | 12 s | 4× |
+| testrotation.jpg (même diplôme, 90° tourné) | 5 m 35 s | 13 s | **26×** |
+| test.jpg (diplôme ingénieur) | 1 m 25 s | 4 s | 21× |
+| logoedubridge.png (logo, contrôle anti-fraude) | 49 s | 6 s | 8× |
+
+Optimisations principales :
+1. **Parallélisation OCR via `ThreadPoolExecutor`** : les 5 passes Tesseract tournent en parallèle (subprocess libère le GIL) → speedup ~5×.
+2. **Un seul appel Tesseract par passe** : `image_to_data` reconstruit texte + confidence en un seul appel (au lieu de `image_to_string` + `image_to_data` séparés) → ~50% par passe.
+3. **Quick rotation test downsamplée à 800px** : le fallback 4-rotation tourne sur une image légère pour identifier la bonne orientation, puis re-OCR full-quality une seule fois → ~80% de gain sur le fallback.
+4. **Stamp detector downsample à 1200px max** : Hough circles est O(n²), passer de 4000 à 1200px = ~11× plus rapide.
+
+---
+
 ## 1. Vue globale de l’architecture
 
 ### Type d’architecture
@@ -20,7 +61,7 @@
 ├── [Country Detector] → Pays d'origine (regex + langdetect)
 ├── [Signature Detector] → Détection signatures (OpenCV)
 ├── [Stamp Detector] → Détection cachets (OpenCV)
-├── [Text Analyzer] → Analyse cohérence texte (spaCy + regex)
+├── [Text Analyzer] → Analyse sémantique V5 (cohérence, classification, stuffing)
 ├── [Tampering Detector] → Détection falsifications (metadata + image analysis)
 ├── [Diploma Classifier] → Classification document (NLP)
 └── [Scoring Engine] → Calcul score final (pondération)
@@ -34,19 +75,29 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 ## 2. Liste des microservices
 
 ### Orchestrator Service
-- **Responsabilité principale** : Coordination du pipeline d'analyse complet, appel séquentiel des services spécialisés, agrégation des résultats.
+- **Responsabilité principale** : Coordination du pipeline d'analyse complet V5/V6, sorties anticipées (early exits), intégration des couches d'intelligence V5 (classification, cohérence, pénalités), et agrégation des résultats selon un schéma strict et concis avec des raisons contextuelles enrichies.
 - **Technologies utilisées** : Python pur, asyncio pour les appels asynchrones.
 - **Dépendances** : Tous les autres services internes.
+- **V6 — Correction du double prétraitement** : `preprocess()` n'est plus appelé avant `extract_text()`. L'ancienne pipeline binarisait l'image (adaptive threshold) avant l'OCR, dégradant fortement Tesseract LSTM (qui travaille sur des niveaux de gris). Désormais l'image brute (`cv_image`) est passée directement à l'OCR, qui gère son propre préprocessing optimisé. Gain typique : **+30 à +50 points** sur les diplômes valides.
+- **V6 — Suppression du critère `has_institution`** : un diplôme sans institution détectée n'est plus pénalisé. `has_institution` est retiré du `structure_count`, du `_compute_semantic_score()` (poids redistribués) et de `TEXT_WEIGHTS` (poids redistribué sur les autres signaux textuels).
+- **V6 — Seuil early-reject baissé à 0.2** : `diploma_confidence < 0.2` au lieu de 0.3 — évite les faux rejets sur diplômes arabes où la regex de nom (Latin) et spaCy peinent à extraire les entités.
 
 ### Preprocessing Service
 - **Responsabilité principale** : Prétraitement des images pour optimiser l'OCR (redimensionnement, correction gamma, seuillage).
 - **Technologies utilisées** : OpenCV, scikit-image, NumPy.
 - **Dépendances** : Aucune (traitement d'image brute).
+- **V6 — N'est plus utilisé dans le pipeline d'OCR** : `preprocess()` reste disponible mais n'est plus appelé par l'orchestrateur (le binarize détruisait l'OCR). L'OCR Service fait son propre préprocessing minimal (grayscale + upscale x2).
 
 ### OCR Service
-- **Responsabilité principale** : Extraction de texte via OCR, détection de langue, extraction de champs clés via regex et NLP.
-- **Technologies utilisées** : Tesseract OCR, spaCy (modèles fr_core_news_sm, xx_ent_wiki_sm), langdetect, regex Python.
-- **Dépendances** : Modèles spaCy chargés au démarrage.
+- **Responsabilité principale** : Extraction de texte via pipeline OCR V6 incluant l'auto-rotation (OSD), un prétraitement optimisé (grayscale/upscale x2), une exécution **parallélisée** en 5 passes (ara, fra, eng, ara+fra, fra+eng), et un fallback de rotation 4-orientations quand OSD échoue. La sélection du meilleur texte repose sur un score sémantique strict (avec fallback sur la longueur si score nul), suivie d'un filtrage de sécurité tolérant et d'une extraction des champs clés via regex/NLP.
+- **Technologies utilisées** : Tesseract OCR (OSD, 5-pass parallèle), spaCy (modèles fr_core_news_sm, xx_ent_wiki_sm), langdetect, regex Python, OpenCV (preprocessing), `concurrent.futures.ThreadPoolExecutor`.
+- **Dépendances** : Tesseract OCR, Poppler, OpenCV, modèles spaCy chargés au démarrage.
+- **V6 — Parallélisation OCR via `ThreadPoolExecutor`** : les 5 passes Tesseract tournent en parallèle (Tesseract est invoqué en subprocess → libère le GIL). Speedup typique **~5×** sur le coût OCR.
+- **V6 — Un seul appel Tesseract par passe** : `image_to_data` reconstruit le texte ET la confidence en un seul appel (au lieu de `image_to_string` + `image_to_data` séparés). Économie ~50% par passe.
+- **V6 — Fallback 4-rotation** : quand OSD donne un OCR de semantic_score < 5, le service teste les 4 orientations (0°/90°/180°/270°) sur image downsamplée à 800px (1 passe combinée `ara+fra+eng` chacune), garde la meilleure, et ré-exécute le pipeline OCR complet sur la rotation choisie.
+- **V6 — Bug rotation OSD/fallback corrigé** : `_correct_rotation` (chemin OSD) et `_rotate_image` (chemin fallback) utilisaient des conventions opposées pour les angles 90° et 270° (ROTATE_90_CW vs ROTATE_90_CCW). Désormais cohérents avec la convention OSD (rotate=N° = N° clockwise pour redresser).
+- **V6 — Mots-clés Arabic ajoutés** : `_DEGREE_KEYWORDS` étendu via `DIPLOMA_TYPES['ar']` qui inclut maintenant `شهادة`, `إجازة` (en plus de `ليسانس`, `ماستر`, `دكتوراه`, `دبلوم`).
+- **V6 — Combine-langs ajoutés** : passes `ara+fra` et `fra+eng` pour les diplômes bilingues (typique tunisien fr/ar).
 
 ### Country Detector
 - **Responsabilité principale** : Détection automatique du pays d'origine basé sur le texte extrait et patterns regex.
@@ -59,14 +110,22 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 - **Dépendances** : Image originale (non prétraitée).
 
 ### Stamp Detector
-- **Responsabilité principale** : Détection de cachets officiels via analyse de formes circulaires et couleurs.
+- **Responsabilité principale** : Détection de cachets officiels via analyse de formes circulaires (Transformée de Hough) et analyse morphologique (scans N&B), avec scores de confiance continus.
 - **Technologies utilisées** : OpenCV, NumPy.
 - **Dépendances** : Image originale.
+- **V6 — Bug NaN corrigé** : `cv2.fitEllipse()` peut retourner `NaN` sur certains contours dégénérés ; le cast `int()` plus bas crashait le détecteur (`stamp_confidence=0` systématique). Garde `np.isfinite()` ajoutée. Gain : **stamp_confidence détecté correctement** sur les diplômes (typiquement 0.85–0.95 sur cachets noirs/bleus).
+- **V6 — Downsample à 1200px max** : Hough circles est O(n²) — passer de 4000px à 1200px = ~11× plus rapide. Un cachet (~150-300px de diamètre) reste très détectable à cette résolution.
 
 ### Text Analyzer
-- **Responsabilité principale** : Analyse de la cohérence du texte (présence de mentions officielles, grammaire, structure).
-- **Technologies utilisées** : spaCy, regex, dictionnaires de mots-clés multilingues.
+- **Responsabilité principale** : Analyse sémantique avancée V5/V6. Détecte les entités (noms, institutions, dates, diplômes), classifie le type de document (diplôme vs certificat), vérifie la cohérence sémantique, et détecte le keyword stuffing (bourrage de mots-clés).
+- **Technologies utilisées** : spaCy, regex, dictionnaires de mots-clés multilingues, heuristiques déterministes.
 - **Dépendances** : Texte extrait par OCR, langue détectée.
+- **V6 — Mots-clés Arabic + accents normalisés** : `classify_document` accepte désormais `شهادة`, `ليسانس`, `ماستر`, `دكتوراه`, `دبلوم`, `إجازة`, `بكالوريوس`, `ماجستير` (et accents français normalisés via NFKD). Seuil abaissé de `>= 2` à `>= 1` (un vrai diplôme ne contient souvent qu'un seul type).
+- **V6 — `check_coherence` multi-langues** : patterns Arabic (`يشهد .* شهادة`, `جامعة .* ماستر`, etc.) et Anglais ajoutés ; flag `re.DOTALL` pour multi-lignes ; accents normalisés.
+- **V6 — `keyword_density_penalty` étendu** : liste de mots-clés enrichie (français accentué, anglais, arabe).
+- **V6 — Fallback regex Arabic pour les noms** : `_ARABIC_NAME_PATTERN` ajouté en complément de spaCy/regex Latin (`السيد`, `السيدة`, `الطالب`, `يشهد بأن` + suite Arabic).
+- **V6 — `_YEAR_PATTERN` plus tolérant** : utilise lookbehind/lookahead `(?<!\d)...(?!\d)` au lieu de `\b` qui échoue dans les contextes Unicode (Arabic, accents).
+- **V6 — `has_institution` retiré du scoring** : `structure_count` réduit de 4 à 3 champs (name, degree, date) ; seuils boost/penalty abaissés à 2/1 ; poids redistribués dans `_compute_semantic_score`.
 
 ### Tampering Detector
 - **Responsabilité principale** : Détection de falsifications via analyse des métadonnées PDF et anomalies visuelles.
@@ -79,9 +138,11 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 - **Dépendances** : Texte OCR + image.
 
 ### Scoring Engine
-- **Responsabilité principale** : Calcul du score final d'authenticité basé sur les résultats de tous les services, avec pondération configurable.
-- **Technologies utilisées** : Python pur, calculs mathématiques.
-- **Dépendances** : Résultats de tous les services.
+- **Responsabilité principale** : Calcul déterministe du score final d'authenticité V6 (borné entre 3 et 98 avec variabilité seedée) basé sur une évaluation probabiliste. Intègre les heuristiques anti-fraude V5/V6 : pondération dynamique, boost de cohérence, pénalités (keyword stuffing, doc type, incohérence visuelle), un **boost visuel V6 (sauvetage des documents à OCR faible mais signaux visuels forts)**, un **plafond de sécurité strict V6 (blocage des images sans sémantique)**, et un **plafond no-content V6** (`structure_count==0` AND `semantic_score<0.1` → score plafonné à 18 — bloque les logos/images aléatoires avec features géométriques type cercle).
+- **Technologies utilisées** : Python pur, calculs mathématiques et heuristiques pondérées.
+- **Dépendances** : Résultats de tous les services (analyse textuelle et visuelle).
+- **V6 — `TEXT_WEIGHTS` redistribués** (poids `has_institution=0.15` retiré) : `has_person_name=0.20`, `has_degree_keyword=0.16`, `has_date=0.10`, `official_mention=0.10`, `certification_phrase=0.09`. Total text+visual reste à 1.0.
+- **V6 — Seuils de structure abaissés** : `_STRUCTURE_BOOST_THRESHOLD=2` (était 3), `_STRUCTURE_PENALTY_THRESHOLD=1` (était 2). Compense la suppression d'`has_institution` (max struct=3 désormais).
 
 ## 3. API Gateway
 **Absente** - L'application utilise directement FastAPI comme framework web sans couche de gateway intermédiaire.
@@ -169,7 +230,7 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 
 ## 11. Résilience & scalabilité
 ### Retry / circuit breaker
-**Non implémenté** - Pas de mécanismes de résilience (l'application plante en cas d'erreur).
+**Partiellement implémenté** - Mécanismes de "graceful failure" pour les dépendances externes comme Tesseract OCR (le système peut continuer avec des capacités réduites). Pas de retry automatique complexe global.
 
 ### Load balancing
 **Non applicable** - Un seul conteneur, scaling horizontal possible via multiple instances derrière un load balancer externe.

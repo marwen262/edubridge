@@ -1,22 +1,58 @@
 """
 Service OCR : extraction de texte, détection de langue,
 extraction des champs clés via regex et spaCy.
+
+V6 — Production OCR fix :
+  - Auto-rotation via pytesseract OSD
+  - Simple preprocessing (grayscale + resize x2, NO aggressive threshold)
+  - 3-pass OCR per language (ara / fra / eng) — NOT combined
+  - Text normalization (lowercase, remove accents, strip special chars)
+  - Semantic scoring based on diploma structure keywords
+  - Best text selection purely by semantic score
+  - Deterministic, no ML models
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
+import sys
+import unicodedata
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 
+import cv2
 import numpy as np
 import pytesseract
 from langdetect import LangDetectException, detect
 from numpy.typing import NDArray
 from PIL import Image
 
-from app.config import DIPLOMA_TYPES, OCR_LANGUAGES
+from app.config import DIPLOMA_TYPES, MAX_IMAGE_DIMENSION, OCR_LANGUAGES
 from app.utils.logger import logger
+
+# --- Configuration Tesseract ---
+if sys.platform.startswith("win"):
+    if pytesseract.pytesseract.tesseract_cmd == 'tesseract':
+        pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+TESSERACT_AVAILABLE = False
+try:
+    pytesseract.get_tesseract_version()
+    TESSERACT_AVAILABLE = True
+except Exception:
+    logger.warning("Tesseract not found – OCR disabled")
+
+# Optimized Tesseract config: LSTM engine + block-based PSM
+_TESSERACT_CONFIG = "--oem 3 --psm 6"
+
+# Languages to run OCR passes for.
+# V6: passes individuelles + passes combinées pour les diplômes
+# bilingues (typique tunisien fr/ar). La meilleure passe est
+# sélectionnée par scoring sémantique. (P2 reverté — la passe
+# combinée unique générait des faux positifs sur le bruit OCR.)
+_OCR_PASS_LANGS = ["ara", "fra", "eng", "ara+fra", "fra+eng"]
 
 # Modèles spaCy chargés au démarrage (cf. main.py)
 _spacy_fr = None
@@ -36,10 +72,183 @@ def load_spacy_models() -> None:
         _spacy_xx = spacy.load("xx_ent_wiki_sm")
 
 
+# ──────────────────────────────────────────────
+# Semantic scoring — keyword groups & weights
+# ──────────────────────────────────────────────
+
+# Each entry: (weight, [variant_group])
+# A variant group matches if ANY word in the group appears in the text.
+
+_DEGREE_KEYWORDS: list[list[str]] = [
+    ["baccalaureat", "bac"],
+    ["بكالوريا", "البكالوريا"],
+    ["diplome"],
+    ["licence"],
+    ["master"],
+    ["ingenieur"],
+    ["doctorat"],
+    ["شهادة"],
+    ["certificate"],
+    ["degree"],
+    ["bachelor"],
+    ["دكتوراه"],
+    ["ليسانس"],
+    ["ماستر"],
+    ["دبلوم"],
+    ["brevet"],
+    ["attestation"],
+]
+
+_INSTITUTION_KEYWORDS: list[list[str]] = [
+    ["universite", "faculte"],
+    ["ecole"],
+    ["academie"],
+    ["جامعة"],
+    ["مدرسة"],
+    ["كلية"],
+    ["institut"],
+    ["college"],
+    ["school"],
+    ["معهد"],
+    ["hochschule"],
+]
+
+_AUTHORITY_KEYWORDS: list[list[str]] = [
+    ["ministere"],
+    ["republique"],
+    ["وزارة"],
+    ["الجمهورية"],
+    ["ministry"],
+    ["التعليم العالي"],
+    ["education"],
+]
+
+_SCORE_DEGREE = 3
+_SCORE_INSTITUTION = 2
+_SCORE_AUTHORITY = 2
+
+
+def _normalize_for_scoring(text: str) -> str:
+    """Normalize text for semantic keyword matching.
+
+    Steps:
+      1. Unicode NFKD — strip combining marks (accents)
+      2. Lowercase
+      3. Replace newlines/tabs with spaces
+      4. Remove special characters EXCEPT Arabic Unicode range
+      5. Collapse multiple spaces
+    """
+    if not text:
+        return ""
+
+    # NFKD normalization — strips accents
+    normalized = unicodedata.normalize("NFKD", text)
+    normalized = "".join(
+        c for c in normalized if not unicodedata.combining(c)
+    )
+
+    # Lowercase
+    normalized = normalized.lower()
+
+    # Newlines / tabs → space
+    normalized = normalized.replace("\n", " ").replace("\r", " ").replace("\t", " ")
+
+    # Remove special chars but KEEP Arabic characters (U+0600–U+06FF)
+    # and basic alphanumeric + spaces
+    normalized = re.sub(r"[^a-z0-9\s\u0600-\u06FF]", "", normalized)
+
+    # Collapse spaces
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+
+    return normalized
+
+
+def _semantic_score(text: str) -> int:
+    """Compute a semantic score for OCR text based on diploma keywords.
+
+    Scoring:
+      - Each DEGREE keyword group matched → +3
+      - Each INSTITUTION keyword group matched → +2
+      - Each AUTHORITY keyword group matched → +2
+
+    Only counts each group once (no double counting variants).
+    Returns the total integer score.
+    """
+    normalized = _normalize_for_scoring(text)
+    if not normalized:
+        return 0
+
+    score = 0
+
+    for group in _DEGREE_KEYWORDS:
+        if any(kw in normalized for kw in group):
+            score += _SCORE_DEGREE
+
+    for group in _INSTITUTION_KEYWORDS:
+        if any(kw in normalized for kw in group):
+            score += _SCORE_INSTITUTION
+
+    for group in _AUTHORITY_KEYWORDS:
+        if any(kw in normalized for kw in group):
+            score += _SCORE_AUTHORITY
+
+    return score
+
+
+# ──────────────────────────────────────────────
+# Text normalization (for hashing & clean_text)
+# ──────────────────────────────────────────────
+
+def normalize_ocr_text(raw_text: str) -> str:
+    """Normalise le texte OCR pour un hashing déterministe.
+
+    Étapes :
+      1. Suppression des accents (normalisation Unicode)
+      2. Lowercase
+      3. Remplacement des sauts de ligne par des espaces
+      4. Collapse des espaces multiples
+      5. Trim des espaces en début/fin
+      6. Suppression des caractères non alphanumériques (hors espaces)
+    """
+    if not raw_text:
+        return ""
+
+    # Normalisation Unicode NFKD → strip les accents
+    text = unicodedata.normalize("NFKD", raw_text)
+    text = "".join(c for c in text if not unicodedata.combining(c))
+
+    # Lowercase
+    text = text.lower()
+
+    # Sauts de ligne → espace
+    text = text.replace("\n", " ").replace("\r", " ").replace("\t", " ")
+
+    # Suppression des caractères non alphanumériques (garder espaces)
+    text = re.sub(r"[^a-z0-9\s]", "", text)
+
+    # Collapse des espaces multiples
+    text = re.sub(r"\s+", " ", text)
+
+    # Trim
+    text = text.strip()
+
+    return text
+
+
+def compute_text_hash(text: str) -> str:
+    """Hash SHA-256 du texte normalisé (pour seed déterministe)."""
+    clean = normalize_ocr_text(text) if text else "empty_document"
+    if not clean:
+        clean = "empty_document"
+    return hashlib.sha256(clean.encode("utf-8")).hexdigest()
+
+
 @dataclass
 class OCRResult:
     """Résultat de l'extraction OCR."""
     full_text: str = ""
+    clean_text: str = ""
+    text_hash: str = ""
     extracted_fields: dict[str, str | None] = field(default_factory=dict)
     ocr_confidence: float = 0.0
     language_detected: str = "unknown"
@@ -49,8 +258,8 @@ class OCRResult:
 # --- Patterns regex pour l'extraction de champs ---
 
 DATE_PATTERNS: list[str] = [
-    r"\b(\d{1,2}[/\-.]\d{1,2}[/\-.]\d{4})\b",
-    r"\b(\d{4}[/\-.]\d{1,2}[/\-.]\d{1,2})\b",
+    r"\b(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{4})\b",
+    r"\b(\d{4}[/\-\.]\d{1,2}[/\-\.]\d{1,2})\b",
     r"\b(\d{1,2}\s+(?:janvier|février|mars|avril|mai|juin|juillet|"
     r"août|septembre|octobre|novembre|décembre)\s+\d{4})\b",
     r"\b(\d{1,2}\s+(?:January|February|March|April|May|June|July|"
@@ -74,31 +283,256 @@ GRADE_PATTERNS: dict[str, list[str]] = {
 }
 
 
-def _extract_text_tesseract(image: NDArray[np.uint8]) -> tuple[str, float]:
-    """Extrait le texte et la confiance OCR moyenne via Tesseract."""
-    try:
-        # Extraction du texte brut
-        pil_img = Image.fromarray(image)
-        text: str = pytesseract.image_to_string(pil_img, lang=OCR_LANGUAGES)
+# ──────────────────────────────────────────────
+# Auto-rotation via OSD
+# ──────────────────────────────────────────────
 
-        # Calcul de la confiance moyenne
+def _correct_rotation(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
+    """Détecte et corrige l'orientation via pytesseract OSD.
+
+    Utilise image_to_osd pour détecter la rotation et auto-rotater.
+    Retourne l'image corrigée ou l'originale si la détection échoue.
+    """
+    if not TESSERACT_AVAILABLE:
+        return image
+
+    try:
+        # OSD nécessite une image PIL
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image.copy()
+
+        pil_img = Image.fromarray(gray)
+        osd_data = pytesseract.image_to_osd(pil_img, output_type=pytesseract.Output.DICT)
+        rotation_angle = int(osd_data.get("rotate", 0))
+
+        if rotation_angle == 0:
+            return image
+
+        logger.info("Rotation détectée par OSD : %d°", rotation_angle)
+
+        # V6 fix: OSD's "rotate" est l'angle CW à appliquer pour redresser.
+        # rotate=90 → 90° CW = ROTATE_90_CLOCKWISE
+        # rotate=270 → 270° CW = 90° CCW = ROTATE_90_COUNTERCLOCKWISE
+        # Cohérent avec _rotate_image() utilisé par le fallback.
+        if rotation_angle == 90:
+            rotated = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        elif rotation_angle == 180:
+            rotated = cv2.rotate(image, cv2.ROTATE_180)
+        elif rotation_angle == 270:
+            rotated = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        else:
+            # Rotation arbitraire
+            h, w = image.shape[:2]
+            center = (w / 2.0, h / 2.0)
+            rotation_matrix = cv2.getRotationMatrix2D(center, rotation_angle, 1.0)
+            rotated = cv2.warpAffine(
+                image, rotation_matrix, (w, h),
+                flags=cv2.INTER_CUBIC,
+                borderMode=cv2.BORDER_REPLICATE,
+            )
+
+        return rotated
+
+    except Exception as e:
+        logger.debug("OSD rotation detection failed (non-critique) : %s", e)
+        return image
+
+
+# ──────────────────────────────────────────────
+# Simple preprocessing (grayscale + resize x2)
+# ──────────────────────────────────────────────
+
+def _resize_to_max(
+    image: NDArray[np.uint8],
+    max_dim: int,
+) -> NDArray[np.uint8]:
+    """Downscale image so the longest side is at most max_dim."""
+    h, w = image.shape[:2]
+    longest = max(h, w)
+    if longest <= max_dim:
+        return image
+    ratio = max_dim / longest
+    new_w = int(w * ratio)
+    new_h = int(h * ratio)
+    return cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+
+def _ocr_preprocess(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
+    """Simple preprocessing for OCR.
+
+    ONLY:
+      1. Convert to grayscale
+      2. Upscale x2 (Tesseract LSTM bénéficie de la résolution doublée)
+
+    NO blur, NO adaptive threshold, NO aggressive filters.
+    """
+    # Grayscale
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image.copy()
+
+    # Upscale x2 for better Tesseract recognition
+    h, w = gray.shape[:2]
+    upscaled = cv2.resize(gray, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
+
+    return upscaled
+
+
+# ──────────────────────────────────────────────
+# 3-pass per-language OCR
+# ──────────────────────────────────────────────
+
+def _ocr_single_lang(
+    image: NDArray[np.uint8],
+    lang: str,
+) -> dict[str, str | float]:
+    """Run Tesseract OCR for a single language.
+
+    V6 perf: un seul appel Tesseract via image_to_data — le texte est
+    reconstruit à partir des mots, et la confidence est calculée en
+    même temps. Évite le doublon image_to_string + image_to_data.
+
+    Returns dict with 'text', 'confidence', and 'lang' keys.
+    """
+    if not TESSERACT_AVAILABLE:
+        return {"text": "", "confidence": 0.0, "lang": lang}
+
+    try:
+        pil_img = Image.fromarray(image)
+
+        # Single Tesseract call — get words + confidences together
         data = pytesseract.image_to_data(
-            pil_img, lang=OCR_LANGUAGES, output_type=pytesseract.Output.DICT
+            pil_img,
+            lang=lang,
+            config=_TESSERACT_CONFIG,
+            output_type=pytesseract.Output.DICT,
         )
-        confidences: list[int] = [
-            int(c) for c in data["conf"] if str(c).isdigit() and int(c) > 0
-        ]
+
+        # Reconstruct text from words (preserve line breaks via line_num)
+        words = data.get("text", [])
+        confs_raw = data.get("conf", [])
+        line_nums = data.get("line_num", [0] * len(words))
+        block_nums = data.get("block_num", [0] * len(words))
+
+        # Build text with line breaks at line_num/block_num boundaries
+        text_parts: list[str] = []
+        prev_line: tuple[int, int] | None = None
+        confidences: list[int] = []
+
+        for i, word in enumerate(words):
+            if not word or not word.strip():
+                continue
+            cur_line = (block_nums[i], line_nums[i])
+            if prev_line is not None and cur_line != prev_line:
+                text_parts.append("\n")
+            elif text_parts:
+                text_parts.append(" ")
+            text_parts.append(word)
+            prev_line = cur_line
+
+            # Collect confidence (str or int)
+            try:
+                c = int(confs_raw[i])
+                if c > 0:
+                    confidences.append(c)
+            except (ValueError, TypeError, IndexError):
+                continue
+
+        text = "".join(text_parts).strip()
         avg_confidence: float = (
             sum(confidences) / len(confidences) / 100.0
             if confidences
             else 0.0
         )
 
-        return text.strip(), avg_confidence
-    except Exception as e:
-        logger.error("Erreur Tesseract : %s", e)
-        return "", 0.0
+        logger.debug(
+            "OCR pass [%s] — text_len=%d | confidence=%.3f",
+            lang, len(text), avg_confidence,
+        )
 
+        return {"text": text, "confidence": avg_confidence, "lang": lang}
+
+    except Exception as e:
+        logger.error("Erreur Tesseract [%s] : %s", lang, e)
+        return {"text": "", "confidence": 0.0, "lang": lang}
+
+
+def _extract_best_text(image: NDArray[np.uint8]) -> dict[str, str | float]:
+    """Run OCR in 3 languages separately, select BEST by semantic score.
+
+    Pipeline:
+      1. Preprocess image (grayscale + resize x2)
+      2. OCR with lang="ara"
+      3. OCR with lang="fra"
+      4. OCR with lang="eng"
+      5. Normalize each result
+      6. Score each result with _semantic_score()
+      7. Return the result with highest semantic score
+
+    This replaces the old combined-language + threshold multi-pass approach.
+    """
+    # Preprocess once
+    preprocessed = _ocr_preprocess(image)
+
+    # V6 perf: parallélisation des passes OCR via ThreadPoolExecutor.
+    # Tesseract est invoqué en subprocess → libère le GIL → speedup ~5×
+    # quand toutes les passes tournent en parallèle.
+    with ThreadPoolExecutor(max_workers=len(_OCR_PASS_LANGS)) as executor:
+        results: list[dict[str, str | float]] = list(executor.map(
+            lambda lang: _ocr_single_lang(preprocessed, lang),
+            _OCR_PASS_LANGS,
+        ))
+
+    # Score each result semantically
+    best_result = None
+    best_score = -1
+
+    for res in results:
+        text = str(res.get("text", ""))
+        score = _semantic_score(text)
+        lang = str(res.get("lang", "?"))
+        confidence = float(res.get("confidence", 0.0))
+
+        logger.debug(
+            "OCR semantic — lang=%s | score=%d | confidence=%.3f | text_len=%d",
+            lang, score, confidence, len(text),
+        )
+
+        if score > best_score:
+            best_score = score
+            best_result = res
+
+    # 🔥 fallback when semantic is too weak
+    if best_score == 0:
+        best_result = max(results, key=lambda r: len(str(r.get("text", ""))))
+
+    selected_lang = str(best_result.get("lang", "?"))
+    selected_text = str(best_result.get("text", ""))
+    selected_conf = float(best_result.get("confidence", 0.0))
+
+    logger.info(
+        "OCR best selection — lang=%s | semantic_score=%d | "
+        "confidence=%.3f | text_len=%d",
+        selected_lang, best_score, selected_conf, len(selected_text),
+    )
+
+    # Safety check: reject weak / garbage OCR output
+    if selected_text is None or len(selected_text.strip()) < 10:
+        logger.warning(
+            "OCR safety filter — text too short (%d chars), returning empty",
+            len(selected_text.strip()) if selected_text else 0,
+        )
+        return {"text": "", "confidence": 0.0, "lang": ""}
+
+    return best_result
+
+
+# ──────────────────────────────────────────────
+# Language detection
+# ──────────────────────────────────────────────
 
 def _detect_language(text: str) -> str:
     """Détecte la langue du texte extrait."""
@@ -110,6 +544,10 @@ def _detect_language(text: str) -> str:
     except LangDetectException:
         return "unknown"
 
+
+# ──────────────────────────────────────────────
+# spaCy field extraction
+# ──────────────────────────────────────────────
 
 def _extract_names_spacy(text: str, lang: str) -> tuple[str | None, str | None, str | None]:
     """Extrait les noms via les entités PER de spaCy."""
@@ -163,6 +601,10 @@ def _extract_institutions_spacy(text: str, lang: str) -> str | None:
         logger.warning("Extraction des établissements spaCy échouée : %s", e)
         return None
 
+
+# ──────────────────────────────────────────────
+# Field extraction helpers
+# ──────────────────────────────────────────────
 
 def _extract_dates(text: str) -> str | None:
     """Extrait la première date trouvée dans le texte."""
@@ -234,8 +676,111 @@ def _validate_date(date_str: str | None) -> list[str]:
     return flags
 
 
+# ──────────────────────────────────────────────
+# Main pipeline
+# ──────────────────────────────────────────────
+
+def _rotate_image(
+    image: NDArray[np.uint8],
+    angle: int,
+) -> NDArray[np.uint8]:
+    """Rotate an image by a multiple of 90°."""
+    if angle == 0:
+        return image
+    if angle == 90:
+        return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+    if angle == 180:
+        return cv2.rotate(image, cv2.ROTATE_180)
+    if angle == 270:
+        return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    return image
+
+
+# V6 perf: dimension max pour le quick rotation test
+# (assez petit pour scorer rapidement, assez grand pour que les
+# mots-clés diplôme restent lisibles)
+_QUICK_ROTATION_DIM = 800
+
+
+def _quick_rotation_score(
+    image: NDArray[np.uint8],
+    angle: int,
+) -> int:
+    """Quick semantic-score test for a given rotation.
+
+    V6 perf: image downsamplée à 800px max + un seul appel Tesseract
+    avec lang combinée. Réduit chaque test rotation de ~7s à ~1s.
+
+    Returns the semantic score of the result.
+    """
+    try:
+        # Downsample d'abord, rotation ensuite (moins de pixels à tourner)
+        small = _resize_to_max(image, _QUICK_ROTATION_DIM)
+        rotated = _rotate_image(small, angle)
+
+        # Grayscale only (skip the x2 upscale du _ocr_preprocess pour gagner du temps)
+        if len(rotated.shape) == 3:
+            gray = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = rotated
+
+        result = _ocr_single_lang(gray, "ara+fra+eng")
+        text = str(result.get("text", ""))
+        return _semantic_score(text)
+    except Exception as e:
+        logger.debug("Quick rotation %d° failed: %s", angle, e)
+        return -1
+
+
+def _find_best_rotation(
+    image: NDArray[np.uint8],
+    osd_corrected: NDArray[np.uint8],
+    osd_semantic: int,
+) -> NDArray[np.uint8]:
+    """Fallback 4-rotation: test 0/90/180/270 + keep best semantic score.
+
+    Activé uniquement quand OSD donne un OCR faible (semantic < 5).
+    Lance _semantic_score sur chaque rotation, garde la meilleure.
+    """
+    if osd_semantic >= 5:
+        return osd_corrected
+
+    logger.info(
+        "OSD semantic faible (%d) — fallback 4-rotation activé",
+        osd_semantic,
+    )
+
+    best_image = osd_corrected
+    best_score = osd_semantic
+    best_angle = "OSD"
+
+    for angle in [0, 90, 180, 270]:
+        score = _quick_rotation_score(image, angle)
+        logger.info(
+            "Rotation fallback %d° → semantic_score=%d", angle, score,
+        )
+        if score > best_score:
+            best_score = score
+            best_image = _rotate_image(image, angle)
+            best_angle = f"{angle}°"
+
+    logger.info(
+        "Best rotation selected: %s (semantic=%d)", best_angle, best_score,
+    )
+    return best_image
+
+
 def extract_text(image: NDArray[np.uint8]) -> OCRResult:
     """Pipeline complet d'extraction OCR.
+
+    V6 — Pipeline robuste multi-langue :
+      1. Auto-rotation via OSD
+      2. Si OSD faible : fallback 4-rotation par scoring sémantique
+      3. 5-pass OCR (ara/fra/eng + bilingues) with simple preprocessing
+      4. Semantic scoring → select best text
+      5. Normalisation + hash
+      6. Extraction des champs clés
+      7. Logging diagnostique complet
 
     Retourne un OCRResult avec le texte, les champs extraits,
     la confiance et la langue détectée.
@@ -243,13 +788,50 @@ def extract_text(image: NDArray[np.uint8]) -> OCRResult:
     result = OCRResult()
 
     try:
-        # Étape 1 : extraction Tesseract
-        full_text, confidence = _extract_text_tesseract(image)
+        # Étape 1 : Auto-rotation OSD
+        corrected_image = _correct_rotation(image)
+
+        # Étape 2 : OCR initial (5-lang) sur image OSD-corrigée
+        best = _extract_best_text(corrected_image)
+        full_text = str(best.get("text", ""))
+        primary_semantic = _semantic_score(full_text)
+
+        # Étape 2bis : Si OSD a échoué (semantic faible), fallback 4-rotation
+        if primary_semantic < 5:
+            better_image = _find_best_rotation(
+                image, corrected_image, primary_semantic,
+            )
+            # Si la rotation a changé, ré-exécuter le pipeline OCR complet
+            if better_image is not corrected_image:
+                best = _extract_best_text(better_image)
+                full_text = str(best.get("text", ""))
+
+        confidence = float(best.get("confidence", 0.0))
+
         result.full_text = full_text
         result.ocr_confidence = confidence
 
-        if not full_text:
+        # Étape 3 : Normalisation du texte + hash déterministe
+        result.clean_text = normalize_ocr_text(full_text)
+        result.text_hash = compute_text_hash(full_text)
+
+        # ── Logging diagnostique (interne uniquement) ──
+        logger.info(
+            "OCR DIAG — text_len=%d | clean_len=%d | confidence=%.3f | "
+            "hash_seed=%s",
+            len(full_text),
+            len(result.clean_text),
+            confidence,
+            result.text_hash[:16],
+        )
+
+        # Étape 4 : gestion du texte vide
+        if not full_text or len(full_text.strip()) < 5:
             result.flags.append("Aucun texte extrait par l'OCR")
+            result.ocr_confidence = 0.0
+            result.clean_text = ""
+            result.text_hash = compute_text_hash("")
+            logger.warning("OCR vide ou quasi-vide — retour avec confiance 0")
             return result
 
         if confidence < 0.3:
@@ -257,11 +839,11 @@ def extract_text(image: NDArray[np.uint8]) -> OCRResult:
                 f"Confiance OCR très basse : {confidence:.2f}"
             )
 
-        # Étape 2 : détection de la langue
+        # Étape 5 : détection de la langue
         lang = _detect_language(full_text)
         result.language_detected = lang
 
-        # Étape 3 : extraction des champs clés
+        # Étape 6 : extraction des champs clés
         full_name, first_name, last_name = _extract_names_spacy(full_text, lang)
         institution = _extract_institutions_spacy(full_text, lang)
         date = _extract_dates(full_text)
@@ -280,7 +862,7 @@ def extract_text(image: NDArray[np.uint8]) -> OCRResult:
             "diploma_type": diploma_type,
         }
 
-        # Étape 4 : validation des dates
+        # Étape 7 : validation des dates
         date_flags = _validate_date(date)
         result.flags.extend(date_flags)
 
@@ -294,5 +876,8 @@ def extract_text(image: NDArray[np.uint8]) -> OCRResult:
     except Exception as e:
         logger.error("Erreur dans le service OCR : %s", e)
         result.flags.append(f"Erreur OCR : {str(e)}")
+        result.ocr_confidence = 0.0
+        result.clean_text = ""
+        result.text_hash = compute_text_hash("")
 
     return result
