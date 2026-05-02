@@ -18,6 +18,7 @@ import hashlib
 import re
 import sys
 import unicodedata
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -311,12 +312,16 @@ def _correct_rotation(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
 
         logger.info("Rotation détectée par OSD : %d°", rotation_angle)
 
+        # V6 fix: OSD's "rotate" est l'angle CW à appliquer pour redresser.
+        # rotate=90 → 90° CW = ROTATE_90_CLOCKWISE
+        # rotate=270 → 270° CW = 90° CCW = ROTATE_90_COUNTERCLOCKWISE
+        # Cohérent avec _rotate_image() utilisé par le fallback.
         if rotation_angle == 90:
-            rotated = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            rotated = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
         elif rotation_angle == 180:
             rotated = cv2.rotate(image, cv2.ROTATE_180)
         elif rotation_angle == 270:
-            rotated = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+            rotated = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
         else:
             # Rotation arbitraire
             h, w = image.shape[:2]
@@ -357,32 +362,21 @@ def _resize_to_max(
 def _ocr_preprocess(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
     """Simple preprocessing for OCR.
 
-    V6: applique MAX_IMAGE_DIMENSION pour borner le coût OCR sur les
-    grandes images (Tesseract LSTM ne profite pas au-delà de ~2000px).
-
-    Pipeline:
-      1. Resize si > MAX_IMAGE_DIMENSION
-      2. Convert to grayscale
-      3. Upscale x2 (sauf si ça dépasse encore MAX)
+    ONLY:
+      1. Convert to grayscale
+      2. Upscale x2 (Tesseract LSTM bénéficie de la résolution doublée)
 
     NO blur, NO adaptive threshold, NO aggressive filters.
     """
-    # Resize si trop grande (avant grayscale pour économiser)
-    image = _resize_to_max(image, MAX_IMAGE_DIMENSION)
-
     # Grayscale
     if len(image.shape) == 3:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     else:
         gray = image.copy()
 
-    # Upscale x2 (mais reste borné par MAX_IMAGE_DIMENSION)
+    # Upscale x2 for better Tesseract recognition
     h, w = gray.shape[:2]
-    target_w, target_h = w * 2, h * 2
-    if max(target_w, target_h) > MAX_IMAGE_DIMENSION:
-        # Skip upscale si on dépasserait la borne
-        return gray
-    upscaled = cv2.resize(gray, (target_w, target_h), interpolation=cv2.INTER_CUBIC)
+    upscaled = cv2.resize(gray, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
 
     return upscaled
 
@@ -483,11 +477,14 @@ def _extract_best_text(image: NDArray[np.uint8]) -> dict[str, str | float]:
     # Preprocess once
     preprocessed = _ocr_preprocess(image)
 
-    # Run OCR for each language
-    results: list[dict[str, str | float]] = []
-    for lang in _OCR_PASS_LANGS:
-        res = _ocr_single_lang(preprocessed, lang)
-        results.append(res)
+    # V6 perf: parallélisation des passes OCR via ThreadPoolExecutor.
+    # Tesseract est invoqué en subprocess → libère le GIL → speedup ~5×
+    # quand toutes les passes tournent en parallèle.
+    with ThreadPoolExecutor(max_workers=len(_OCR_PASS_LANGS)) as executor:
+        results: list[dict[str, str | float]] = list(executor.map(
+            lambda lang: _ocr_single_lang(preprocessed, lang),
+            _OCR_PASS_LANGS,
+        ))
 
     # Score each result semantically
     best_result = None
