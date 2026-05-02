@@ -455,6 +455,19 @@ def compute_score(
         )
         raw_score = 70.0
 
+    # ── 12bis. V6: Hard ceiling for no-content documents (logos, random
+    # images avec features géométriques type cercle/ligne qui font monter
+    # signature/cachet artificiellement). Pas de structure + pas de
+    # sémantique = pas un diplôme, peu importe les signaux visuels.
+    if structure_count == 0 and semantic_score < 0.1:
+        if raw_score > 18.0:
+            logger.info(
+                "V6 no-content ceiling: struct=0 + semantic=%.2f → "
+                "capped at 18 (was %.1f)",
+                semantic_score, raw_score,
+            )
+            raw_score = 18.0
+
     # ── 13. Clamp strict ──
     score = round(_clamp(raw_score), 1)
 

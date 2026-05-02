@@ -116,4 +116,6 @@ LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 PDF_DPI: int = 300
 
 # --- Taille maximale d'image pour le traitement (pixels, côté le plus long) ---
-MAX_IMAGE_DIMENSION: int = 4000
+# V6: réduit de 4000 à 2000 — Tesseract LSTM ne tire pas de bénéfice
+# au-delà de 2000px, et Hough circles est O(n²) → x4 plus rapide.
+MAX_IMAGE_DIMENSION: int = 2000

@@ -32,6 +32,11 @@ _MIN_CONTOUR_AREA = 1200
 # V4: Circularité minimale plus stricte
 _MIN_CIRCULARITY = 0.60
 
+# V6 perf: dimension max pour la détection de cachet.
+# Hough circles est O(n²) — passer de 4000px à 1200px = 11× plus rapide.
+# Un cachet (~150-300px de diamètre) reste très détectable à 1200px.
+_STAMP_MAX_DIM = 1200
+
 
 @dataclass
 class StampResult:
@@ -278,6 +283,18 @@ def detect_stamp(image: NDArray[np.uint8]) -> StampResult:
     result = StampResult()
 
     try:
+        # V6 perf: downsample avant les opérations coûteuses
+        # (Hough circles, contours…). Un cachet reste détectable à 1200px.
+        h, w = image.shape[:2]
+        longest = max(h, w)
+        if longest > _STAMP_MAX_DIM:
+            ratio = _STAMP_MAX_DIM / longest
+            new_w = int(w * ratio)
+            new_h = int(h * ratio)
+            image = cv2.resize(
+                image, (new_w, new_h), interpolation=cv2.INTER_AREA,
+            )
+
         is_grayscale = len(image.shape) == 2
 
         if is_grayscale:

@@ -1149,3 +1149,528 @@
 2026-05-02 10:21:07,784 - diploma_verifier - INFO - Scoring V5 DIAG — raw=31.8 | noise=3.70 | final=20.9 | confidence=low | ocr_conf=0.785 | semantic=0.000 | struct=0 | doc_type=unknown | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
 2026-05-02 10:21:07,784 - diploma_verifier - INFO - Analyse terminée — fichier=logoedubridge.png | pays=unknown | score=20.9 | verdict=low | durée=49536ms | flags=[aucun]
 2026-05-02 10:21:07,784 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_3f42bd3bbd33490384f60cec01fa34e0.png
+2026-05-02 10:23:27,689 - diploma_verifier - INFO - Démarrage du service Diploma Verifier v2...
+2026-05-02 10:23:27,711 - diploma_verifier - INFO - Tesseract trouvé (version 5.4.0.20240606)
+2026-05-02 10:23:28,482 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-05-02 10:23:31,622 - diploma_verifier - INFO - Chargement du modèle spaCy xx_ent_wiki_sm...
+2026-05-02 10:23:32,983 - diploma_verifier - INFO - Modèles spaCy chargés avec succès
+2026-05-02 10:23:32,983 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-05-02 10:23:43,370 - diploma_verifier - INFO - Requête de vérification reçue : logoedubridge.png
+2026-05-02 10:23:43,370 - diploma_verifier - INFO - Validation du fichier : logoedubridge.png
+2026-05-02 10:23:43,375 - diploma_verifier - DEBUG - Type MIME détecté : image/png
+2026-05-02 10:23:43,379 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_4760e2e8962d4fea837a742f74853730.png
+2026-05-02 10:23:43,379 - diploma_verifier - INFO - Fichier validé — mime=image/png | taille=4923858 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_4760e2e8962d4fea837a742f74853730.png
+2026-05-02 10:23:43,379 - diploma_verifier - INFO - Début de l'analyse V5 : logoedubridge.png
+2026-05-02 10:23:43,379 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_4760e2e8962d4fea837a742f74853730.png
+2026-05-02 10:23:43,515 - diploma_verifier - INFO - Image convertie — dimensions=2760x1504 | mode=RGB
+2026-05-02 10:23:44,475 - diploma_verifier - DEBUG - OSD rotation detection failed (non-critique) : (1, 'Estimating resolution as 1736 Warning. Invalid resolution 0 dpi. Using 70 instead. Too few characters. Skipping this page Error during processing.')
+2026-05-02 10:23:48,982 - diploma_verifier - DEBUG - OCR pass [ara] — text_len=10 | confidence=0.440
+2026-05-02 10:23:53,531 - diploma_verifier - DEBUG - OCR pass [fra] — text_len=15 | confidence=0.785
+2026-05-02 10:23:58,074 - diploma_verifier - DEBUG - OCR pass [eng] — text_len=13 | confidence=0.745
+2026-05-02 10:24:03,520 - diploma_verifier - DEBUG - OCR pass [ara+fra] — text_len=15 | confidence=0.910
+2026-05-02 10:24:08,700 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=13 | confidence=0.745
+2026-05-02 10:24:08,701 - diploma_verifier - DEBUG - OCR semantic — lang=ara | score=0 | confidence=0.440 | text_len=10
+2026-05-02 10:24:08,701 - diploma_verifier - DEBUG - OCR semantic — lang=fra | score=0 | confidence=0.785 | text_len=15
+2026-05-02 10:24:08,702 - diploma_verifier - DEBUG - OCR semantic — lang=eng | score=0 | confidence=0.745 | text_len=13
+2026-05-02 10:24:08,702 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra | score=0 | confidence=0.910 | text_len=15
+2026-05-02 10:24:08,702 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.745 | text_len=13
+2026-05-02 10:24:08,703 - diploma_verifier - INFO - OCR best selection — lang=fra | semantic_score=0 | confidence=0.785 | text_len=15
+2026-05-02 10:24:08,703 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 10:24:14,396 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=13 | confidence=0.745
+2026-05-02 10:24:14,398 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 10:24:19,166 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=28 | confidence=0.545
+2026-05-02 10:24:19,169 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=0
+2026-05-02 10:24:25,913 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=21 | confidence=0.316
+2026-05-02 10:24:25,916 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 10:24:31,493 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=25 | confidence=0.554
+2026-05-02 10:24:31,496 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=0
+2026-05-02 10:24:31,497 - diploma_verifier - INFO - Best rotation selected: OSD (semantic=0)
+2026-05-02 10:24:31,497 - diploma_verifier - INFO - OCR DIAG — text_len=15 | clean_len=12 | confidence=0.785 | hash_seed=730378d87ab02d45
+2026-05-02 10:24:31,504 - diploma_verifier - INFO - OCR terminé — confiance=0.79 | langue=unknown | champs extraits=0
+2026-05-02 10:24:31,510 - diploma_verifier - INFO - Signature V4 — raw_conf=0.819 | smoothed=0.90 | candidats=9 | encre=0.585 | stroke_cx=0.808
+2026-05-02 10:24:31,757 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.861 | smoothed=0.92 | couleur=bleu | hough=105 | ellipses=11 | contours=0
+2026-05-02 10:24:31,759 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=15 | ocr_conf=0.785 | sig_conf=0.90 | stamp_conf=0.92 | hash=289ec61ac0a8b664
+2026-05-02 10:24:31,764 - diploma_verifier - INFO - Analyse texte V5 — nom=False | institution=False | diplôme=False | date=False | phrases=False | semantic=0.000 | struct=0 | density=0.000 | confiance=0.00 | doc_type=unknown | coherence=0.00 | kw_penalty=0.00
+2026-05-02 10:24:31,764 - diploma_verifier - INFO - diploma_confidence basse (0.00) mais signaux visuels forts (0.91) — poursuite du scoring V5
+2026-05-02 10:24:31,764 - diploma_verifier - DEBUG - Structure penalty: 31.8 → 25.5 (count=0)
+2026-05-02 10:24:31,765 - diploma_verifier - INFO - Anti-fake: keyword density penalty (25.5 → 19.1 | density=0.000)
+2026-05-02 10:24:31,765 - diploma_verifier - DEBUG - V5 doc_type penalty: unknown → -10% (score=17.2)
+2026-05-02 10:24:31,766 - diploma_verifier - DEBUG - V5 safety rule: semantic=0.00, struct=0 → capped at 35
+2026-05-02 10:24:31,766 - diploma_verifier - INFO - V6 no-content ceiling: struct=0 + semantic=0.00 → capped at 18 (was 20.9)
+2026-05-02 10:24:31,766 - diploma_verifier - INFO - Scoring V5 DIAG — raw=31.8 | noise=3.70 | final=18.0 | confidence=low | ocr_conf=0.785 | semantic=0.000 | struct=0 | doc_type=unknown | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 10:24:31,767 - diploma_verifier - INFO - Analyse terminée — fichier=logoedubridge.png | pays=unknown | score=18.0 | verdict=low | durée=48387ms | flags=[aucun]
+2026-05-02 10:24:31,769 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_4760e2e8962d4fea837a742f74853730.png
+2026-05-02 10:33:19,456 - diploma_verifier - INFO - Démarrage du service Diploma Verifier v2...
+2026-05-02 10:33:19,476 - diploma_verifier - INFO - Tesseract trouvé (version 5.4.0.20240606)
+2026-05-02 10:33:20,123 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-05-02 10:33:23,218 - diploma_verifier - INFO - Chargement du modèle spaCy xx_ent_wiki_sm...
+2026-05-02 10:33:24,579 - diploma_verifier - INFO - Modèles spaCy chargés avec succès
+2026-05-02 10:33:24,579 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-05-02 10:33:44,804 - diploma_verifier - INFO - Requête de vérification reçue : test1.jpg
+2026-05-02 10:33:44,804 - diploma_verifier - INFO - Validation du fichier : test1.jpg
+2026-05-02 10:33:44,808 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-05-02 10:33:44,810 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_b8eb3c21a4c742a3bcc15d35867f58c3.jpg
+2026-05-02 10:33:44,810 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=1731717 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_b8eb3c21a4c742a3bcc15d35867f58c3.jpg
+2026-05-02 10:33:44,810 - diploma_verifier - INFO - Début de l'analyse V5 : test1.jpg
+2026-05-02 10:33:44,810 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_b8eb3c21a4c742a3bcc15d35867f58c3.jpg
+2026-05-02 10:33:44,834 - diploma_verifier - DEBUG - Redimensionnement de 2574x1812 vers 2000x1407
+2026-05-02 10:33:44,944 - diploma_verifier - INFO - Image convertie — dimensions=2000x1407 | mode=RGB
+2026-05-02 10:33:50,026 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=864 | confidence=0.496
+2026-05-02 10:33:51,702 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=649 | confidence=0.393
+2026-05-02 10:33:51,702 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=6 | confidence=0.496 | text_len=864
+2026-05-02 10:33:51,702 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.393 | text_len=649
+2026-05-02 10:33:51,706 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=6 | confidence=0.496 | text_len=864
+2026-05-02 10:33:51,706 - diploma_verifier - INFO - OCR DIAG — text_len=864 | clean_len=426 | confidence=0.496 | hash_seed=01585f2fe3ea935c
+2026-05-02 10:33:52,036 - diploma_verifier - INFO - OCR terminé — confiance=0.50 | langue=ar | champs extraits=5
+2026-05-02 10:33:52,044 - diploma_verifier - INFO - Signature V4 — raw_conf=0.800 | smoothed=0.89 | candidats=11 | encre=0.858 | stroke_cx=0.000
+2026-05-02 10:33:52,628 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.924 | smoothed=0.95 | couleur=noir | hough=145 | ellipses=3 | contours=0
+2026-05-02 10:33:52,628 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=864 | ocr_conf=0.496 | sig_conf=0.89 | stamp_conf=0.95 | hash=9ca299c88f891522
+2026-05-02 10:33:52,649 - diploma_verifier - INFO - Analyse texte V5 — nom=True | institution=True | diplôme=True | date=True | phrases=False | semantic=0.748 | struct=3 | density=0.016 | confiance=0.40 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00
+2026-05-02 10:33:52,649 - diploma_verifier - DEBUG - Structure boost: 78.2 → 87.6 (count=3)
+2026-05-02 10:33:52,653 - diploma_verifier - INFO - Scoring V5 DIAG — raw=78.2 | noise=3.61 | final=91.2 | confidence=high | ocr_conf=0.496 | semantic=0.748 | struct=3 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 10:33:52,653 - diploma_verifier - INFO - Analyse terminée — fichier=test1.jpg | pays=unknown | score=91.2 | verdict=high | durée=7842ms | flags=[aucun]
+2026-05-02 10:33:52,653 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_b8eb3c21a4c742a3bcc15d35867f58c3.jpg
+2026-05-02 10:33:52,976 - diploma_verifier - INFO - Requête de vérification reçue : testrotation.jpg
+2026-05-02 10:33:52,980 - diploma_verifier - INFO - Validation du fichier : testrotation.jpg
+2026-05-02 10:33:52,980 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-05-02 10:33:52,984 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_d60c7cdc918d4ed4aad5901cd05b03f8.jpg
+2026-05-02 10:33:52,984 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=1837859 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_d60c7cdc918d4ed4aad5901cd05b03f8.jpg
+2026-05-02 10:33:52,984 - diploma_verifier - INFO - Début de l'analyse V5 : testrotation.jpg
+2026-05-02 10:33:52,984 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_d60c7cdc918d4ed4aad5901cd05b03f8.jpg
+2026-05-02 10:33:52,989 - diploma_verifier - DEBUG - Redimensionnement de 2058x3012 vers 1366x2000
+2026-05-02 10:33:53,104 - diploma_verifier - INFO - Image convertie — dimensions=1366x2000 | mode=RGB
+2026-05-02 10:33:54,173 - diploma_verifier - INFO - Rotation détectée par OSD : 270°
+2026-05-02 10:33:58,306 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=515 | confidence=0.394
+2026-05-02 10:34:00,057 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=442 | confidence=0.365
+2026-05-02 10:34:00,058 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=0 | confidence=0.394 | text_len=515
+2026-05-02 10:34:00,058 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.365 | text_len=442
+2026-05-02 10:34:00,058 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=0 | confidence=0.394 | text_len=515
+2026-05-02 10:34:00,059 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 10:34:01,909 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=276 | confidence=0.436
+2026-05-02 10:34:01,909 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 10:34:04,503 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=478 | confidence=0.385
+2026-05-02 10:34:04,503 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=0
+2026-05-02 10:34:06,099 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=248 | confidence=0.457
+2026-05-02 10:34:06,099 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 10:34:07,959 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=423 | confidence=0.588
+2026-05-02 10:34:07,959 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=6
+2026-05-02 10:34:07,968 - diploma_verifier - INFO - Best rotation selected: 270° (semantic=6)
+2026-05-02 10:34:12,435 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=1097 | confidence=0.571
+2026-05-02 10:34:14,628 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=842 | confidence=0.441
+2026-05-02 10:34:14,628 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=6 | confidence=0.571 | text_len=1097
+2026-05-02 10:34:14,628 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.441 | text_len=842
+2026-05-02 10:34:14,628 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=6 | confidence=0.571 | text_len=1097
+2026-05-02 10:34:14,628 - diploma_verifier - INFO - OCR DIAG — text_len=1097 | clean_len=395 | confidence=0.571 | hash_seed=5f469803399384b1
+2026-05-02 10:34:14,662 - diploma_verifier - INFO - OCR terminé — confiance=0.57 | langue=ar | champs extraits=5
+2026-05-02 10:34:14,666 - diploma_verifier - INFO - Signature V4 — raw_conf=0.767 | smoothed=0.87 | candidats=6 | encre=0.540 | stroke_cx=0.766
+2026-05-02 10:34:14,954 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.935 | smoothed=0.95 | couleur=noir | hough=95 | ellipses=4 | contours=0
+2026-05-02 10:34:14,954 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=1097 | ocr_conf=0.571 | sig_conf=0.87 | stamp_conf=0.95 | hash=ef0c1d458f77b4a0
+2026-05-02 10:34:14,978 - diploma_verifier - INFO - Analyse texte V5 — nom=True | institution=True | diplôme=True | date=True | phrases=False | semantic=0.748 | struct=3 | density=0.016 | confiance=0.40 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00
+2026-05-02 10:34:14,978 - diploma_verifier - DEBUG - Structure boost: 77.8 → 87.1 (count=3)
+2026-05-02 10:34:14,978 - diploma_verifier - INFO - Scoring V5 DIAG — raw=77.8 | noise=-3.21 | final=83.9 | confidence=high | ocr_conf=0.571 | semantic=0.748 | struct=3 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 10:34:14,983 - diploma_verifier - INFO - Analyse terminée — fichier=testrotation.jpg | pays=unknown | score=83.9 | verdict=high | durée=21998ms | flags=[aucun]
+2026-05-02 10:34:14,983 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_d60c7cdc918d4ed4aad5901cd05b03f8.jpg
+2026-05-02 10:34:15,317 - diploma_verifier - INFO - Requête de vérification reçue : test.jpg
+2026-05-02 10:34:15,317 - diploma_verifier - INFO - Validation du fichier : test.jpg
+2026-05-02 10:34:15,319 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-05-02 10:34:15,320 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_ac9da2174d154a878bcf639882a39696.jpg
+2026-05-02 10:34:15,320 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=258481 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_ac9da2174d154a878bcf639882a39696.jpg
+2026-05-02 10:34:15,321 - diploma_verifier - INFO - Début de l'analyse V5 : test.jpg
+2026-05-02 10:34:15,321 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_ac9da2174d154a878bcf639882a39696.jpg
+2026-05-02 10:34:15,329 - diploma_verifier - DEBUG - Redimensionnement de 1478x2047 vers 1444x2000
+2026-05-02 10:34:15,406 - diploma_verifier - INFO - Image convertie — dimensions=1444x2000 | mode=RGB
+2026-05-02 10:34:16,154 - diploma_verifier - INFO - Rotation détectée par OSD : 90°
+2026-05-02 10:34:19,762 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=692 | confidence=0.443
+2026-05-02 10:34:21,456 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=657 | confidence=0.376
+2026-05-02 10:34:21,456 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=0 | confidence=0.443 | text_len=692
+2026-05-02 10:34:21,457 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.376 | text_len=657
+2026-05-02 10:34:21,457 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=0 | confidence=0.443 | text_len=692
+2026-05-02 10:34:21,458 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 10:34:22,255 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=89 | confidence=0.596
+2026-05-02 10:34:22,255 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 10:34:24,104 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=899 | confidence=0.707
+2026-05-02 10:34:24,104 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=7
+2026-05-02 10:34:24,787 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=86 | confidence=0.500
+2026-05-02 10:34:24,787 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 10:34:27,161 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=505 | confidence=0.391
+2026-05-02 10:34:27,162 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=0
+2026-05-02 10:34:27,162 - diploma_verifier - INFO - Best rotation selected: 90° (semantic=7)
+2026-05-02 10:34:30,166 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=1032 | confidence=0.784
+2026-05-02 10:34:31,876 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=973 | confidence=0.434
+2026-05-02 10:34:31,877 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=13 | confidence=0.784 | text_len=1032
+2026-05-02 10:34:31,877 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.434 | text_len=973
+2026-05-02 10:34:31,878 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=13 | confidence=0.784 | text_len=1032
+2026-05-02 10:34:31,878 - diploma_verifier - INFO - OCR DIAG — text_len=1032 | clean_len=226 | confidence=0.784 | hash_seed=bf316b44d24b5d90
+2026-05-02 10:34:31,902 - diploma_verifier - INFO - OCR terminé — confiance=0.78 | langue=ar | champs extraits=7
+2026-05-02 10:34:31,909 - diploma_verifier - INFO - Signature V4 — raw_conf=0.688 | smoothed=0.81 | candidats=2 | encre=0.858 | stroke_cx=0.000
+2026-05-02 10:34:32,063 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.750 | smoothed=0.86 | couleur=bleu | hough=102 | ellipses=1 | contours=1
+2026-05-02 10:34:32,064 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=1032 | ocr_conf=0.784 | sig_conf=0.81 | stamp_conf=0.86 | hash=9d6d8733a7b2a8ac
+2026-05-02 10:34:32,083 - diploma_verifier - INFO - Analyse texte V5 — nom=True | institution=True | diplôme=True | date=True | phrases=False | semantic=0.780 | struct=3 | density=0.081 | confiance=0.72 | doc_type=diploma | coherence=0.17 | kw_penalty=0.00
+2026-05-02 10:34:32,083 - diploma_verifier - DEBUG - Structure boost: 85.2 → 95.4 (count=3)
+2026-05-02 10:34:32,084 - diploma_verifier - INFO - Scoring V5 DIAG — raw=85.2 | noise=-1.90 | final=93.5 | confidence=high | ocr_conf=0.784 | semantic=0.780 | struct=3 | doc_type=diploma | coherence=0.17 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 10:34:32,085 - diploma_verifier - INFO - Analyse terminée — fichier=test.jpg | pays=unknown | score=93.5 | verdict=high | durée=16764ms | flags=[aucun]
+2026-05-02 10:34:32,086 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_ac9da2174d154a878bcf639882a39696.jpg
+2026-05-02 10:34:32,474 - diploma_verifier - INFO - Requête de vérification reçue : logoedubridge.png
+2026-05-02 10:34:32,475 - diploma_verifier - INFO - Validation du fichier : logoedubridge.png
+2026-05-02 10:34:32,479 - diploma_verifier - DEBUG - Type MIME détecté : image/png
+2026-05-02 10:34:32,482 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_102243f4cb9e4c23bfb0dc891b180aa9.png
+2026-05-02 10:34:32,482 - diploma_verifier - INFO - Fichier validé — mime=image/png | taille=4923858 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_102243f4cb9e4c23bfb0dc891b180aa9.png
+2026-05-02 10:34:32,483 - diploma_verifier - INFO - Début de l'analyse V5 : logoedubridge.png
+2026-05-02 10:34:32,483 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_102243f4cb9e4c23bfb0dc891b180aa9.png
+2026-05-02 10:34:32,570 - diploma_verifier - DEBUG - Redimensionnement de 2760x1504 vers 2000x1089
+2026-05-02 10:34:32,635 - diploma_verifier - INFO - Image convertie — dimensions=2000x1089 | mode=RGB
+2026-05-02 10:34:33,176 - diploma_verifier - DEBUG - OSD rotation detection failed (non-critique) : (1, 'Estimating resolution as 1259 Warning. Invalid resolution 0 dpi. Using 70 instead. Too few characters. Skipping this page Error during processing.')
+2026-05-02 10:34:33,993 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=13 | confidence=0.740
+2026-05-02 10:34:34,718 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=13 | confidence=0.740
+2026-05-02 10:34:34,718 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=0 | confidence=0.740 | text_len=13
+2026-05-02 10:34:34,718 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.740 | text_len=13
+2026-05-02 10:34:34,720 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=0 | confidence=0.740 | text_len=13
+2026-05-02 10:34:34,720 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 10:34:35,052 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=13 | confidence=0.635
+2026-05-02 10:34:35,052 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 10:34:35,505 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=29 | confidence=0.560
+2026-05-02 10:34:35,506 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=0
+2026-05-02 10:34:35,882 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=6 | confidence=0.445
+2026-05-02 10:34:35,883 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 10:34:36,304 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=34 | confidence=0.509
+2026-05-02 10:34:36,304 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=0
+2026-05-02 10:34:36,305 - diploma_verifier - INFO - Best rotation selected: OSD (semantic=0)
+2026-05-02 10:34:36,305 - diploma_verifier - INFO - OCR DIAG — text_len=13 | clean_len=13 | confidence=0.740 | hash_seed=25dbd58c478ef9f7
+2026-05-02 10:34:36,313 - diploma_verifier - INFO - OCR terminé — confiance=0.74 | langue=unknown | champs extraits=3
+2026-05-02 10:34:36,318 - diploma_verifier - INFO - Signature V4 — raw_conf=0.718 | smoothed=0.83 | candidats=9 | encre=0.593 | stroke_cx=0.722
+2026-05-02 10:34:36,345 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.780 | smoothed=0.88 | couleur=bleu | hough=21 | ellipses=6 | contours=0
+2026-05-02 10:34:36,346 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=13 | ocr_conf=0.740 | sig_conf=0.83 | stamp_conf=0.88 | hash=ac2301e1f7dbf351
+2026-05-02 10:34:36,350 - diploma_verifier - INFO - Analyse texte V5 — nom=True | institution=False | diplôme=False | date=False | phrases=False | semantic=0.270 | struct=1 | density=0.000 | confiance=0.14 | doc_type=unknown | coherence=0.00 | kw_penalty=0.00
+2026-05-02 10:34:36,350 - diploma_verifier - INFO - diploma_confidence basse (0.14) mais signaux visuels forts (0.85) — poursuite du scoring V5
+2026-05-02 10:34:36,350 - diploma_verifier - DEBUG - V5 doc_type penalty: unknown → -10% (score=44.9)
+2026-05-02 10:34:36,351 - diploma_verifier - DEBUG - V5 safety rule: semantic=0.27, struct=1 → capped at 35
+2026-05-02 10:34:36,351 - diploma_verifier - INFO - Scoring V5 DIAG — raw=49.9 | noise=2.52 | final=35.0 | confidence=medium | ocr_conf=0.740 | semantic=0.270 | struct=1 | doc_type=unknown | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 10:34:36,351 - diploma_verifier - INFO - Analyse terminée — fichier=logoedubridge.png | pays=unknown | score=35.0 | verdict=medium | durée=3867ms | flags=[aucun]
+2026-05-02 10:34:36,353 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_102243f4cb9e4c23bfb0dc891b180aa9.png
+2026-05-02 10:34:54,820 - diploma_verifier - INFO - Requête de vérification reçue : test1.jpg
+2026-05-02 10:34:54,820 - diploma_verifier - INFO - Validation du fichier : test1.jpg
+2026-05-02 10:34:54,824 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-05-02 10:34:54,826 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_60a4b3435fa049ff8a152dddabe3fe05.jpg
+2026-05-02 10:34:54,826 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=1731717 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_60a4b3435fa049ff8a152dddabe3fe05.jpg
+2026-05-02 10:34:54,826 - diploma_verifier - INFO - Début de l'analyse V5 : test1.jpg
+2026-05-02 10:34:54,827 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_60a4b3435fa049ff8a152dddabe3fe05.jpg
+2026-05-02 10:34:54,836 - diploma_verifier - DEBUG - Redimensionnement de 2574x1812 vers 2000x1407
+2026-05-02 10:34:54,945 - diploma_verifier - INFO - Image convertie — dimensions=2000x1407 | mode=RGB
+2026-05-02 10:34:59,782 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=864 | confidence=0.496
+2026-05-02 10:35:01,457 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=649 | confidence=0.393
+2026-05-02 10:35:01,457 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=6 | confidence=0.496 | text_len=864
+2026-05-02 10:35:01,457 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.393 | text_len=649
+2026-05-02 10:35:01,458 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=6 | confidence=0.496 | text_len=864
+2026-05-02 10:35:01,459 - diploma_verifier - INFO - OCR DIAG — text_len=864 | clean_len=426 | confidence=0.496 | hash_seed=01585f2fe3ea935c
+2026-05-02 10:35:01,481 - diploma_verifier - INFO - OCR terminé — confiance=0.50 | langue=ar | champs extraits=5
+2026-05-02 10:35:01,488 - diploma_verifier - INFO - Signature V4 — raw_conf=0.800 | smoothed=0.89 | candidats=11 | encre=0.858 | stroke_cx=0.000
+2026-05-02 10:35:01,936 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.924 | smoothed=0.95 | couleur=noir | hough=145 | ellipses=3 | contours=0
+2026-05-02 10:35:01,938 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=864 | ocr_conf=0.496 | sig_conf=0.89 | stamp_conf=0.95 | hash=7e06583b871a984b
+2026-05-02 10:35:01,957 - diploma_verifier - INFO - Analyse texte V5 — nom=True | institution=True | diplôme=True | date=True | phrases=False | semantic=0.748 | struct=3 | density=0.016 | confiance=0.40 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00
+2026-05-02 10:35:01,957 - diploma_verifier - DEBUG - Structure boost: 78.2 → 87.6 (count=3)
+2026-05-02 10:35:01,958 - diploma_verifier - INFO - Scoring V5 DIAG — raw=78.2 | noise=3.61 | final=91.2 | confidence=high | ocr_conf=0.496 | semantic=0.748 | struct=3 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 10:35:01,958 - diploma_verifier - INFO - Analyse terminée — fichier=test1.jpg | pays=unknown | score=91.2 | verdict=high | durée=7131ms | flags=[aucun]
+2026-05-02 10:35:01,960 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_60a4b3435fa049ff8a152dddabe3fe05.jpg
+2026-05-02 10:35:02,283 - diploma_verifier - INFO - Requête de vérification reçue : testrotation.jpg
+2026-05-02 10:35:02,284 - diploma_verifier - INFO - Validation du fichier : testrotation.jpg
+2026-05-02 10:35:02,287 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-05-02 10:35:02,288 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_ece184e6615648e2b934a9bf8ed258ea.jpg
+2026-05-02 10:35:02,288 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=1837859 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_ece184e6615648e2b934a9bf8ed258ea.jpg
+2026-05-02 10:35:02,289 - diploma_verifier - INFO - Début de l'analyse V5 : testrotation.jpg
+2026-05-02 10:35:02,289 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_ece184e6615648e2b934a9bf8ed258ea.jpg
+2026-05-02 10:35:02,296 - diploma_verifier - DEBUG - Redimensionnement de 2058x3012 vers 1366x2000
+2026-05-02 10:35:02,408 - diploma_verifier - INFO - Image convertie — dimensions=1366x2000 | mode=RGB
+2026-05-02 10:35:03,416 - diploma_verifier - INFO - Rotation détectée par OSD : 270°
+2026-05-02 10:35:07,413 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=515 | confidence=0.394
+2026-05-02 10:35:09,137 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=442 | confidence=0.365
+2026-05-02 10:35:09,139 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=0 | confidence=0.394 | text_len=515
+2026-05-02 10:35:09,139 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.365 | text_len=442
+2026-05-02 10:35:09,139 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=0 | confidence=0.394 | text_len=515
+2026-05-02 10:35:09,139 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 10:35:10,951 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=276 | confidence=0.436
+2026-05-02 10:35:10,951 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 10:35:13,472 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=478 | confidence=0.385
+2026-05-02 10:35:13,473 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=0
+2026-05-02 10:35:14,965 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=248 | confidence=0.457
+2026-05-02 10:35:14,966 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 10:35:16,760 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=423 | confidence=0.588
+2026-05-02 10:35:16,760 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=6
+2026-05-02 10:35:16,768 - diploma_verifier - INFO - Best rotation selected: 270° (semantic=6)
+2026-05-02 10:35:21,108 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=1097 | confidence=0.571
+2026-05-02 10:35:23,244 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=842 | confidence=0.441
+2026-05-02 10:35:23,244 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=6 | confidence=0.571 | text_len=1097
+2026-05-02 10:35:23,245 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.441 | text_len=842
+2026-05-02 10:35:23,245 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=6 | confidence=0.571 | text_len=1097
+2026-05-02 10:35:23,246 - diploma_verifier - INFO - OCR DIAG — text_len=1097 | clean_len=395 | confidence=0.571 | hash_seed=5f469803399384b1
+2026-05-02 10:35:23,271 - diploma_verifier - INFO - OCR terminé — confiance=0.57 | langue=ar | champs extraits=5
+2026-05-02 10:35:23,279 - diploma_verifier - INFO - Signature V4 — raw_conf=0.767 | smoothed=0.87 | candidats=6 | encre=0.540 | stroke_cx=0.766
+2026-05-02 10:35:23,531 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.935 | smoothed=0.95 | couleur=noir | hough=95 | ellipses=4 | contours=0
+2026-05-02 10:35:23,532 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=1097 | ocr_conf=0.571 | sig_conf=0.87 | stamp_conf=0.95 | hash=76a756884cb1a24e
+2026-05-02 10:35:23,557 - diploma_verifier - INFO - Analyse texte V5 — nom=True | institution=True | diplôme=True | date=True | phrases=False | semantic=0.748 | struct=3 | density=0.016 | confiance=0.40 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00
+2026-05-02 10:35:23,557 - diploma_verifier - DEBUG - Structure boost: 77.8 → 87.1 (count=3)
+2026-05-02 10:35:23,558 - diploma_verifier - INFO - Scoring V5 DIAG — raw=77.8 | noise=-3.21 | final=83.9 | confidence=high | ocr_conf=0.571 | semantic=0.748 | struct=3 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 10:35:23,559 - diploma_verifier - INFO - Analyse terminée — fichier=testrotation.jpg | pays=unknown | score=83.9 | verdict=high | durée=21270ms | flags=[aucun]
+2026-05-02 10:35:23,561 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_ece184e6615648e2b934a9bf8ed258ea.jpg
+2026-05-02 10:35:23,873 - diploma_verifier - INFO - Requête de vérification reçue : test.jpg
+2026-05-02 10:35:23,874 - diploma_verifier - INFO - Validation du fichier : test.jpg
+2026-05-02 10:35:23,876 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-05-02 10:35:23,877 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_eed7070cfd9344b59821c11548fc9a71.jpg
+2026-05-02 10:35:23,877 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=258481 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_eed7070cfd9344b59821c11548fc9a71.jpg
+2026-05-02 10:35:23,877 - diploma_verifier - INFO - Début de l'analyse V5 : test.jpg
+2026-05-02 10:35:23,878 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_eed7070cfd9344b59821c11548fc9a71.jpg
+2026-05-02 10:35:23,884 - diploma_verifier - DEBUG - Redimensionnement de 1478x2047 vers 1444x2000
+2026-05-02 10:35:23,961 - diploma_verifier - INFO - Image convertie — dimensions=1444x2000 | mode=RGB
+2026-05-02 10:35:24,675 - diploma_verifier - INFO - Rotation détectée par OSD : 90°
+2026-05-02 10:35:28,363 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=692 | confidence=0.443
+2026-05-02 10:35:30,129 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=657 | confidence=0.376
+2026-05-02 10:35:30,129 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=0 | confidence=0.443 | text_len=692
+2026-05-02 10:35:30,129 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.376 | text_len=657
+2026-05-02 10:35:30,129 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=0 | confidence=0.443 | text_len=692
+2026-05-02 10:35:30,129 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 10:35:30,896 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=89 | confidence=0.596
+2026-05-02 10:35:30,896 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 10:35:32,885 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=899 | confidence=0.707
+2026-05-02 10:35:32,885 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=7
+2026-05-02 10:35:33,617 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=86 | confidence=0.500
+2026-05-02 10:35:33,617 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 10:35:36,019 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=505 | confidence=0.391
+2026-05-02 10:35:36,019 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=0
+2026-05-02 10:35:36,020 - diploma_verifier - INFO - Best rotation selected: 90° (semantic=7)
+2026-05-02 10:35:39,123 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=1032 | confidence=0.784
+2026-05-02 10:35:41,035 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=973 | confidence=0.434
+2026-05-02 10:35:41,035 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=13 | confidence=0.784 | text_len=1032
+2026-05-02 10:35:41,035 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.434 | text_len=973
+2026-05-02 10:35:41,035 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=13 | confidence=0.784 | text_len=1032
+2026-05-02 10:35:41,035 - diploma_verifier - INFO - OCR DIAG — text_len=1032 | clean_len=226 | confidence=0.784 | hash_seed=bf316b44d24b5d90
+2026-05-02 10:35:41,062 - diploma_verifier - INFO - OCR terminé — confiance=0.78 | langue=ar | champs extraits=7
+2026-05-02 10:35:41,068 - diploma_verifier - INFO - Signature V4 — raw_conf=0.688 | smoothed=0.81 | candidats=2 | encre=0.858 | stroke_cx=0.000
+2026-05-02 10:35:41,228 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.750 | smoothed=0.86 | couleur=bleu | hough=102 | ellipses=1 | contours=1
+2026-05-02 10:35:41,228 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=1032 | ocr_conf=0.784 | sig_conf=0.81 | stamp_conf=0.86 | hash=229eaf14cbe5ddb6
+2026-05-02 10:35:41,248 - diploma_verifier - INFO - Analyse texte V5 — nom=True | institution=True | diplôme=True | date=True | phrases=False | semantic=0.780 | struct=3 | density=0.081 | confiance=0.72 | doc_type=diploma | coherence=0.17 | kw_penalty=0.00
+2026-05-02 10:35:41,248 - diploma_verifier - DEBUG - Structure boost: 85.2 → 95.4 (count=3)
+2026-05-02 10:35:41,248 - diploma_verifier - INFO - Scoring V5 DIAG — raw=85.2 | noise=-1.90 | final=93.5 | confidence=high | ocr_conf=0.784 | semantic=0.780 | struct=3 | doc_type=diploma | coherence=0.17 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 10:35:41,248 - diploma_verifier - INFO - Analyse terminée — fichier=test.jpg | pays=unknown | score=93.5 | verdict=high | durée=17371ms | flags=[aucun]
+2026-05-02 10:35:41,252 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_eed7070cfd9344b59821c11548fc9a71.jpg
+2026-05-02 10:35:41,594 - diploma_verifier - INFO - Requête de vérification reçue : logoedubridge.png
+2026-05-02 10:35:41,594 - diploma_verifier - INFO - Validation du fichier : logoedubridge.png
+2026-05-02 10:35:41,599 - diploma_verifier - DEBUG - Type MIME détecté : image/png
+2026-05-02 10:35:41,603 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_b5ec816edd774237b249876b1e103141.png
+2026-05-02 10:35:41,603 - diploma_verifier - INFO - Fichier validé — mime=image/png | taille=4923858 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_b5ec816edd774237b249876b1e103141.png
+2026-05-02 10:35:41,603 - diploma_verifier - INFO - Début de l'analyse V5 : logoedubridge.png
+2026-05-02 10:35:41,603 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_b5ec816edd774237b249876b1e103141.png
+2026-05-02 10:35:41,686 - diploma_verifier - DEBUG - Redimensionnement de 2760x1504 vers 2000x1089
+2026-05-02 10:35:41,749 - diploma_verifier - INFO - Image convertie — dimensions=2000x1089 | mode=RGB
+2026-05-02 10:35:42,318 - diploma_verifier - DEBUG - OSD rotation detection failed (non-critique) : (1, 'Estimating resolution as 1259 Warning. Invalid resolution 0 dpi. Using 70 instead. Too few characters. Skipping this page Error during processing.')
+2026-05-02 10:35:43,122 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=13 | confidence=0.740
+2026-05-02 10:35:43,840 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=13 | confidence=0.740
+2026-05-02 10:35:43,840 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra+eng | score=0 | confidence=0.740 | text_len=13
+2026-05-02 10:35:43,840 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.740 | text_len=13
+2026-05-02 10:35:43,840 - diploma_verifier - INFO - OCR best selection — lang=ara+fra+eng | semantic_score=0 | confidence=0.740 | text_len=13
+2026-05-02 10:35:43,844 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 10:35:44,175 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=13 | confidence=0.635
+2026-05-02 10:35:44,175 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 10:35:44,578 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=29 | confidence=0.560
+2026-05-02 10:35:44,578 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=0
+2026-05-02 10:35:44,950 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=6 | confidence=0.445
+2026-05-02 10:35:44,950 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 10:35:45,369 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=34 | confidence=0.509
+2026-05-02 10:35:45,369 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=0
+2026-05-02 10:35:45,369 - diploma_verifier - INFO - Best rotation selected: OSD (semantic=0)
+2026-05-02 10:35:45,370 - diploma_verifier - INFO - OCR DIAG — text_len=13 | clean_len=13 | confidence=0.740 | hash_seed=25dbd58c478ef9f7
+2026-05-02 10:35:45,375 - diploma_verifier - INFO - OCR terminé — confiance=0.74 | langue=unknown | champs extraits=3
+2026-05-02 10:35:45,379 - diploma_verifier - INFO - Signature V4 — raw_conf=0.718 | smoothed=0.83 | candidats=9 | encre=0.593 | stroke_cx=0.722
+2026-05-02 10:35:45,409 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.780 | smoothed=0.88 | couleur=bleu | hough=21 | ellipses=6 | contours=0
+2026-05-02 10:35:45,410 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=13 | ocr_conf=0.740 | sig_conf=0.83 | stamp_conf=0.88 | hash=baa296439bac3107
+2026-05-02 10:35:45,414 - diploma_verifier - INFO - Analyse texte V5 — nom=True | institution=False | diplôme=False | date=False | phrases=False | semantic=0.270 | struct=1 | density=0.000 | confiance=0.14 | doc_type=unknown | coherence=0.00 | kw_penalty=0.00
+2026-05-02 10:35:45,415 - diploma_verifier - INFO - diploma_confidence basse (0.14) mais signaux visuels forts (0.85) — poursuite du scoring V5
+2026-05-02 10:35:45,415 - diploma_verifier - DEBUG - V5 doc_type penalty: unknown → -10% (score=44.9)
+2026-05-02 10:35:45,416 - diploma_verifier - DEBUG - V5 safety rule: semantic=0.27, struct=1 → capped at 35
+2026-05-02 10:35:45,416 - diploma_verifier - INFO - Scoring V5 DIAG — raw=49.9 | noise=2.52 | final=35.0 | confidence=medium | ocr_conf=0.740 | semantic=0.270 | struct=1 | doc_type=unknown | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 10:35:45,416 - diploma_verifier - INFO - Analyse terminée — fichier=logoedubridge.png | pays=unknown | score=35.0 | verdict=medium | durée=3813ms | flags=[aucun]
+2026-05-02 10:35:45,418 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_b5ec816edd774237b249876b1e103141.png
+2026-05-02 14:20:02,981 - diploma_verifier - INFO - Démarrage du service Diploma Verifier v2...
+2026-05-02 14:20:02,996 - diploma_verifier - INFO - Tesseract trouvé (version 5.4.0.20240606)
+2026-05-02 14:20:07,547 - diploma_verifier - INFO - Chargement du modèle spaCy fr_core_news_sm...
+2026-05-02 14:20:10,781 - diploma_verifier - INFO - Chargement du modèle spaCy xx_ent_wiki_sm...
+2026-05-02 14:20:12,154 - diploma_verifier - INFO - Modèles spaCy chargés avec succès
+2026-05-02 14:20:12,155 - diploma_verifier - INFO - Service démarré — prêt à recevoir des requêtes
+2026-05-02 14:20:29,990 - diploma_verifier - INFO - Requête de vérification reçue : test1.jpg
+2026-05-02 14:20:29,991 - diploma_verifier - INFO - Validation du fichier : test1.jpg
+2026-05-02 14:20:30,000 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-05-02 14:20:30,003 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_49fc50a9c0be4daabcb3d2bf2e26769a.jpg
+2026-05-02 14:20:30,003 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=1731717 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_49fc50a9c0be4daabcb3d2bf2e26769a.jpg
+2026-05-02 14:20:30,003 - diploma_verifier - INFO - Début de l'analyse V5 : test1.jpg
+2026-05-02 14:20:30,003 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_49fc50a9c0be4daabcb3d2bf2e26769a.jpg
+2026-05-02 14:20:30,150 - diploma_verifier - DEBUG - Redimensionnement de 2574x1812 vers 2000x1407
+2026-05-02 14:20:30,252 - diploma_verifier - INFO - Image convertie — dimensions=2000x1407 | mode=RGB
+2026-05-02 14:20:33,752 - diploma_verifier - DEBUG - OCR pass [ara] — text_len=935 | confidence=0.468
+2026-05-02 14:20:34,914 - diploma_verifier - DEBUG - OCR pass [fra] — text_len=606 | confidence=0.335
+2026-05-02 14:20:35,885 - diploma_verifier - DEBUG - OCR pass [eng] — text_len=689 | confidence=0.355
+2026-05-02 14:20:39,052 - diploma_verifier - DEBUG - OCR pass [ara+fra] — text_len=850 | confidence=0.486
+2026-05-02 14:20:40,752 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=649 | confidence=0.393
+2026-05-02 14:20:40,752 - diploma_verifier - DEBUG - OCR semantic — lang=ara | score=6 | confidence=0.468 | text_len=935
+2026-05-02 14:20:40,753 - diploma_verifier - DEBUG - OCR semantic — lang=fra | score=0 | confidence=0.335 | text_len=606
+2026-05-02 14:20:40,753 - diploma_verifier - DEBUG - OCR semantic — lang=eng | score=0 | confidence=0.355 | text_len=689
+2026-05-02 14:20:40,754 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra | score=6 | confidence=0.486 | text_len=850
+2026-05-02 14:20:40,754 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.393 | text_len=649
+2026-05-02 14:20:40,754 - diploma_verifier - INFO - OCR best selection — lang=ara | semantic_score=6 | confidence=0.468 | text_len=935
+2026-05-02 14:20:40,755 - diploma_verifier - INFO - OCR DIAG — text_len=935 | clean_len=145 | confidence=0.468 | hash_seed=04c3b3a229c48284
+2026-05-02 14:20:41,451 - diploma_verifier - INFO - OCR terminé — confiance=0.47 | langue=ar | champs extraits=3
+2026-05-02 14:20:41,458 - diploma_verifier - INFO - Signature V4 — raw_conf=0.800 | smoothed=0.89 | candidats=11 | encre=0.858 | stroke_cx=0.000
+2026-05-02 14:20:41,893 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.924 | smoothed=0.95 | couleur=noir | hough=145 | ellipses=3 | contours=0
+2026-05-02 14:20:41,894 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=935 | ocr_conf=0.468 | sig_conf=0.89 | stamp_conf=0.95 | hash=b39a603a6816c93e
+2026-05-02 14:20:41,914 - diploma_verifier - INFO - Analyse texte V5 — nom=False | institution=True | diplôme=True | date=True | phrases=False | semantic=0.478 | struct=2 | density=0.016 | confiance=0.26 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00
+2026-05-02 14:20:41,914 - diploma_verifier - DEBUG - Structure boost: 58.2 → 65.2 (count=2)
+2026-05-02 14:20:41,915 - diploma_verifier - INFO - Scoring V5 DIAG — raw=58.2 | noise=3.50 | final=68.7 | confidence=medium | ocr_conf=0.468 | semantic=0.478 | struct=2 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 14:20:41,915 - diploma_verifier - INFO - Analyse terminée — fichier=test1.jpg | pays=unknown | score=68.7 | verdict=medium | durée=11911ms | flags=[aucun]
+2026-05-02 14:20:41,917 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_49fc50a9c0be4daabcb3d2bf2e26769a.jpg
+2026-05-02 14:20:42,226 - diploma_verifier - INFO - Requête de vérification reçue : testrotation.jpg
+2026-05-02 14:20:42,226 - diploma_verifier - INFO - Validation du fichier : testrotation.jpg
+2026-05-02 14:20:42,228 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-05-02 14:20:42,230 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_7e798df6ac7e4acb9b1eafbb26105e62.jpg
+2026-05-02 14:20:42,230 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=1837859 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_7e798df6ac7e4acb9b1eafbb26105e62.jpg
+2026-05-02 14:20:42,230 - diploma_verifier - INFO - Début de l'analyse V5 : testrotation.jpg
+2026-05-02 14:20:42,230 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_7e798df6ac7e4acb9b1eafbb26105e62.jpg
+2026-05-02 14:20:42,237 - diploma_verifier - DEBUG - Redimensionnement de 2058x3012 vers 1366x2000
+2026-05-02 14:20:42,349 - diploma_verifier - INFO - Image convertie — dimensions=1366x2000 | mode=RGB
+2026-05-02 14:20:43,365 - diploma_verifier - INFO - Rotation détectée par OSD : 270°
+2026-05-02 14:20:45,942 - diploma_verifier - DEBUG - OCR pass [ara] — text_len=471 | confidence=0.341
+2026-05-02 14:20:47,195 - diploma_verifier - DEBUG - OCR pass [fra] — text_len=454 | confidence=0.313
+2026-05-02 14:20:48,277 - diploma_verifier - DEBUG - OCR pass [eng] — text_len=505 | confidence=0.323
+2026-05-02 14:20:51,677 - diploma_verifier - DEBUG - OCR pass [ara+fra] — text_len=524 | confidence=0.367
+2026-05-02 14:20:53,429 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=442 | confidence=0.365
+2026-05-02 14:20:53,429 - diploma_verifier - DEBUG - OCR semantic — lang=ara | score=0 | confidence=0.341 | text_len=471
+2026-05-02 14:20:53,430 - diploma_verifier - DEBUG - OCR semantic — lang=fra | score=0 | confidence=0.313 | text_len=454
+2026-05-02 14:20:53,430 - diploma_verifier - DEBUG - OCR semantic — lang=eng | score=0 | confidence=0.323 | text_len=505
+2026-05-02 14:20:53,430 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra | score=0 | confidence=0.367 | text_len=524
+2026-05-02 14:20:53,431 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.365 | text_len=442
+2026-05-02 14:20:53,432 - diploma_verifier - INFO - OCR best selection — lang=ara+fra | semantic_score=0 | confidence=0.367 | text_len=524
+2026-05-02 14:20:53,432 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 14:20:55,251 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=276 | confidence=0.436
+2026-05-02 14:20:55,251 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 14:20:57,972 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=478 | confidence=0.385
+2026-05-02 14:20:57,972 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=0
+2026-05-02 14:20:59,577 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=248 | confidence=0.457
+2026-05-02 14:20:59,578 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 14:21:01,407 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=423 | confidence=0.588
+2026-05-02 14:21:01,408 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=6
+2026-05-02 14:21:01,415 - diploma_verifier - INFO - Best rotation selected: 270° (semantic=6)
+2026-05-02 14:21:04,340 - diploma_verifier - DEBUG - OCR pass [ara] — text_len=1132 | confidence=0.537
+2026-05-02 14:21:05,852 - diploma_verifier - DEBUG - OCR pass [fra] — text_len=811 | confidence=0.387
+2026-05-02 14:21:07,077 - diploma_verifier - DEBUG - OCR pass [eng] — text_len=871 | confidence=0.403
+2026-05-02 14:21:11,077 - diploma_verifier - DEBUG - OCR pass [ara+fra] — text_len=1109 | confidence=0.557
+2026-05-02 14:21:13,241 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=842 | confidence=0.441
+2026-05-02 14:21:13,241 - diploma_verifier - DEBUG - OCR semantic — lang=ara | score=6 | confidence=0.537 | text_len=1132
+2026-05-02 14:21:13,243 - diploma_verifier - DEBUG - OCR semantic — lang=fra | score=0 | confidence=0.387 | text_len=811
+2026-05-02 14:21:13,243 - diploma_verifier - DEBUG - OCR semantic — lang=eng | score=0 | confidence=0.403 | text_len=871
+2026-05-02 14:21:13,243 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra | score=6 | confidence=0.557 | text_len=1109
+2026-05-02 14:21:13,244 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.441 | text_len=842
+2026-05-02 14:21:13,244 - diploma_verifier - INFO - OCR best selection — lang=ara | semantic_score=6 | confidence=0.537 | text_len=1132
+2026-05-02 14:21:13,245 - diploma_verifier - INFO - OCR DIAG — text_len=1132 | clean_len=168 | confidence=0.537 | hash_seed=54ca13db97c33726
+2026-05-02 14:21:13,271 - diploma_verifier - INFO - OCR terminé — confiance=0.54 | langue=ar | champs extraits=3
+2026-05-02 14:21:13,278 - diploma_verifier - INFO - Signature V4 — raw_conf=0.767 | smoothed=0.87 | candidats=6 | encre=0.540 | stroke_cx=0.766
+2026-05-02 14:21:13,485 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.935 | smoothed=0.95 | couleur=noir | hough=95 | ellipses=4 | contours=0
+2026-05-02 14:21:13,486 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=1132 | ocr_conf=0.537 | sig_conf=0.87 | stamp_conf=0.95 | hash=cb33a0129c228828
+2026-05-02 14:21:13,507 - diploma_verifier - INFO - Analyse texte V5 — nom=False | institution=True | diplôme=True | date=True | phrases=False | semantic=0.478 | struct=2 | density=0.016 | confiance=0.26 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00
+2026-05-02 14:21:13,508 - diploma_verifier - DEBUG - Structure boost: 57.8 → 64.7 (count=2)
+2026-05-02 14:21:13,508 - diploma_verifier - INFO - Scoring V5 DIAG — raw=57.8 | noise=0.62 | final=65.4 | confidence=medium | ocr_conf=0.537 | semantic=0.478 | struct=2 | doc_type=diploma | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 14:21:13,509 - diploma_verifier - INFO - Analyse terminée — fichier=testrotation.jpg | pays=unknown | score=65.4 | verdict=medium | durée=31278ms | flags=[aucun]
+2026-05-02 14:21:13,511 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_7e798df6ac7e4acb9b1eafbb26105e62.jpg
+2026-05-02 14:21:13,802 - diploma_verifier - INFO - Requête de vérification reçue : test.jpg
+2026-05-02 14:21:13,802 - diploma_verifier - INFO - Validation du fichier : test.jpg
+2026-05-02 14:21:13,804 - diploma_verifier - DEBUG - Type MIME détecté : image/jpeg
+2026-05-02 14:21:13,805 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_0034b085faf7436d80266a460d4c0543.jpg
+2026-05-02 14:21:13,805 - diploma_verifier - INFO - Fichier validé — mime=image/jpeg | taille=258481 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_0034b085faf7436d80266a460d4c0543.jpg
+2026-05-02 14:21:13,806 - diploma_verifier - INFO - Début de l'analyse V5 : test.jpg
+2026-05-02 14:21:13,806 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_0034b085faf7436d80266a460d4c0543.jpg
+2026-05-02 14:21:13,812 - diploma_verifier - DEBUG - Redimensionnement de 1478x2047 vers 1444x2000
+2026-05-02 14:21:13,886 - diploma_verifier - INFO - Image convertie — dimensions=1444x2000 | mode=RGB
+2026-05-02 14:21:14,612 - diploma_verifier - INFO - Rotation détectée par OSD : 90°
+2026-05-02 14:21:17,110 - diploma_verifier - DEBUG - OCR pass [ara] — text_len=733 | confidence=0.417
+2026-05-02 14:21:18,231 - diploma_verifier - DEBUG - OCR pass [fra] — text_len=661 | confidence=0.277
+2026-05-02 14:21:19,119 - diploma_verifier - DEBUG - OCR pass [eng] — text_len=709 | confidence=0.355
+2026-05-02 14:21:22,187 - diploma_verifier - DEBUG - OCR pass [ara+fra] — text_len=685 | confidence=0.419
+2026-05-02 14:21:23,874 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=657 | confidence=0.376
+2026-05-02 14:21:23,874 - diploma_verifier - DEBUG - OCR semantic — lang=ara | score=0 | confidence=0.417 | text_len=733
+2026-05-02 14:21:23,875 - diploma_verifier - DEBUG - OCR semantic — lang=fra | score=0 | confidence=0.277 | text_len=661
+2026-05-02 14:21:23,875 - diploma_verifier - DEBUG - OCR semantic — lang=eng | score=0 | confidence=0.355 | text_len=709
+2026-05-02 14:21:23,875 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra | score=0 | confidence=0.419 | text_len=685
+2026-05-02 14:21:23,876 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.376 | text_len=657
+2026-05-02 14:21:23,876 - diploma_verifier - INFO - OCR best selection — lang=ara | semantic_score=0 | confidence=0.417 | text_len=733
+2026-05-02 14:21:23,877 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 14:21:24,639 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=89 | confidence=0.596
+2026-05-02 14:21:24,640 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 14:21:26,668 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=899 | confidence=0.707
+2026-05-02 14:21:26,672 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=7
+2026-05-02 14:21:27,339 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=86 | confidence=0.500
+2026-05-02 14:21:27,339 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 14:21:29,736 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=505 | confidence=0.391
+2026-05-02 14:21:29,740 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=0
+2026-05-02 14:21:29,740 - diploma_verifier - INFO - Best rotation selected: 90° (semantic=7)
+2026-05-02 14:21:31,586 - diploma_verifier - DEBUG - OCR pass [ara] — text_len=1006 | confidence=0.795
+2026-05-02 14:21:32,718 - diploma_verifier - DEBUG - OCR pass [fra] — text_len=914 | confidence=0.378
+2026-05-02 14:21:33,580 - diploma_verifier - DEBUG - OCR pass [eng] — text_len=1018 | confidence=0.414
+2026-05-02 14:21:36,068 - diploma_verifier - DEBUG - OCR pass [ara+fra] — text_len=1020 | confidence=0.822
+2026-05-02 14:21:37,743 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=973 | confidence=0.434
+2026-05-02 14:21:37,743 - diploma_verifier - DEBUG - OCR semantic — lang=ara | score=13 | confidence=0.795 | text_len=1006
+2026-05-02 14:21:37,744 - diploma_verifier - DEBUG - OCR semantic — lang=fra | score=0 | confidence=0.378 | text_len=914
+2026-05-02 14:21:37,744 - diploma_verifier - DEBUG - OCR semantic — lang=eng | score=0 | confidence=0.414 | text_len=1018
+2026-05-02 14:21:37,745 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra | score=13 | confidence=0.822 | text_len=1020
+2026-05-02 14:21:37,745 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.434 | text_len=973
+2026-05-02 14:21:37,745 - diploma_verifier - INFO - OCR best selection — lang=ara | semantic_score=13 | confidence=0.795 | text_len=1006
+2026-05-02 14:21:37,746 - diploma_verifier - INFO - OCR DIAG — text_len=1006 | clean_len=116 | confidence=0.795 | hash_seed=e67c6fb20e2a9c84
+2026-05-02 14:21:37,767 - diploma_verifier - INFO - OCR terminé — confiance=0.79 | langue=ar | champs extraits=3
+2026-05-02 14:21:37,774 - diploma_verifier - INFO - Signature V4 — raw_conf=0.688 | smoothed=0.81 | candidats=2 | encre=0.858 | stroke_cx=0.000
+2026-05-02 14:21:37,918 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.750 | smoothed=0.86 | couleur=bleu | hough=102 | ellipses=1 | contours=1
+2026-05-02 14:21:37,919 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=1006 | ocr_conf=0.795 | sig_conf=0.81 | stamp_conf=0.86 | hash=64bf62b00c534888
+2026-05-02 14:21:37,936 - diploma_verifier - INFO - Analyse texte V5 — nom=False | institution=False | diplôme=True | date=True | phrases=False | semantic=0.511 | struct=2 | density=0.081 | confiance=0.58 | doc_type=diploma | coherence=0.17 | kw_penalty=0.00
+2026-05-02 14:21:37,937 - diploma_verifier - DEBUG - Structure boost: 65.2 → 73.0 (count=2)
+2026-05-02 14:21:37,937 - diploma_verifier - INFO - Scoring V5 DIAG — raw=65.2 | noise=0.33 | final=73.4 | confidence=high | ocr_conf=0.795 | semantic=0.511 | struct=2 | doc_type=diploma | coherence=0.17 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 14:21:37,937 - diploma_verifier - INFO - Analyse terminée — fichier=test.jpg | pays=unknown | score=73.4 | verdict=high | durée=24131ms | flags=[aucun]
+2026-05-02 14:21:37,939 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_0034b085faf7436d80266a460d4c0543.jpg
+2026-05-02 14:21:38,245 - diploma_verifier - INFO - Requête de vérification reçue : logoedubridge.png
+2026-05-02 14:21:38,245 - diploma_verifier - INFO - Validation du fichier : logoedubridge.png
+2026-05-02 14:21:38,248 - diploma_verifier - DEBUG - Type MIME détecté : image/png
+2026-05-02 14:21:38,250 - diploma_verifier - DEBUG - Fichier temporaire créé : C:\Users\marwe\AppData\Local\Temp\diploma_09d3dce7773f4336af6f10311074547f.png
+2026-05-02 14:21:38,251 - diploma_verifier - INFO - Fichier validé — mime=image/png | taille=4923858 octets | chemin=C:\Users\marwe\AppData\Local\Temp\diploma_09d3dce7773f4336af6f10311074547f.png
+2026-05-02 14:21:38,251 - diploma_verifier - INFO - Début de l'analyse V5 : logoedubridge.png
+2026-05-02 14:21:38,251 - diploma_verifier - DEBUG - Chargement image : C:\Users\marwe\AppData\Local\Temp\diploma_09d3dce7773f4336af6f10311074547f.png
+2026-05-02 14:21:38,334 - diploma_verifier - DEBUG - Redimensionnement de 2760x1504 vers 2000x1089
+2026-05-02 14:21:38,400 - diploma_verifier - INFO - Image convertie — dimensions=2000x1089 | mode=RGB
+2026-05-02 14:21:38,922 - diploma_verifier - DEBUG - OSD rotation detection failed (non-critique) : (1, 'Estimating resolution as 1259 Warning. Invalid resolution 0 dpi. Using 70 instead. Too few characters. Skipping this page Error during processing.')
+2026-05-02 14:21:39,464 - diploma_verifier - DEBUG - OCR pass [ara] — text_len=14 | confidence=0.160
+2026-05-02 14:21:40,037 - diploma_verifier - DEBUG - OCR pass [fra] — text_len=15 | confidence=0.517
+2026-05-02 14:21:40,610 - diploma_verifier - DEBUG - OCR pass [eng] — text_len=13 | confidence=0.740
+2026-05-02 14:21:41,265 - diploma_verifier - DEBUG - OCR pass [ara+fra] — text_len=15 | confidence=0.517
+2026-05-02 14:21:41,961 - diploma_verifier - DEBUG - OCR pass [fra+eng] — text_len=13 | confidence=0.740
+2026-05-02 14:21:41,961 - diploma_verifier - DEBUG - OCR semantic — lang=ara | score=0 | confidence=0.160 | text_len=14
+2026-05-02 14:21:41,961 - diploma_verifier - DEBUG - OCR semantic — lang=fra | score=0 | confidence=0.517 | text_len=15
+2026-05-02 14:21:41,961 - diploma_verifier - DEBUG - OCR semantic — lang=eng | score=0 | confidence=0.740 | text_len=13
+2026-05-02 14:21:41,962 - diploma_verifier - DEBUG - OCR semantic — lang=ara+fra | score=0 | confidence=0.517 | text_len=15
+2026-05-02 14:21:41,962 - diploma_verifier - DEBUG - OCR semantic — lang=fra+eng | score=0 | confidence=0.740 | text_len=13
+2026-05-02 14:21:41,962 - diploma_verifier - INFO - OCR best selection — lang=fra | semantic_score=0 | confidence=0.517 | text_len=15
+2026-05-02 14:21:41,962 - diploma_verifier - INFO - OSD semantic faible (0) — fallback 4-rotation activé
+2026-05-02 14:21:42,275 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=13 | confidence=0.635
+2026-05-02 14:21:42,275 - diploma_verifier - INFO - Rotation fallback 0° → semantic_score=0
+2026-05-02 14:21:42,680 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=29 | confidence=0.560
+2026-05-02 14:21:42,680 - diploma_verifier - INFO - Rotation fallback 90° → semantic_score=0
+2026-05-02 14:21:43,041 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=6 | confidence=0.445
+2026-05-02 14:21:43,041 - diploma_verifier - INFO - Rotation fallback 180° → semantic_score=0
+2026-05-02 14:21:43,441 - diploma_verifier - DEBUG - OCR pass [ara+fra+eng] — text_len=34 | confidence=0.509
+2026-05-02 14:21:43,441 - diploma_verifier - INFO - Rotation fallback 270° → semantic_score=0
+2026-05-02 14:21:43,441 - diploma_verifier - INFO - Best rotation selected: OSD (semantic=0)
+2026-05-02 14:21:43,441 - diploma_verifier - INFO - OCR DIAG — text_len=15 | clean_len=15 | confidence=0.517 | hash_seed=2990af2ba2380bd7
+2026-05-02 14:21:43,450 - diploma_verifier - INFO - OCR terminé — confiance=0.52 | langue=unknown | champs extraits=0
+2026-05-02 14:21:43,454 - diploma_verifier - INFO - Signature V4 — raw_conf=0.718 | smoothed=0.83 | candidats=9 | encre=0.593 | stroke_cx=0.722
+2026-05-02 14:21:43,490 - diploma_verifier - INFO - Cachet V4 — raw_conf=0.780 | smoothed=0.88 | couleur=bleu | hough=21 | ellipses=6 | contours=0
+2026-05-02 14:21:43,491 - diploma_verifier - INFO - ORCH V5 DIAG — ocr_len=15 | ocr_conf=0.517 | sig_conf=0.83 | stamp_conf=0.88 | hash=2d507d9276993806
+2026-05-02 14:21:43,495 - diploma_verifier - INFO - Analyse texte V5 — nom=False | institution=False | diplôme=False | date=False | phrases=False | semantic=0.000 | struct=0 | density=0.000 | confiance=0.00 | doc_type=unknown | coherence=0.00 | kw_penalty=0.00
+2026-05-02 14:21:43,496 - diploma_verifier - INFO - diploma_confidence basse (0.00) mais signaux visuels forts (0.85) — poursuite du scoring V5
+2026-05-02 14:21:43,496 - diploma_verifier - DEBUG - Structure penalty: 29.9 → 23.9 (count=0)
+2026-05-02 14:21:43,496 - diploma_verifier - INFO - Anti-fake: keyword density penalty (23.9 → 17.9 | density=0.000)
+2026-05-02 14:21:43,496 - diploma_verifier - DEBUG - V5 doc_type penalty: unknown → -10% (score=16.1)
+2026-05-02 14:21:43,497 - diploma_verifier - DEBUG - V5 safety rule: semantic=0.00, struct=0 → capped at 35
+2026-05-02 14:21:43,497 - diploma_verifier - INFO - V6 no-content ceiling: struct=0 + semantic=0.00 → capped at 18 (was 18.6)
+2026-05-02 14:21:43,497 - diploma_verifier - INFO - Scoring V5 DIAG — raw=29.9 | noise=2.50 | final=18.0 | confidence=low | ocr_conf=0.517 | semantic=0.000 | struct=0 | doc_type=unknown | coherence=0.00 | kw_penalty=0.00 | weights={'has_person_name': 0.2, 'has_degree_keyword': 0.16, 'has_date': 0.1, 'official_mention': 0.1, 'certification_phrase': 0.09, 'signature_confidence': 0.18, 'stamp_confidence': 0.17}
+2026-05-02 14:21:43,498 - diploma_verifier - INFO - Analyse terminée — fichier=logoedubridge.png | pays=unknown | score=18.0 | verdict=low | durée=5247ms | flags=[aucun]
+2026-05-02 14:21:43,500 - diploma_verifier - DEBUG - Fichier temporaire supprimé : C:\Users\marwe\AppData\Local\Temp\diploma_09d3dce7773f4336af6f10311074547f.png

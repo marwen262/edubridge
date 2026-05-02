@@ -28,7 +28,7 @@ from langdetect import LangDetectException, detect
 from numpy.typing import NDArray
 from PIL import Image
 
-from app.config import DIPLOMA_TYPES, OCR_LANGUAGES
+from app.config import DIPLOMA_TYPES, MAX_IMAGE_DIMENSION, OCR_LANGUAGES
 from app.utils.logger import logger
 
 # --- Configuration Tesseract ---
@@ -49,7 +49,8 @@ _TESSERACT_CONFIG = "--oem 3 --psm 6"
 # Languages to run OCR passes for.
 # V6: passes individuelles + passes combinées pour les diplômes
 # bilingues (typique tunisien fr/ar). La meilleure passe est
-# sélectionnée par scoring sémantique.
+# sélectionnée par scoring sémantique. (P2 reverté — la passe
+# combinée unique générait des faux positifs sur le bruit OCR.)
 _OCR_PASS_LANGS = ["ara", "fra", "eng", "ara+fra", "fra+eng"]
 
 # Modèles spaCy chargés au démarrage (cf. main.py)
@@ -338,24 +339,50 @@ def _correct_rotation(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
 # Simple preprocessing (grayscale + resize x2)
 # ──────────────────────────────────────────────
 
+def _resize_to_max(
+    image: NDArray[np.uint8],
+    max_dim: int,
+) -> NDArray[np.uint8]:
+    """Downscale image so the longest side is at most max_dim."""
+    h, w = image.shape[:2]
+    longest = max(h, w)
+    if longest <= max_dim:
+        return image
+    ratio = max_dim / longest
+    new_w = int(w * ratio)
+    new_h = int(h * ratio)
+    return cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+
 def _ocr_preprocess(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
     """Simple preprocessing for OCR.
 
-    ONLY:
-      1. Convert to grayscale
-      2. Upscale x2
+    V6: applique MAX_IMAGE_DIMENSION pour borner le coût OCR sur les
+    grandes images (Tesseract LSTM ne profite pas au-delà de ~2000px).
+
+    Pipeline:
+      1. Resize si > MAX_IMAGE_DIMENSION
+      2. Convert to grayscale
+      3. Upscale x2 (sauf si ça dépasse encore MAX)
 
     NO blur, NO adaptive threshold, NO aggressive filters.
     """
+    # Resize si trop grande (avant grayscale pour économiser)
+    image = _resize_to_max(image, MAX_IMAGE_DIMENSION)
+
     # Grayscale
     if len(image.shape) == 3:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     else:
         gray = image.copy()
 
-    # Upscale x2 for better Tesseract recognition
+    # Upscale x2 (mais reste borné par MAX_IMAGE_DIMENSION)
     h, w = gray.shape[:2]
-    upscaled = cv2.resize(gray, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
+    target_w, target_h = w * 2, h * 2
+    if max(target_w, target_h) > MAX_IMAGE_DIMENSION:
+        # Skip upscale si on dépasserait la borne
+        return gray
+    upscaled = cv2.resize(gray, (target_w, target_h), interpolation=cv2.INTER_CUBIC)
 
     return upscaled
 
@@ -370,6 +397,10 @@ def _ocr_single_lang(
 ) -> dict[str, str | float]:
     """Run Tesseract OCR for a single language.
 
+    V6 perf: un seul appel Tesseract via image_to_data — le texte est
+    reconstruit à partir des mots, et la confidence est calculée en
+    même temps. Évite le doublon image_to_string + image_to_data.
+
     Returns dict with 'text', 'confidence', and 'lang' keys.
     """
     if not TESSERACT_AVAILABLE:
@@ -378,22 +409,45 @@ def _ocr_single_lang(
     try:
         pil_img = Image.fromarray(image)
 
-        text: str = pytesseract.image_to_string(
-            pil_img,
-            lang=lang,
-            config=_TESSERACT_CONFIG,
-        )
-
-        # Average confidence
+        # Single Tesseract call — get words + confidences together
         data = pytesseract.image_to_data(
             pil_img,
             lang=lang,
             config=_TESSERACT_CONFIG,
             output_type=pytesseract.Output.DICT,
         )
-        confidences: list[int] = [
-            int(c) for c in data["conf"] if str(c).isdigit() and int(c) > 0
-        ]
+
+        # Reconstruct text from words (preserve line breaks via line_num)
+        words = data.get("text", [])
+        confs_raw = data.get("conf", [])
+        line_nums = data.get("line_num", [0] * len(words))
+        block_nums = data.get("block_num", [0] * len(words))
+
+        # Build text with line breaks at line_num/block_num boundaries
+        text_parts: list[str] = []
+        prev_line: tuple[int, int] | None = None
+        confidences: list[int] = []
+
+        for i, word in enumerate(words):
+            if not word or not word.strip():
+                continue
+            cur_line = (block_nums[i], line_nums[i])
+            if prev_line is not None and cur_line != prev_line:
+                text_parts.append("\n")
+            elif text_parts:
+                text_parts.append(" ")
+            text_parts.append(word)
+            prev_line = cur_line
+
+            # Collect confidence (str or int)
+            try:
+                c = int(confs_raw[i])
+                if c > 0:
+                    confidences.append(c)
+            except (ValueError, TypeError, IndexError):
+                continue
+
+        text = "".join(text_parts).strip()
         avg_confidence: float = (
             sum(confidences) / len(confidences) / 100.0
             if confidences
@@ -402,10 +456,10 @@ def _ocr_single_lang(
 
         logger.debug(
             "OCR pass [%s] — text_len=%d | confidence=%.3f",
-            lang, len(text.strip()), avg_confidence,
+            lang, len(text), avg_confidence,
         )
 
-        return {"text": text.strip(), "confidence": avg_confidence, "lang": lang}
+        return {"text": text, "confidence": avg_confidence, "lang": lang}
 
     except Exception as e:
         logger.error("Erreur Tesseract [%s] : %s", lang, e)
@@ -645,19 +699,35 @@ def _rotate_image(
     return image
 
 
+# V6 perf: dimension max pour le quick rotation test
+# (assez petit pour scorer rapidement, assez grand pour que les
+# mots-clés diplôme restent lisibles)
+_QUICK_ROTATION_DIM = 800
+
+
 def _quick_rotation_score(
     image: NDArray[np.uint8],
     angle: int,
 ) -> int:
     """Quick semantic-score test for a given rotation.
 
-    Uses a single combined-language OCR pass (ara+fra+eng) on the
-    preprocessed image. Returns the semantic score of the result.
+    V6 perf: image downsamplée à 800px max + un seul appel Tesseract
+    avec lang combinée. Réduit chaque test rotation de ~7s à ~1s.
+
+    Returns the semantic score of the result.
     """
     try:
-        rotated = _rotate_image(image, angle)
-        preprocessed = _ocr_preprocess(rotated)
-        result = _ocr_single_lang(preprocessed, "ara+fra+eng")
+        # Downsample d'abord, rotation ensuite (moins de pixels à tourner)
+        small = _resize_to_max(image, _QUICK_ROTATION_DIM)
+        rotated = _rotate_image(small, angle)
+
+        # Grayscale only (skip the x2 upscale du _ocr_preprocess pour gagner du temps)
+        if len(rotated.shape) == 3:
+            gray = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = rotated
+
+        result = _ocr_single_lang(gray, "ara+fra+eng")
         text = str(result.get("text", ""))
         return _semantic_score(text)
     except Exception as e:
