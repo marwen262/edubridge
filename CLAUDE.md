@@ -11,8 +11,10 @@ favoris, notifications, utilisateurs).
 Le repo contient trois composants indépendants :
 - `backend/` — API REST Node.js / Express / PostgreSQL (cœur métier)
 - `frontend/` — SPA React / Vite (interface utilisateur)
-- `diploma-verifier/` — microservice Python / FastAPI de vérification
-  d'authenticité de diplômes (OCR + analyses spécialisées, stateless)
+- `diploma-verifier/` — service Python / FastAPI de vérification
+  documentaire de diplômes (OCR Tesseract + scoring heuristique pondéré, stateless).
+  Pas de machine learning entraîné, pas de détection de fraude par IA — uniquement
+  des heuristiques déterministes.
 
 ## Stack
 
@@ -41,14 +43,16 @@ Le repo contient trois composants indépendants :
 - Scaffold d'origine : **Figma Make** (refonte UI, branding uniformisé EduBridge, dashboards modernisés)
 
 ### Diploma Verifier (`diploma-verifier/`)
-- **Python 3.11** + **FastAPI** (API async)
-- **V5 Engine** : Système de vérification expert (anti-fraude, déterministe, OCR-robuste)
-- **Tesseract OCR** + **spaCy** (compréhension sémantique, modèles `fr_core_news_sm`, `xx_ent_wiki_sm`)
-- **OpenCV** / **scikit-image** / **NumPy** (validation visuelle, consistance de la forme, détection de tampons par Transformée de Hough)
-- Classification de type de document, validation de cohérence sémantique, pénalités de densité de mots-clés
-- **PyMuPDF** + **python-magic** (analyse PDF / détection falsification)
+- **Python 3.11** + **FastAPI** (la fonction d'analyse est `async` mais le pipeline interne est synchrone — pas de `await` sur les modules internes)
+- Pipeline déterministe d'analyse heuristique (V5/V6) — pas de machine learning entraîné
+- **Tesseract OCR** (5 passes parallélisées via `ThreadPoolExecutor` : ara, fra, eng, ara+fra, fra+eng) + **spaCy** NER pré-entraîné (modèles `fr_core_news_sm`, `xx_ent_wiki_sm`)
+- **OpenCV** / **scikit-image** / **NumPy** : signature_detector (contours), stamp_detector (Hough circles, downsample 1200px)
+- `text_analyzer` : classification de document (`classify_document`), cohérence sémantique (`check_coherence`), pénalité de densité de mots-clés (`keyword_density_penalty`) — multilingue (fra, eng, ara, spa, deu)
+- `scoring_engine` : pondération `TEXT_WEIGHTS` + plafonds heuristiques (no-content, hallucination, safety ceiling)
+- **PyMuPDF** + **python-magic** : utilisés pour l'import PDF (`utils/image_converter`)
 - Conteneurisé (Dockerfile + docker-compose), exposé sur port 8000
-- **Stateless** : aucune base de données, pas d'authentification, pas de machine learning aléatoire
+- **Stateless** : aucune base de données, pas d'authentification, pas de rate limiting
+- ⚠️ Modules présents mais non câblés à l'orchestrator : `tampering_detector`, `diploma_classifier`, `country_detector`, `preprocessing`
 
 ## Commandes utiles
 
@@ -232,8 +236,10 @@ Routes montées dans `backend/index.js`, toutes préfixées `/api/` :
 | `/api/health` | (inline) | Ping de santé |
 
 **Rate limiting** (`middleware/rateLimiter.js`) : limiteur global appliqué à tout
-`/api/*` (100 req / 15 min / IP) ; limiteur strict sur `/api/auth/login`
-(5 req / 15 min / IP, `skipSuccessfulRequests: true`). Réponse JSON standard
+`/api/*` (600 req / 15 min / IP par défaut) ; limiteur strict sur
+`/api/auth/login` (20 req / 15 min / IP, `skipSuccessfulRequests: true`).
+Surchargeable via `.env` (`RATE_LIMIT_DISABLED`, `RATE_LIMIT_GLOBAL_MAX`,
+`RATE_LIMIT_LOGIN_MAX`, `RATE_LIMIT_WINDOW_MIN`). Réponse JSON standard
 `{ message: 'Trop de requêtes, réessayez plus tard.' }` + log `[RATE LIMIT]`.
 
 **Pagination** (`utils/pagination.js`) : appliquée sur les listings
@@ -422,14 +428,39 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
         strict `/api/auth/login`
   - [x] Pagination backend (`page` / `limit` + meta `pagination`) sur
         `GET /api/programmes`, `/api/instituts`, `/api/candidatures` (admin)
-- **Améliorations futures (hors scope MVP)** :
-  - Brancher l'UI de pagination côté frontend (consommer `r.data.pagination`
-    dans `usePrograms`, `useInstituts`, `useAllCandidatures` — back déjà prêt)
-  - Refresh token (actuellement expire après 7j sans reconnexion)
-  - Tests unitaires (RTL + Jest)
-  - Optimisation images (lazy loading, WebP)
-  - i18n (stratégie à décider)
-  - Scan antivirus fichiers uploadés
-- **Priorité immédiate** : Stabilisation, corrections de bugs, intégration diploma-verifier V5 experte.
+  - [x] Pagination frontend : hooks `usePrograms` / `useInstituts` /
+        `useAllCandidatures` consomment `r.data.pagination` et acceptent
+        `page` / `limit` ; UI `Pagination` (Précédent/Suivant + numéros)
+        branchée sur `SearchResults`, `Institutions`, admin
+        `CandidaturesSection` (reset page à 1 sur changement de filtres)
+- **TODOs / Améliorations futures (hors scope MVP)** :
+
+  **Backend**
+  - Étendre la pagination aux listings restants : `/utilisateurs`, `/favoris/mine`, `/notifications/mine` (limite fixe 50 actuellement), `/candidatures/mine`, `/candidatures/institute/list`.
+  - Validation schemas : Joi/Yup/zod côté serveur (actuellement seulement regex email + contraintes Sequelize).
+  - Middleware d'erreur centralisé (try/catch dispersés dans chaque controller).
+  - Logging structuré (Winston/Pino + niveaux + correlation IDs).
+  - Optimiser N+1 (`separate: true` sur `hasMany` dans `GET /api/instituts`).
+  - Hardening upload : validation MIME réelle (pas que l'extension) + magic bytes + scan antivirus + restreindre `/uploads` static.
+  - Refresh token flow (colonne `jeton_rafraichissement` présente, jamais utilisée).
+  - Audit trail (`created_by`, `updated_by`, `deleted_at`, table `AuditLog`).
+  - Versioning API (`/api/v1/`).
+  - Tests automatisés (Jest + Supertest).
+
+  **Frontend**
+  - Migrer `MultiStepDialog` vers `react-hook-form`.
+  - Mémoïsation des composants de listing (`React.memo` sur `ProgramCard`, `InstitutionCard`).
+  - Optimisation images (lazy loading, `srcSet`, WebP/AVIF).
+  - Caching côté client (TanStack Query ou Zustand) pour éviter le re-fetch à chaque navigation.
+  - Tests RTL + Jest.
+  - i18n (stratégie à décider).
+  - Clarifier le mapping slug → id pour la route `/institution/:slug`.
+
+  **Diploma Verifier**
+  - Intégrer `tampering_detector`, `diploma_classifier`, `country_detector` au pipeline orchestrator (modules présents mais non câblés).
+  - Authentification + rate limiting (API publique actuellement).
+  - Monitoring (Prometheus / métriques exportées) et tracing.
+  - Suivre la divergence Tesseract 5.4 (Windows local) vs 5.5 (Docker) — atténuée par les plafonds anti-hallucination dans `scoring_engine.py:478` (cf. `microservices.md`).
+- **Priorité immédiate** : stabilisation, corrections de bugs, intégration diploma-verifier au workflow candidature backend (vérification automatique des diplômes uploadés via `POST /api/verify`).
 - Commits descriptifs en **français**, format court style :
   `feat(auth): ajouter endpoint /me` ou `fix(front): corriger navigation sidebar`.

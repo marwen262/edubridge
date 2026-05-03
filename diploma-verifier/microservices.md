@@ -1,8 +1,10 @@
-# Architecture Microservices - Diploma Verifier
+# Architecture - Diploma Verifier
+
+> Outil de vérification documentaire de diplômes par OCR + scoring heuristique pondéré. Ce service n'utilise PAS de machine learning entraîné ni de détection de fraude par IA — il s'agit d'une analyse heuristique déterministe combinant Tesseract OCR, regex multilingues, spaCy (NER pré-entraîné), et détecteurs visuels OpenCV (Hough circles pour les cachets).
 
 ## 0. Changelog V6 (mai 2026)
 
-Refonte importante du pipeline OCR/scoring pour stabiliser la détection sur diplômes Arabic (cas Tunisie typique) et descendre les temps d'analyse sous 30 secondes.
+Refonte du pipeline OCR/scoring pour stabiliser la détection sur diplômes Arabic (cas Tunisie typique) et descendre les temps d'analyse sous 30 secondes.
 
 ### Bugs critiques corrigés
 | Bug | Fichier | Impact |
@@ -13,17 +15,18 @@ Refonte importante du pipeline OCR/scoring pour stabiliser la détection sur dip
 | **`_YEAR_PATTERN` `\b` cassé en Unicode** : ratait les années dans les diplômes Arabic | `services/text_analyzer.py` | `has_date=True` sur diplômes Arabic |
 
 ### Améliorations de couverture multilingue
-- **Mots-clés Arabic ajoutés** dans `classify_document` (`شهادة`, `ليسانس`, `ماستر`, `دكتوراه`, `دبلوم`, `إجازة`, `بكالوريوس`, `ماجستير`) et dans `DIPLOMA_TYPES['ar']` (config.py)
-- **`check_coherence` multi-langues** : patterns Arabic (`يشهد .* شهادة`, `جامعة .* ماستر`), Anglais (`this is to certify .* degree`), accents normalisés via NFKD, flag `re.DOTALL`
+- **Mots-clés Arabic ajoutés** dans `DIPLOMA_TYPES['ar']` (`config.py`) : `شهادة`, `ليسانس`, `ماستر`, `دكتوراه`, `دبلوم`, `إجازة`, `بكالوريوس`, `ماجستير`, `ماجستير`, `شهادة التخرج`. La fonction `classify_document()` (text_analyzer.py) consomme cette liste.
+- **`check_coherence` multi-langues** (text_analyzer.py) : patterns Arabic, Anglais, accents normalisés via NFKD, flag `re.DOTALL`. Les patterns Arabic exacts sont définis dans `_CERTIFICATION_PHRASES` (`يشهد\s+أن`, `نشهد\s+أن`, `تحصل\s+على`).
 - **Fallback regex Arabic** pour les noms (`_ARABIC_NAME_PATTERN`) en complément de spaCy
 - **5 passes OCR** au lieu de 3 : `ara`, `fra`, `eng`, **`ara+fra`**, **`fra+eng`** (combine-langs pour diplômes bilingues)
-- **Fallback 4-rotation** : quand OSD donne un OCR de semantic_score < 5, teste les 4 orientations (0°/90°/180°/270°) sur image à 800px, garde la meilleure
+- **Fallback 4-rotation** : quand toutes les passes OSD retournent un `semantic_score == 0`, le service teste les 4 orientations (0°/90°/180°/270°) sur image downsamplée à 800px, garde la meilleure, et ré-exécute le pipeline OCR complet sur la rotation choisie
 
 ### Recalibrage du scoring
-- **`has_institution` retiré** du `structure_count`, du `_compute_semantic_score`, et de `TEXT_WEIGHTS` (poids redistribués). Un diplôme sans institution détectée n'est plus pénalisé.
+- **`has_institution` retiré** du `structure_count`, du calcul `_semantic_score()` (ocr_service.py) et de `TEXT_WEIGHTS` (scoring_engine.py — poids redistribués). Un diplôme sans institution détectée n'est plus pénalisé.
 - **Seuils structure** abaissés : boost `≥2` (était 3), penalty `<1` (était 2). Compense la nouvelle taille `core_fields=3`.
 - **Seuil early-reject** abaissé : `diploma_confidence < 0.2` (était 0.3) — moins de faux rejets sur Arabic.
-- **Plafond `no-content`** : `structure_count==0` AND `semantic_score<0.1` → score capé à 18 (bloque les logos/images avec features géométriques).
+- **Plafond `no-content`** (scoring_engine.py:462) : `structure_count==0` AND `semantic_score<0.1` → score capé à 18 (bloque les logos/images avec features géométriques).
+- **Plafond `hallucination`** (scoring_engine.py:478) : `structure_count <= 1` AND `not has_degree_keyword` AND `not has_date` AND `len(raw_text) < 50` → score capé à 18. Atténue la divergence Tesseract 5.4 (Windows) vs 5.5 (Docker Linux) qui peut halluciner des noms à partir de bruit visuel.
 
 ### Performances (sur Windows local, 5 passes parallélisées)
 | Fichier | Avant | Après V6 | Speedup |
@@ -31,7 +34,7 @@ Refonte importante du pipeline OCR/scoring pour stabiliser la détection sur dip
 | test1.jpg (diplôme arabe straight) | 48 s | 12 s | 4× |
 | testrotation.jpg (même diplôme, 90° tourné) | 5 m 35 s | 13 s | **26×** |
 | test.jpg (diplôme ingénieur) | 1 m 25 s | 4 s | 21× |
-| logoedubridge.png (logo, contrôle anti-fraude) | 49 s | 6 s | 8× |
+| logoedubridge.png (logo, cas de contrôle non-diplôme) | 49 s | 6 s | 8× |
 
 Optimisations principales :
 1. **Parallélisation OCR via `ThreadPoolExecutor`** : les 5 passes Tesseract tournent en parallèle (subprocess libère le GIL) → speedup ~5×.
@@ -39,14 +42,30 @@ Optimisations principales :
 3. **Quick rotation test downsamplée à 800px** : le fallback 4-rotation tourne sur une image légère pour identifier la bonne orientation, puis re-OCR full-quality une seule fois → ~80% de gain sur le fallback.
 4. **Stamp detector downsample à 1200px max** : Hough circles est O(n²), passer de 4000 à 1200px = ~11× plus rapide.
 
+### Divergence Tesseract 5.4 (Windows) vs 5.5 (Docker Linux) — comportement connu et atténué
+
+Tesseract 5.4 (Windows / uvicorn local) et Tesseract 5.5 (Docker Linux) produisent des sorties OCR différentes sur les mêmes images :
+
+- **5.5 hallucine plus** sur images quasi-vides (logos, icônes, fragments) : peut produire un nom plausible (ex: "Tom") à partir de bruit, ce qui faisait monter artificiellement le score.
+- **5.5 segmente différemment** les mentions Arabic (espacement variable autour de وزارة, التعليم).
+
+**Atténuation appliquée** (déterministe, pas un bug ouvert) :
+- `OFFICIAL_PATTERNS` (config.py) : ajout de variantes permissives `وزارة\s+\w+` et `الجمهورية\s+\w+` pour matcher les segmentations 5.5.
+- Plafond `hallucination` (scoring_engine.py:478) : `structure_count <= 1` sans keyword diplôme ni date sur texte < 50 caractères → score capé à 18. La constante `50` est inline dans la condition (pas exposée en config).
+- Plafond `no-content` (scoring_engine.py:462) : `structure_count == 0` AND `semantic_score < 0.1` → cap 18.
+
+Les scores absolus peuvent encore différer légèrement entre les deux environnements, mais les rejets/acceptations restent cohérents.
+
 ---
 
 ## 1. Vue globale de l’architecture
 
 ### Type d’architecture
-**Monolithe modulaire** avec séparation logique des responsabilités en services internes. L'application est déployée comme un seul conteneur Docker, mais le code est organisé en modules/services distincts qui pourraient être extraits en microservices indépendants si nécessaire.
+**Monolithe modulaire** avec séparation logique des responsabilités en modules Python. L'application est déployée comme un seul conteneur Docker. Les "services" sont des modules importés et appelés en séquence — pas de communication inter-process.
 
-### Diagramme logique (texte)
+### Diagramme logique du pipeline réel
+Le pipeline réellement exécuté (orchestrator.py) :
+
 ```
 [Client HTTP]
     ↓
@@ -54,30 +73,35 @@ Optimisations principales :
     ↓
 [API Routes (/api/verify)]
     ↓
-[Orchestrator Service]
+[Orchestrator (analyze_document)]
     ↓
-├── [Preprocessing Service] → Image preprocessing (OpenCV)
-├── [OCR Service] → Text extraction (Tesseract + spaCy)
-├── [Country Detector] → Pays d'origine (regex + langdetect)
-├── [Signature Detector] → Détection signatures (OpenCV)
-├── [Stamp Detector] → Détection cachets (OpenCV)
-├── [Text Analyzer] → Analyse sémantique V5 (cohérence, classification, stuffing)
-├── [Tampering Detector] → Détection falsifications (metadata + image analysis)
-├── [Diploma Classifier] → Classification document (NLP)
-└── [Scoring Engine] → Calcul score final (pondération)
+├── convert_file()          → utils/image_converter.py (PIL + OpenCV)
+├── extract_text()          → ocr_service.py (Tesseract 5 passes parallèles + OSD + fallback rotation, spaCy NER)
+├── detect_signature()      → signature_detector.py (OpenCV contours)
+├── detect_stamp()          → stamp_detector.py (Hough circles, downsample 1200px)
+├── analyze_text()          → text_analyzer.py (regex multilingues, classify_document, check_coherence, keyword_density_penalty)
+└── compute_score()         → scoring_engine.py (TEXT_WEIGHTS pondéré + plafonds heuristiques)
     ↓
-[Response Model] → JSON structuré
+[VerifyResponse Pydantic] → JSON {score, confidence_level, reasons[]}
 ```
 
+### Modules présents mais non intégrés au pipeline
+Trois modules existent dans `app/services/` mais ne sont **pas** importés par `orchestrator.py` :
+
+- ❌ `preprocessing.py` — `preprocess()` n'est plus appelé (V6 : binarisait l'image, dégradait Tesseract LSTM). Le module reste pour référence.
+- ❌ `tampering_detector.py` — implémenté mais non câblé au pipeline.
+- ❌ `diploma_classifier.py` — implémenté mais non câblé. La classification effective est faite par `text_analyzer.classify_document()`.
+- ❌ `country_detector.py` — implémenté mais non câblé. `country` est forcé à `"unknown"` dans les logs.
+
 ### Vue d’ensemble des services
-L'application traite des documents (PDF/images) pour vérifier l'authenticité de diplômes. Le pipeline d'analyse est entièrement synchrone et s'exécute dans un seul processus Python. Les "services" sont des modules Python importés et appelés séquentiellement.
+L'application traite des documents (PDF/images) pour produire un score d'authenticité heuristique. Le pipeline est synchrone (un seul `await` au niveau FastAPI), exécuté dans un seul processus Python. La parallélisation est limitée aux 5 passes Tesseract via `ThreadPoolExecutor` à l'intérieur de `extract_text()`.
 
-## 2. Liste des microservices
+## 2. Liste des modules
 
-### Orchestrator Service
-- **Responsabilité principale** : Coordination du pipeline d'analyse complet V5/V6, sorties anticipées (early exits), intégration des couches d'intelligence V5 (classification, cohérence, pénalités), et agrégation des résultats selon un schéma strict et concis avec des raisons contextuelles enrichies.
-- **Technologies utilisées** : Python pur, asyncio pour les appels asynchrones.
-- **Dépendances** : Tous les autres services internes.
+### Orchestrator
+- **Responsabilité principale** : Coordination du pipeline d'analyse, sorties anticipées (early exits), agrégation des résultats selon le schéma `VerifyResponse` (score, confidence_level, reasons).
+- **Technologies utilisées** : Python pur. Fonction `async def analyze_document()` exposée à FastAPI, mais tous les appels internes sont **synchrones** (pas de `await` sur les modules internes).
+- **Dépendances réelles** (imports directs) : `ocr_service`, `scoring_engine`, `signature_detector`, `stamp_detector`, `text_analyzer`, `utils.image_converter`, `utils.logger`. ⚠️ N'importe **pas** `tampering_detector`, `diploma_classifier`, `preprocessing`, `country_detector`.
 - **V6 — Correction du double prétraitement** : `preprocess()` n'est plus appelé avant `extract_text()`. L'ancienne pipeline binarisait l'image (adaptive threshold) avant l'OCR, dégradant fortement Tesseract LSTM (qui travaille sur des niveaux de gris). Désormais l'image brute (`cv_image`) est passée directement à l'OCR, qui gère son propre préprocessing optimisé. Gain typique : **+30 à +50 points** sur les diplômes valides.
 - **V6 — Suppression du critère `has_institution`** : un diplôme sans institution détectée n'est plus pénalisé. `has_institution` est retiré du `structure_count`, du `_compute_semantic_score()` (poids redistribués) et de `TEXT_WEIGHTS` (poids redistribué sur les autres signaux textuels).
 - **V6 — Seuil early-reject baissé à 0.2** : `diploma_confidence < 0.2` au lieu de 0.3 — évite les faux rejets sur diplômes arabes où la regex de nom (Latin) et spaCy peinent à extraire les entités.
@@ -94,15 +118,14 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 - **Dépendances** : Tesseract OCR, Poppler, OpenCV, modèles spaCy chargés au démarrage.
 - **V6 — Parallélisation OCR via `ThreadPoolExecutor`** : les 5 passes Tesseract tournent en parallèle (Tesseract est invoqué en subprocess → libère le GIL). Speedup typique **~5×** sur le coût OCR.
 - **V6 — Un seul appel Tesseract par passe** : `image_to_data` reconstruit le texte ET la confidence en un seul appel (au lieu de `image_to_string` + `image_to_data` séparés). Économie ~50% par passe.
-- **V6 — Fallback 4-rotation** : quand OSD donne un OCR de semantic_score < 5, le service teste les 4 orientations (0°/90°/180°/270°) sur image downsamplée à 800px (1 passe combinée `ara+fra+eng` chacune), garde la meilleure, et ré-exécute le pipeline OCR complet sur la rotation choisie.
+- **V6 — Fallback 4-rotation** : quand toutes les passes OSD retournent un `semantic_score == 0`, le service teste les 4 orientations (0°/90°/180°/270°) sur image downsamplée à 800px (1 passe combinée `ara+fra` chacune), garde la meilleure, et ré-exécute le pipeline OCR complet sur la rotation choisie.
 - **V6 — Bug rotation OSD/fallback corrigé** : `_correct_rotation` (chemin OSD) et `_rotate_image` (chemin fallback) utilisaient des conventions opposées pour les angles 90° et 270° (ROTATE_90_CW vs ROTATE_90_CCW). Désormais cohérents avec la convention OSD (rotate=N° = N° clockwise pour redresser).
 - **V6 — Mots-clés Arabic ajoutés** : `_DEGREE_KEYWORDS` étendu via `DIPLOMA_TYPES['ar']` qui inclut maintenant `شهادة`, `إجازة` (en plus de `ليسانس`, `ماستر`, `دكتوراه`, `دبلوم`).
 - **V6 — Combine-langs ajoutés** : passes `ara+fra` et `fra+eng` pour les diplômes bilingues (typique tunisien fr/ar).
 
-### Country Detector
-- **Responsabilité principale** : Détection automatique du pays d'origine basé sur le texte extrait et patterns regex.
-- **Technologies utilisées** : Regex Python, langdetect.
-- **Dépendances** : Résultats OCR.
+### Country Detector ❌ non intégré
+- **Responsabilité prévue** : Détection automatique du pays d'origine basé sur le texte extrait et patterns regex.
+- **État** : module présent (`services/country_detector.py`) mais **jamais importé** par l'orchestrator. Le champ `country` est forcé à `"unknown"` dans les logs.
 
 ### Signature Detector
 - **Responsabilité principale** : Détection de signatures manuscrites dans l'image via analyse de contours et formes.
@@ -127,20 +150,17 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 - **V6 — `_YEAR_PATTERN` plus tolérant** : utilise lookbehind/lookahead `(?<!\d)...(?!\d)` au lieu de `\b` qui échoue dans les contextes Unicode (Arabic, accents).
 - **V6 — `has_institution` retiré du scoring** : `structure_count` réduit de 4 à 3 champs (name, degree, date) ; seuils boost/penalty abaissés à 2/1 ; poids redistribués dans `_compute_semantic_score`.
 
-### Tampering Detector
-- **Responsabilité principale** : Détection de falsifications via analyse des métadonnées PDF et anomalies visuelles.
-- **Technologies utilisées** : PyMuPDF (pour PDF), OpenCV, python-magic.
-- **Dépendances** : Fichier original + image convertie.
+### Tampering Detector ❌ non intégré
+- **Responsabilité prévue** : Détection de falsifications via analyse des métadonnées PDF et anomalies visuelles.
+- **État** : module présent (`services/tampering_detector.py`) mais **jamais importé** par l'orchestrator. Aucun signal de tampering ne remonte au scoring.
 
-### Diploma Classifier
-- **Responsabilité principale** : Classification binaire (diplôme vs autre document) via NLP et mots-clés.
-- **Technologies utilisées** : spaCy, regex, dictionnaires multilingues.
-- **Dépendances** : Texte OCR + image.
+### Diploma Classifier ❌ non intégré
+- **État** : module présent (`services/diploma_classifier.py`) mais **jamais importé** par l'orchestrator. La classification effective (diplôme vs autre document) est réalisée par `text_analyzer.classify_document()`, qui consomme `DIPLOMA_TYPES` de `config.py` et applique un seuil ≥ 1 occurrence pour déclencher `doc_type="diploma"`.
 
 ### Scoring Engine
-- **Responsabilité principale** : Calcul déterministe du score final d'authenticité V6 (borné entre 3 et 98 avec variabilité seedée) basé sur une évaluation probabiliste. Intègre les heuristiques anti-fraude V5/V6 : pondération dynamique, boost de cohérence, pénalités (keyword stuffing, doc type, incohérence visuelle), un **boost visuel V6 (sauvetage des documents à OCR faible mais signaux visuels forts)**, un **plafond de sécurité strict V6 (blocage des images sans sémantique)**, et un **plafond no-content V6** (`structure_count==0` AND `semantic_score<0.1` → score plafonné à 18 — bloque les logos/images aléatoires avec features géométriques type cercle).
-- **Technologies utilisées** : Python pur, calculs mathématiques et heuristiques pondérées.
-- **Dépendances** : Résultats de tous les services (analyse textuelle et visuelle).
+- **Responsabilité principale** : Calcul déterministe du score final d'authenticité V6 (borné entre 3 et 98) par scoring pondéré heuristique. Intègre les couches V5/V6 : pondération dynamique, boost de cohérence, pénalités (keyword stuffing, doc type non-diplôme, incohérence visuelle), boost visuel (sauvetage des documents à OCR faible mais signaux visuels forts), plafond de sécurité (`semantic_score < 0.15` AND `score > 70` → cap 70), plafond no-content (`structure_count==0` AND `semantic_score<0.1` → cap 18), plafond hallucination (`structure_count<=1` sans diplôme/date sur texte<50 chars → cap 18).
+- **Technologies utilisées** : Python pur, calculs heuristiques pondérés. Aucun modèle entraîné.
+- **Dépendances** : sortie de `text_analyzer.analyze_text()`, `signature_detector`, `stamp_detector`, `ocr_service`.
 - **V6 — `TEXT_WEIGHTS` redistribués** (poids `has_institution=0.15` retiré) : `has_person_name=0.20`, `has_degree_keyword=0.16`, `has_date=0.10`, `official_mention=0.10`, `certification_phrase=0.09`. Total text+visual reste à 1.0.
 - **V6 — Seuils de structure abaissés** : `_STRUCTURE_BOOST_THRESHOLD=2` (était 3), `_STRUCTURE_PENALTY_THRESHOLD=1` (était 2). Compense la suppression d'`has_institution` (max struct=3 désormais).
 
@@ -155,23 +175,27 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
   - `GET /api/supported-countries` : Pays supportés
 - **Gestion auth/rate limiting** : Non implémentée (pas d'authentification visible).
 
-## 4. Communication inter-services
+## 4. Communication inter-modules
 ### Type de communication
-**Synchrone, appels de fonctions directes** - Tous les services sont des modules Python dans le même processus, appelés séquentiellement via imports et appels de fonctions.
+**Synchrone, appels de fonctions directes** — tous les modules sont importés dans le même processus Python.
 
-- **REST/gRPC/events/queues** : Aucun - communication interne via appels Python.
-- **Synchrone vs asynchrone** : Mixte - l'API FastAPI est asynchrone, mais le pipeline interne est synchrone (await sur des fonctions sync).
-- **Exemple de flow (request complète)** :
+- **REST/gRPC/events/queues** : Aucun.
+- **Synchrone vs asynchrone** : `analyze_document()` est `async` pour FastAPI, mais aucun `await` sur les modules internes — le pipeline est entièrement synchrone. Seule la parallélisation interne se trouve dans `ocr_service.extract_text()` (5 passes Tesseract via `ThreadPoolExecutor`).
+- **Flow réel d'une requête `POST /api/verify`** :
   ```
-  1. Client POST /api/verify avec fichier
-  2. Validation fichier (taille, type)
-  3. Conversion fichier → PIL + OpenCV images
-  4. Preprocessing (correction image)
-  5. OCR extraction texte
-  6. Parallèle : Country detection + analyses spécialisées (signature, stamp, text, tampering, classification)
-  7. Scoring avec pondération
-  8. Construction réponse JSON
-  9. Cleanup fichiers temporaires
+  1. FastAPI reçoit le fichier (validation taille + MIME via routes/verify.py)
+  2. Sauvegarde temporaire sur disque
+  3. orchestrator.analyze_document(file_path, mime_type, ...)
+     a. convert_file()      → PIL + OpenCV
+     b. extract_text()      → OCR 5 passes parallèles (ThreadPoolExecutor) + OSD + fallback rotation
+     c. detect_signature()  → séquentiel
+     d. detect_stamp()      → séquentiel
+     e. early-return si document vide (no text + no visual)
+     f. analyze_text()      → entités, classification, cohérence, density penalty
+     g. early-return si diploma_confidence < 0.2 ET visual_signal < 0.3
+     h. compute_score()     → TEXT_WEIGHTS pondéré + plafonds
+  4. Construction VerifyResponse {score, confidence_level, reasons}
+  5. Cleanup fichier temporaire
   ```
 
 ## 5. Base de données
@@ -235,44 +259,25 @@ L'application traite des documents (PDF/images) pour vérifier l'authenticité d
 ### Load balancing
 **Non applicable** - Un seul conteneur, scaling horizontal possible via multiple instances derrière un load balancer externe.
 
-## 12. Points forts & problèmes
-### Bonnes pratiques
-- **Séparation des responsabilités** : Services modulaires bien isolés.
-- **Configuration centralisée** : Toutes les constantes dans un fichier.
-- **Validation stricte** : Pydantic pour les modèles, validation fichiers.
-- **Tests unitaires** : Structure de tests présente (`tests/`).
-- **Async/Await** : API non-bloquante.
-- **Multilingue** : Support OCR et analyse pour 5 langues.
-- **Cleanup automatique** : Fichiers temporaires nettoyés.
+## 12. Constats sur l'état actuel
 
-### Problèmes d’architecture
-- **Monolithe bottleneck** : Tout dans un processus - scaling limité, risque de cascade failures.
-- **Pas de cache** : Modèles spaCy rechargés à chaque restart (mais chargés une fois en mémoire).
-- **Pas d'authentification** : API publique vulnérable.
-- **Pas de monitoring** : Difficile de diagnostiquer en production.
-- **Synchrone interne** : Pipeline bloquant, pas de parallélisation optimale.
-- **Pas de DB** : Pas de persistance des résultats ou apprentissage.
+### Implémenté
+- Pipeline OCR + scoring déterministe fonctionnel sur 5 langues (fra, eng, ara, spa, deu).
+- Validation stricte d'entrée : Pydantic + filtre MIME (`ALLOWED_MIME_TYPES` config.py).
+- Configuration centralisée (`app/config.py`).
+- Cleanup des fichiers temporaires après chaque requête.
+- Tests présents dans `tests/` (vérifier le contenu pour le périmètre exact).
+- Multilingue : `OCR_LANGUAGES = "fra+eng+ara+spa+deu"`.
 
-## 13. Suggestions d’amélioration (optionnel)
-### Communication
-- Extraire services en microservices indépendants (OCR, Analyse) avec API REST/gRPC.
-- Ajouter message queue (RabbitMQ) pour analyses asynchrones.
+### Partiel ⚠️
+- Parallélisation : limitée aux 5 passes Tesseract dans `extract_text()`. Les autres modules (signature, stamp, text_analyzer, scoring) tournent en séquentiel.
+- Cache : modèles spaCy chargés une fois en mémoire au démarrage du processus, mais rechargés à chaque redémarrage du conteneur (pas de cache externe).
+- Résilience : pas de retry automatique. Tesseract peut produire des sorties différentes entre versions (cf. section 0 — divergence 5.4/5.5 atténuée par les plafonds anti-hallucination).
 
-### DB
-- Ajouter PostgreSQL pour stocker résultats, métriques, modèles ML.
-- Event sourcing pour audit des analyses.
-
-### Scaling
-- Kubernetes pour orchestration, HPA pour scaling automatique.
-- CDN pour fichiers statiques, cache Redis pour résultats fréquents.
-- Circuit breakers (Hystrix) et retry policies.
-
-### Sécurité
-- Authentification JWT/OAuth.
-- Rate limiting (nginx ou middleware).
-- Chiffrement des données sensibles.
-
-### Observabilité
-- Prometheus + Grafana pour métriques.
-- Jaeger/OpenTelemetry pour tracing.
-- Alerting sur erreurs/ latences.
+### Non implémenté ❌
+- Authentification / autorisation (API publique).
+- Rate limiting.
+- Monitoring (pas de Prometheus, pas de métriques exportées).
+- Tracing distribué.
+- Persistance des résultats (stateless par design).
+- Modules `tampering_detector`, `diploma_classifier`, `country_detector`, `preprocessing` : présents en code mais non câblés au pipeline orchestrator.

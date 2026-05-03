@@ -20,7 +20,7 @@
 10. [Design System & UI/UX](#design-system--uiux)
 11. [Performance](#performance)
 12. [Points Forts & Problèmes](#points-forts--problèmes)
-13. [Suggestions d'Amélioration](#suggestions-damélioration)
+13. [État actuel — résumé factuel](#état-actuel--résumé-factuel)
 
 ---
 
@@ -40,7 +40,7 @@ Interface Vite (HMR en dev)
     ↓
 App.tsx (AuthProvider + RouterProvider)
     ↓
-routes.tsx (12 routes dont 3 protégées)
+routes.tsx (16 routes nommées + wildcard 404, dont 5 protégées par rôle)
     ↓
 ProtectedRoute (vérification JWT + rôle)
     ↓
@@ -92,20 +92,22 @@ src/
 │   └── useComparaison.ts             # localStorage compare list (max 3 programmes)
 ├── app/
 │   ├── App.tsx                       # AuthProvider > RouterProvider > Toaster
-│   ├── routes.tsx                    # 12 routes (3 dashboards wrappés dans ProtectedRoute)
+│   ├── routes.tsx                    # 16 routes nommées + wildcard 404 (5 routes dashboard protégées par rôle, dont 2 dynamiques `:section`)
 │   ├── pages/                        # Pages de niveau routing
 │   │   ├── Home.tsx                  # Landing page
 │   │   ├── SearchResults.tsx         # Recherche & filtrage
+│   │   ├── Institutions.tsx          # Listing public des instituts
 │   │   ├── ProgramDetail.tsx         # Détail d'un programme
-│   │   ├── InstitutionProfile.tsx    # Profil d'institution
+│   │   ├── InstitutionProfile.tsx    # Profil d'institution (route `/institution/:slug`)
 │   │   ├── Compare.tsx               # Comparaison de programmes
+│   │   ├── Guide.tsx                 # Page guide utilisateur
 │   │   ├── Login.tsx                 # Login réel (useAuth + RHF + zod) + dialog "Forgot password?"
 │   │   ├── Signup.tsx                # Inscription réelle (useAuth + RHF + zod)
 │   │   ├── FirstLogin.tsx            # Activation premier login institut (token email — invitation admin)
 │   │   ├── ResetPassword.tsx         # Réinitialisation mot de passe via lien email (token 1h)
 │   │   ├── CandidateDashboard.tsx    # Dashboard candidat
-│   │   ├── InstitutionDashboard.tsx  # Dashboard institution
-│   │   └── AdminDashboard.tsx        # Dashboard admin
+│   │   ├── InstitutionDashboard.tsx  # Dashboard institution (+ variante `/dashboard/institution/:section`)
+│   │   └── AdminDashboard.tsx        # Dashboard admin (+ variante `/dashboard/admin/:section`)
 │   ├── components/                   # Composants réutilisables
 │   │   ├── Navbar.tsx                # Barre de navigation sticky (useAuth + dropdown notifications)
 │   │   ├── Footer.tsx                # Footer global
@@ -125,7 +127,7 @@ src/
 │   │   ├── figma/
 │   │   │   └── ImageWithFallback.tsx # Image avec fallback
 │   │   └── ui/                       # Design system (Radix UI — NE PAS ÉDITER)
-│   │       ├── [30+ composants shadcn/ui]
+│   │       ├── ~50 composants shadcn/ui (button, card, dialog, …)
 │   │       └── utils.ts              # Utilitaire cn()
 │   └── data/
 │       └── staticData.ts             # Données statiques (référentiels UI — plus aucun mock métier)
@@ -152,7 +154,7 @@ Fichiers racine:
 | `context/` | AuthContext — état global utilisateur + token JWT |
 | `components/` | ProtectedRoute — garde les routes privées |
 | `hooks/` | Fetch hooks (loading/error/refetch par ressource) |
-| `pages/` | Pages complètes du routing (12 routes) |
+| `pages/` | Pages complètes du routing (16 routes nommées + wildcard 404) |
 | `app/components/` | Composants réutilisables (business logic + présentation) |
 | `app/components/ui/` | Design system primitif (Radix UI wrappé — NE PAS ÉDITER) |
 | `app/components/admin/` | Sections du dashboard admin (Overview, Users, Institutes, Programs, Candidatures, Notifications) |
@@ -170,23 +172,31 @@ Fichiers racine:
 export const router = createBrowserRouter([
   { path: '/',                    Component: Home },
   { path: '/search',              Component: SearchResults },
+  { path: '/institutions',        Component: Institutions },
   { path: '/program/:id',         Component: ProgramDetail },
   { path: '/institution/:slug',   Component: InstitutionProfile },
   { path: '/compare',             Component: Compare },
+  { path: '/guide',               Component: Guide },
   { path: '/login',               Component: Login },
   { path: '/signup',              Component: Signup },
   { path: '/first-login',         Component: FirstLogin },
   { path: '/reset-password',      Component: ResetPassword },
-  // Dashboards protégés par rôle
+  // Dashboards protégés par rôle (chacun avec variante `:section` dynamique pour institut/admin)
   { path: '/dashboard/candidate',
     element: <ProtectedRoute requiredRole="candidat"><CandidateDashboard /></ProtectedRoute> },
   { path: '/dashboard/institution',
     element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
+  { path: '/dashboard/institution/:section',
+    element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
   { path: '/dashboard/admin',
     element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
-  { path: '*', Component: Page404 },
+  { path: '/dashboard/admin/:section',
+    element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
+  { path: '*', Component: () => /* JSX 404 inline (pas de composant nommé) */ },
 ]);
 ```
+
+⚠️ Note : `/institution/:slug` utilise `slug` côté URL, mais le backend (`GET /api/instituts/:id`) attend l'UUID. Le mapping slug→id n'est pas centralisé — vérifier dans `InstitutionProfile.tsx` / `useInstitut.ts` comment la valeur est résolue.
 
 ### Pages Principales
 
@@ -401,7 +411,7 @@ interface DashboardSidebarProps {
 - **Organisms:** `Navbar.tsx`, `DashboardSidebar.tsx`, `MultiStepDialog.tsx`
 - **Pages:** `pages/*.tsx`
 
-**Observation:** Absence de custom hooks réutilisables (pas de `hooks/` folder) - logique métier inline dans les pages.
+**Observation:** Le dossier `src/hooks/` regroupe 10 hooks de fetch (un par ressource métier — voir §Communication Backend pour la liste complète). La logique de fetch est extraite des pages.
 
 ---
 
@@ -415,7 +425,10 @@ interface DashboardSidebarProps {
 #### 1. **AuthContext (global)**
 ```tsx
 // src/context/AuthContext.tsx
-const { user, token, isAuthenticated, login, logout, register, updateUser } = useAuth();
+const {
+  user, token, isAuthenticated, loading,
+  login, logout, register, updateUser,
+} = useAuth();
 
 // user: { id, email, role, prenom, nom, candidat_id?, institut_id? }
 // Persisté dans localStorage (auth_token + auth_user)
@@ -925,8 +938,8 @@ className="hidden md:flex" // Hide on mobile, show on md+
 #### 4. **Rendering Performance**
 - ✅ React.StrictMode activé (détecte render issues)
 - ✅ Motion animations optimisées (GPU-accelerated)
-- ⚠️ Pas de memo() ou useMemo() détecté
-- ⚠️ Pas de React.lazy() pour code splitting manuel
+- ⚠️ `useMemo()` utilisé dans plusieurs hooks (`usePrograms`, `useCandidatures`, `useInstituts`) pour stabiliser les paramètres de fetch. ❌ Pas de `React.memo()` sur les composants de listing (ProgramCard, InstitutionCard).
+- ❌ Pas de `React.lazy()` pour code splitting manuel des routes.
 
 #### 5. **State Management Impact**
 - ✅ useState optimal (simple state)
@@ -1057,407 +1070,44 @@ observer.observe(lastElementRef);
 
 ---
 
-## Suggestions d'Amélioration
+## État actuel — résumé factuel
 
-### 🚀 Court Terme (Priority 1 - Critique)
+### ✅ Implémenté
+- Client axios centralisé (`src/services/api.ts`) avec intercepteurs JWT (request) et redirection 401/403 (response).
+- 7 services API (`authService`, `programmeService`, `institutService`, `candidatureService`, `favoriService`, `notificationService`, `utilisateurService`).
+- 10 hooks de fetch (`src/hooks/`) avec `loading` / `error` / `refetch` et annulation par flag `cancelled`.
+- 5 routes dashboard protégées par `ProtectedRoute` + rôle (candidat / institut / admin).
+- 16 routes nommées + wildcard 404 dans `src/app/routes.tsx`.
+- AuthContext (`user`, `token`, `isAuthenticated`, `loading`, `login`, `logout`, `register`, `updateUser`) — JWT persisté en `localStorage` (`auth_token`, `auth_user`).
+- Formulaires Login / Signup / FirstLogin migrés vers `react-hook-form` + `zod`.
+- Reset password : page `/reset-password`, dialog « Forgot password? » dans `Login.tsx`, 3 endpoints back `/api/auth/mot-de-passe/{oublie,valider-token,reinitialiser}`.
+- MultiStepDialog candidature → `candidatureService.create()` + upload Multer via `FormData`.
+- Notifications Navbar : badge `unreadCount` + dropdown + `markAsRead`.
+- `mockData.ts` supprimé — données statiques déplacées dans `staticData.ts` (référentiels UI uniquement).
 
-#### 1. **Implémentation Backend API**
-```tsx
-// src/services/api.ts
-import axios from 'axios';
+### ✅ Pagination (complète)
+- **Backend** : renvoie `pagination: { total, page, limit, totalPages }` sur `/programmes`, `/instituts`, `/candidatures` (admin).
+- **Hooks** : `usePrograms`, `useInstituts`, `useAllCandidatures` acceptent `page` / `limit` via leurs filtres (extends `PaginationFilters`) et exposent `{ data, pagination, loading, error, refetch }`. Limite par défaut 100 quand le caller n'en passe pas (rétrocompatibilité avec les consommateurs qui veulent "tout d'un coup").
+- **UI** : composant `Pagination` réutilisable (`src/app/components/Pagination.tsx`) — Précédent/Suivant + numéros (ellipses si > 7 pages) + compteur `"X résultats — page Y/Z"`. Branché sur `SearchResults` (programmes), `Institutions`, admin `CandidaturesSection`.
+- **Page state** : `useState(1)` local à chaque page, reset automatique à 1 quand les filtres "métier" changent ; garde-fou si `page > totalPages` après refetch.
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+### ⚠️ Partiel
+- **MultiStepDialog** : fonctionnel via `useState`, pas migré vers `react-hook-form`.
+- **Memoization** : `useMemo()` dans certains hooks de fetch ; pas de `React.memo()` sur les composants de listing.
+- **Mapping slug → id** pour `/institution/:slug` : à clarifier dans le code (le backend attend l'UUID).
 
-export const api = axios.create({ baseURL: API_BASE });
+### ❌ Non implémenté
+- Refresh token (le JWT expire après 7j, déconnexion forcée à expiration).
+- Tests unitaires / d'intégration (pas de RTL, pas de Jest, pas de Playwright).
+- Code splitting manuel (`React.lazy()`) — Vite fait du splitting auto par chunk.
+- Optimisation images (pas de `loading="lazy"`, pas de `srcSet`, pas de WebP/AVIF).
+- Caching côté client (pas de TanStack Query, pas de Zustand) — re-fetch à chaque navigation.
+- i18n (UI strings en anglais, code en français — stratégie i18n non décidée).
 
-// Interceptors pour tokens
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Services
-export const authService = {
-  login: (email: string, password: string) =>
-    api.post('/auth/login', { email, password }),
-  signup: (data: SignupData) =>
-    api.post('/auth/signup', data),
-};
-
-export const programService = {
-  getAll: (filters?: FilterParams) =>
-    api.get('/programs', { params: filters }),
-  getById: (id: string) =>
-    api.get(`/programs/${id}`),
-  apply: (id: string, data: ApplicationData) =>
-    api.post(`/programs/${id}/apply`, data),
-};
-```
-
-#### 2. **Context API pour Authentication**
-```tsx
-// src/context/AuthContext.tsx
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  loading: boolean;
-  login: (email, password) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
-
-export const AuthContext = createContext<AuthContextType | null>(null);
-
-export const AuthProvider: React.FC<{children}> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem('auth_token')
-  );
-  const [loading, setLoading] = useState(false);
-
-  const login = async (email: string, password: string) => {
-    setLoading(true);
-    const { data } = await authService.login(email, password);
-    setUser(data.user);
-    setToken(data.token);
-    localStorage.setItem('auth_token', data.token);
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('auth_token');
-  };
-
-  return (
-    <AuthContext.Provider value={{
-      user, token, loading, login, logout,
-      isAuthenticated: !!token,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be inside AuthProvider');
-  return context;
-};
-```
-
-#### 3. **Protected Routes**
-```tsx
-// src/components/ProtectedRoute.tsx
-const ProtectedRoute: React.FC<{
-  children: React.ReactNode;
-  requiredRole?: 'candidate' | 'institution' | 'admin';
-}> = ({ children, requiredRole }) => {
-  const { isAuthenticated, user } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-
-  if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to="/" />;
-  }
-
-  return <>{children}</>;
-};
-
-// Usage dans routes.tsx
-{
-  path: '/dashboard/candidate',
-  Component: () => (
-    <ProtectedRoute requiredRole="candidate">
-      <CandidateDashboard />
-    </ProtectedRoute>
-  ),
-}
-```
-
-### 📈 Moyen Terme (Priority 2 - Important)
-
-#### 4. **Migration vers React Hook Form + Zod**
-```tsx
-// pages/Signup.tsx
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-
-const signupSchema = z.object({
-  fullName: z.string().min(2, 'Name required'),
-  email: z.string().email('Invalid email'),
-  password: z.string()
-    .min(8, '8+ characters required')
-    .regex(/[A-Z]/, 'Uppercase required')
-    .regex(/[0-9]/, 'Number required')
-    .regex(/[!@#$%^&*]/, 'Special char required'),
-  confirmPassword: z.string(),
-  termsAccepted: z.boolean().refine(v => v, 'Accept terms'),
-}).refine(d => d.password === d.confirmPassword, {
-  message: 'Passwords must match',
-  path: ['confirmPassword'],
-});
-
-type SignupFormData = z.infer<typeof signupSchema>;
-
-export function Signup() {
-  const { register, handleSubmit, formState: { errors } } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-  });
-
-  const onSubmit = async (data: SignupFormData) => {
-    try {
-      await authService.signup(data);
-      navigate('/dashboard/candidate');
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <label>Full Name</label>
-        <input {...register('fullName')} />
-        {errors.fullName && <span>{errors.fullName.message}</span>}
-      </div>
-      {/* ... */}
-    </form>
-  );
-}
-```
-
-#### 5. **Service Layer & Custom Hooks**
-```tsx
-// src/hooks/usePrograms.ts
-export const usePrograms = (filters?: FilterParams) => {
-  const [programs, setPrograms] = useState<Program[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchPrograms = async () => {
-      setLoading(true);
-      try {
-        const { data } = await programService.getAll(filters);
-        setPrograms(data);
-      } catch (err) {
-        setError(err.message);
-        toast.error('Failed to load programs');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPrograms();
-  }, [filters]);
-
-  return { programs, loading, error };
-};
-
-// src/hooks/useApplication.ts
-export const useApplication = (programId: string) => {
-  const [loading, setLoading] = useState(false);
-
-  const apply = async (data: ApplicationData) => {
-    setLoading(true);
-    try {
-      await programService.apply(programId, data);
-      toast.success('Application submitted!');
-      return true;
-    } catch (error) {
-      toast.error(error.message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return { apply, loading };
-};
-```
-
-#### 6. **Image Optimization**
-```tsx
-// src/components/OptimizedImage.tsx
-interface OptimizedImageProps {
-  src: string;
-  alt: string;
-  width?: number;
-  height?: number;
-  className?: string;
-}
-
-export const OptimizedImage: React.FC<OptimizedImageProps> = ({
-  src, alt, width = 400, height = 300, className = '',
-}) => {
-  const webpSrc = src.replace(/\.\w+$/, '.webp');
-
-  return (
-    <picture>
-      <source srcSet={webpSrc} type="image/webp" />
-      <img
-        src={src}
-        alt={alt}
-        width={width}
-        height={height}
-        loading="lazy"
-        decoding="async"
-        className={className}
-      />
-    </picture>
-  );
-};
-```
-
-### 🎯 Long Terme (Priority 3 - Enhancement)
-
-#### 7. **Data Caching & State Management (Zustand/TanStack Query)**
-```tsx
-// Option A: Zustand
-import { create } from 'zustand';
-
-interface ProgramStore {
-  programs: Program[];
-  filter: FilterParams;
-  setPrograms: (programs: Program[]) => void;
-  setFilter: (filter: FilterParams) => void;
-}
-
-export const useProgramStore = create<ProgramStore>((set) => ({
-  programs: [],
-  filter: {},
-  setPrograms: (programs) => set({ programs }),
-  setFilter: (filter) => set({ filter }),
-}));
-
-// Option B: TanStack Query (React Query)
-const { data: programs, isLoading } = useQuery({
-  queryKey: ['programs', filters],
-  queryFn: () => programService.getAll(filters),
-  staleTime: 5 * 60 * 1000, // 5 minutes
-});
-```
-
-#### 8. **Testing Suite**
-```tsx
-// src/__tests__/pages/Login.test.tsx
-import { render, screen, userEvent } from '@testing-library/react';
-import { BrowserRouter } from 'react-router';
-import { Login } from '@/app/pages/Login';
-
-describe('Login Page', () => {
-  it('should display login form', () => {
-    render(
-      <BrowserRouter>
-        <Login />
-      </BrowserRouter>
-    );
-    expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
-  });
-
-  it('should show error on missing fields', async () => {
-    render(
-      <BrowserRouter>
-        <Login />
-      </BrowserRouter>
-    );
-    const submitBtn = screen.getByRole('button', { name: /sign in/i });
-    await userEvent.click(submitBtn);
-    expect(screen.getByText(/please fill/i)).toBeInTheDocument();
-  });
-});
-```
-
-#### 9. **Monitoring & Analytics**
-```tsx
-// src/services/analytics.ts
-import { useEffect } from 'react';
-import { useLocation } from 'react-router';
-
-export const usePageTracking = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    // Google Analytics example
-    if (window.gtag) {
-      window.gtag('config', 'GA_MEASUREMENT_ID', {
-        page_path: location.pathname,
-      });
-    }
-  }, [location]);
-};
-```
-
-#### 10. **Environment Configuration**
-```tsx
-// .env.example
-VITE_API_URL=http://localhost:3000/api
-VITE_APP_NAME=EduBridge
-VITE_GOOGLE_CLIENT_ID=xxxxx
-
-// src/config.ts
-export const config = {
-  apiUrl: import.meta.env.VITE_API_URL,
-  appName: import.meta.env.VITE_APP_NAME,
-  googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-} as const;
-```
-
----
-
-## Summary & Recommendations
-
-### État Actuel du Frontend
-```
-Architecture:        ✅ Moderne & Maintenable (React + Vite)
-Design System:       ✅ Cohérent (Radix UI + Tailwind)
-Composants:          ✅ Bien structurés
-Backend Integration: ✅ Complet — 7 services + 11 hooks + FormData
-State Management:    ✅ AuthContext + useState local
-Authentication:      ✅ JWT réel, routes protégées par rôle
-Forms:               ✅ Login/Signup migrés vers RHF + zod
-MultiStepDialog:     ✅ Connecté à candidatureService + upload Multer
-Notifications API:   ✅ Routes corrigées (/lire, /mine)
-Mock data:           ✅ Supprimé (staticData.ts pour données statiques)
-Favoris:             ✅ useFavoriStatus transversal (ProgramCard + ProgramDetail)
-Notifications Navbar:✅ Badge unreadCount + dropdown + markAsRead
-Branding & UI:       ✅ Refonte UI Admin/Institution, suppression filtres obsolètes (Pays), intégration Logo officiel
-Testing:             ❌ Absent
-```
-
-### Prochaines étapes prioritaires
-1. **Brancher l'UI de pagination** sur SearchResults / Institutions / AdminCandidatures —
-   le backend renvoie déjà `pagination: { total, page, limit, totalPages }` à côté
-   de la clé ressource. Étendre les hooks `usePrograms`, `useInstituts`,
-   `useAllCandidatures` pour exposer ces meta + accepter `page` / `limit` en filtres.
-2. Refresh token automatique
-3. Tests RTL + Jest
-4. Optimisation images (lazy loading, WebP)
-
-### Reset password (mai 2026)
-- Page `/reset-password` (token URL, validité 1h)
-- Dialog « Forgot password? » dans `Login.tsx` (saisie email + écran de confirmation)
-- Backend : 3 endpoints `/api/auth/mot-de-passe/{oublie,valider-token,reinitialiser}` +
-  email transactionnel SMTP via `services/emailService.js` (mêmes vars `SMTP_*` que
-  l'invitation institut)
-
-### Points de Contact Clés
-- **Entry Point:** `src/main.tsx` → `src/app/App.tsx`
-- **Auth:** `src/context/AuthContext.tsx` + `src/components/ProtectedRoute.tsx`
-- **API:** `src/services/api.ts` + `src/types/api.ts`
-- **Hooks:** `src/hooks/` (un fichier par ressource)
-- **Routing:** `src/app/routes.tsx`
-- **Design System:** `src/styles/` (4 fichiers CSS)
-
----
-
-**Document mis à jour:** Avril 2026  
-**Type:** Architecture frontend (SPA React) — Intégration API Phase 1 complète  
-**Scope:** EduBridge Platform - Système Multi-rôles
+### Points de contact clés
+- **Entry point** : `src/main.tsx` → `src/app/App.tsx`
+- **Auth** : `src/context/AuthContext.tsx` + `src/components/ProtectedRoute.tsx`
+- **API** : `src/services/api.ts` + `src/types/api.ts`
+- **Hooks** : `src/hooks/` (un fichier par ressource)
+- **Routing** : `src/app/routes.tsx`
+- **Design system** : `src/styles/` (4 fichiers CSS : `tailwind.css`, `theme.css`, `edubridge.css`, `fonts.css`, importés depuis `index.css`)

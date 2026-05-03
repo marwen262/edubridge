@@ -18,8 +18,8 @@
 7. [Authentification et autorisation](#7-authentification-et-autorisation)
 8. [Gestion des fichiers et médias](#8-gestion-des-fichiers-et-médias)
 9. [Logique métier principale](#9-logique-métier-principale)
-10. [Points forts et problèmes](#10-points-forts-et-problèmes)
-11. [Suggestions d'amélioration](#11-suggestions-damélioration)
+10. [État actuel : implémenté / partiel / non implémenté](#10-points-forts-et-problèmes)
+11. [Annexe : Commandes utiles](#11-annexe--commandes-utiles)
 12. [Gestion des pièces d'identité](#12-gestion-des-pièces-didentité)
 13. [Seeders (données de démonstration)](#13-seeders-données-de-démonstration)
 
@@ -243,7 +243,7 @@ backend/
 - `POST /api/auth/mot-de-passe/reinitialiser` — Applique le nouveau mot de passe
 
 **Responsabilités :**
-- Validation emails et mots de passe (8+ caractères, majuscule, chiffre, spécial)
+- Validation présence email/mot de passe (regex email simple). ❌ Pas de contrôle de complexité (longueur min, majuscule, chiffre, caractère spécial) implémenté côté serveur.
 - Hash bcryptjs (10 rounds)
 - Génération JWT (7j par défaut)
 - Transactions atomiques (Utilisateur + profil liés)
@@ -439,14 +439,22 @@ Exports:
 
 #### **rateLimiter.js (middleware)** — Anti brute-force / DoS basique
 
-Deux limiteurs `express-rate-limit` exposés :
+Deux limiteurs `express-rate-limit` exposés (valeurs par défaut surchargeables via `.env`) :
 
 ```javascript
 Exports:
-├── limiteurGlobal   # 100 req / 15 min / IP, monté sur app.use('/api', …)
-└── limiteurLogin    # 5 req / 15 min / IP, monté sur app.use('/api/auth/login', …)
+├── limiteurGlobal   # 600 req / 15 min / IP, monté sur app.use('/api', …)
+└── limiteurLogin    # 20 req / 15 min / IP, monté sur app.use('/api/auth/login', …)
                      # skipSuccessfulRequests: true (ne pénalise pas les succès)
 ```
+
+Variables d'environnement reconnues :
+- `RATE_LIMIT_DISABLED=true` — désactive complètement (dev/tests)
+- `RATE_LIMIT_GLOBAL_MAX` — plafond global (défaut 600)
+- `RATE_LIMIT_LOGIN_MAX` — plafond /auth/login (défaut 20)
+- `RATE_LIMIT_WINDOW_MIN` — fenêtre en minutes (défaut 15)
+
+Les defaults sont volontairement généreux pour un SPA (un dashboard typique fait 5-10 requêtes au montage) ; à durcir en prod via env si besoin.
 
 - Réponse JSON conforme convention projet : `{ message: 'Trop de requêtes, réessayez plus tard.' }`
 - `standardHeaders: true` (RFC `RateLimit-*`), pas de `X-RateLimit-*` legacy
@@ -684,10 +692,15 @@ Toutes les relations utilisent **DELETE CASCADE** → suppression automatique de
 |-------|------|----------|--------|------|
 | `id` | UUID | ✗ | ✓ | PK, v4 auto |
 | `email` | STRING | ✗ | ✓ | Validé regex |
-| `mot_de_passe` | STRING | ✗ | | Hash bcrypt |
+| `mot_de_passe` | STRING | ✓ | | Hash bcrypt. **Nullable** depuis migration `20260430000000` (workflow institut invité — mot de passe défini au premier login) |
 | `role` | ENUM | ✗ | | candidat\|institut\|admin |
-| `jeton_rafraichissement` | STRING | ✓ | | Non utilisé actuellement |
+| `jeton_rafraichissement` | STRING | ✓ | | ⚠️ Stocké en BD mais non utilisé actuellement (pas de flow de refresh) |
 | `est_actif` | BOOLEAN | ✗ | | Default=true |
+| `first_login_token` | STRING | ✓ | | Token à usage unique envoyé par email pour le first login institut (migration `20260430000000`) |
+| `first_login_expires_at` | DATE | ✓ | | Expiration du token first login (24h par défaut) |
+| `first_login_completed` | BOOLEAN | ✗ | | Default=true. False pour les comptes institut invités tant que le first login n'est pas terminé |
+| `reset_password_token` | STRING | ✓ | | Token reset password (migration `20260501000000`) |
+| `reset_password_expires_at` | DATE | ✓ | | Expiration token reset (1h par défaut) |
 | `cree_le` | DATE | ✗ | | CURRENT_TIMESTAMP |
 | `mis_a_jour_le` | DATE | ✗ | | Auto-update |
 
@@ -744,16 +757,23 @@ Toutes les relations utilisent **DELETE CASCADE** → suppression automatique de
 |-------|------|----------|------|
 | `id` | UUID | ✗ | PK |
 | `utilisateur_id` | UUID | ✗ | FK UNIQUE → utilisateurs |
-| `nom` | STRING | ✗ | Nom officiel |
+| `nom` | STRING | ✓ | Nom officiel. **Nullable** depuis migration `20260430000000` (workflow institut invité — nom complété au premier login) |
 | `sigle` | STRING | ✓ | Sigle/abréviation |
 | `description` | TEXT | ✓ | Présentation |
 | `site_web` | STRING | ✓ | URL |
 | `logo` | STRING | ✓ | URL ou chemin |
+| `image_couverture` | STRING | ✓ | URL/chemin image de couverture (migration `20260430000000`) |
 | `adresse` | JSONB | ✓ | {rue, ville, gouvernorat, code_postal, pays} |
 | `accreditations` | ARRAY(STRING) | ✓ | ['CTI', 'ABET', ...] |
 | `contact` | JSONB | ✓ | {telephone, email, fax} |
 | `est_verifie` | BOOLEAN | ✗ | Default=false, pour filtres frontend |
 | `note` | FLOAT | ✓ | Note/rating |
+| `taux_acceptation` | FLOAT | ✓ | Taux d'acceptation indicatif (migration `20260430000000`) |
+| `nombre_etudiants` | INTEGER | ✓ | Effectif indicatif (migration `20260430000000`) |
+| `validation_status` | ENUM | ✓ | `invited`\|`pending_admin_review`\|`approved`\|`rejected`\|`suspended` (migration `20260430000000`) |
+| `suspension_reason` | TEXT | ✓ | Motif de suspension |
+| `suspended_at` | DATE | ✓ | Date de suspension |
+| `suspended_by` | UUID | ✓ | FK admin ayant suspendu |
 | `cree_le` | DATE | ✗ | |
 | `mis_a_jour_le` | DATE | ✗ | |
 
@@ -1003,11 +1023,18 @@ curl -X POST http://localhost:5000/api/auth/register \
 
 | Méthode | Route | Auth | Rôle | Réponse |
 |---------|-------|------|------|---------|
-| GET | `/` | Non | - | `{ instituts: [...] }` avec programmes (200) |
+| GET | `/` | Non (optionalAuth) | - | `{ instituts: [...] }` avec programmes (200) |
+| GET | `/admin/en-attente` | JWT | admin | `{ instituts: [...] }` — `validation_status='pending_admin_review'` (200) |
+| POST | `/admin/inviter` | JWT | admin | Alias de `POST /` (création institut + invitation email) (201) |
 | GET | `/:id` | Non | - | `{ institut: {...} }` (200) |
-| POST | `/` | JWT | admin | `{ message, institut, utilisateur_id }` (201) |
+| POST | `/` | JWT | admin | `{ message, institut, utilisateur_id }` (201) — invitation email |
 | PUT | `/:id` | JWT | admin\|institut | `{ message, institut }` (200) |
 | DELETE | `/:id` | JWT | admin | `{ message }` (200) |
+| POST | `/:id/approuver` | JWT | admin | `{ message, institut }` (200) — `validation_status: 'approved'` |
+| POST | `/:id/rejeter` | JWT | admin | `{ message, institut }` (200) — `validation_status: 'rejected'` (body : `{ motif }`) |
+| POST | `/:id/suspendre` | JWT | admin | `{ message, institut }` (200) — `validation_status: 'suspended'` (body : `{ motif }`) |
+| POST | `/:id/reactiver` | JWT | admin | `{ message, institut }` (200) — sortie de suspension |
+| POST | `/:id/resoumettre` | JWT | admin\|institut | `{ message, institut }` (200) — repasse à `pending_admin_review` après rejet |
 
 **Filtres GET / :**
 - `nom=<string>` — Recherche case-insensitive
@@ -1308,27 +1335,27 @@ attributes: { exclude: ['mot_de_passe', 'jeton_rafraichissement'] }
 **Limite de taille :** 5 Mo par fichier  
 **Formats autorisés :** `.jpeg`, `.jpg`, `.png`, `.pdf`
 
-**Configuration :** `/middleware/upload.js`
+**Configuration :** `middleware/upload.js`
 
 ```javascript
-// Stockage disque
 storage = multer.diskStorage({
-  destination: './uploads',
-  filename: '${Date.now()}-${random()}.ext'  // Unicité
+  destination: uploadDir,
+  filename: `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`
 })
 
-// Filtre types mime
+// ⚠️ Filtrage par EXTENSION uniquement (pas par type MIME réel).
+// Un fichier malicieux renommé en .pdf passera le filtre.
 fileFilter = (req, file, cb) => {
-  if (/jpeg|jpg|png|pdf/.test(file.originalname)) {
-    cb(null, true)
-  } else {
-    cb(new Error('Seuls JPEG, PNG, PDF autorisés'))
-  }
+  const allowed = /jpeg|jpg|png|pdf/;
+  const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+  if (allowed.test(ext)) cb(null, true);
+  else cb(new Error('Seuls les fichiers jpeg, jpg, png et pdf sont autorisés.'));
 }
 
-// Montage
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5MB } })
+const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } })
 ```
+
+⚠️ ❌ Pas de validation du type MIME réel (`file.mimetype`) ni du contenu du fichier (magic bytes). ❌ Pas de scan antivirus.
 
 ### 8.2 Champs Multer autorisés
 
@@ -1591,7 +1618,7 @@ STATUTS_TERMINAUX = ['acceptee', 'refusee']
 }
 ```
 
-**Affichage :** Les notifications sont stockées en BD et loggées console. **Pas d'intégration email/SMS actuellement.**
+**Affichage :** Les notifications applicatives sont stockées en BD et lues côté frontend via `GET /api/notifications/mine`. ❌ Aucun envoi email/SMS pour les notifications applicatives. ✅ En revanche, l'**invitation institut** et le **reset password** utilisent Nodemailer (`services/emailService.js` — voir §3.8).
 
 ### 9.3 Gestion des documents
 
@@ -1687,10 +1714,11 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 - Guards propriété (candidat/institut n'accèdent qu'à leurs ressources)
 - Admin override
 
-✅ **Upload fichiers sécurisé**
-- Filtrage types MIME
+⚠️ **Upload fichiers (partiel)**
+- Filtrage par **extension** (jpeg/jpg/png/pdf), pas par type MIME réel ni magic bytes
 - Limite taille 5 Mo
 - Noms uniques (timestamp + random)
+- ❌ Pas de scan antivirus, pas de validation de contenu
 
 ✅ **Modèles JSONB flexibles**
 - Support semi-structuré (adresse, contact, documents_requis)
@@ -1703,220 +1731,49 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 
 ---
 
-### 10.2 Problèmes et limitations détectés
+### 10.2 État actuel — partiel ⚠️ et non implémenté ❌
 
-> ℹ️ Ces problèmes concernent la v1.0 (MVP). Voir section 11 pour les
-> améliorations planifiées. La Phase 1 d'intégration frontend est complète —
-> ces points sont désormais priorisés pour la phase de stabilisation.
+Constats factuels sur le code à date. Les TODOs / pistes d'évolution sont consignés dans [`CLAUDE.md`](../CLAUDE.md), pas ici.
 
-✅ **Pagination — partiellement résolu (mai 2026)**
-- `GET /api/programmes`, `/api/instituts`, `/api/candidatures` (admin) utilisent
-  désormais `findAndCountAll` + `lirePagination` + `construirePaginationMeta`
-  (`utils/pagination.js`). Limites bornées (`limit` max = 100).
-- ⚠️ **Reste à faire :** étendre la pagination aux listings restants
-  (`/candidatures/mine`, `/candidatures/institute/list`, `/utilisateurs`,
-  `/notifications/mine`, `/favoris/mine`).
+⚠️ **Pagination — partielle**
+- ✅ Implémentée sur `GET /api/programmes`, `/api/instituts`, `/api/candidatures` (admin) via `findAndCountAll` + helpers `utils/pagination.js`. Limite max 100.
+- ❌ Pas de pagination sur `/candidatures/mine`, `/candidatures/institute/list`, `/utilisateurs`, `/notifications/mine` (limite fixe 50), `/favoris/mine`.
 
-⚠️ **Pas de validation schemas**
-- Pas de Joi, Yup, ou zod
-- Validations parcellaires (regex email, types Sequelize)
-- **Impact :** Risques injection, garbage data
+❌ **Validation schemas absente**
+- Pas de Joi/Yup/zod côté serveur. Validations limitées à `regex email` simple, contraintes Sequelize, et hooks de modèle (cf. §12).
 
-⚠️ **Pas de gestion erreurs centralisée**
-- Try/catch dispersés dans controllers
-- Pas de middleware erreur global
-- **Impact :** Inconsistences codes HTTP, duplication logs
+❌ **Gestion erreurs non centralisée**
+- Try/catch dispersés dans chaque controller. Pas de middleware `app.use((err, req, res, next))` global.
 
-⚠️ **Pas de logging structuré**
-- Notifications loggées `console.log` (env production!)
-- Pas de niveaux (debug, info, warn, error)
-- Pas de correlation IDs
-- **Impact :** Debugging production difficile
+❌ **Logging non structuré**
+- `console.log` / `console.warn` directs. Pas de Winston/Pino, pas de niveaux configurables, pas de correlation IDs.
 
-⚠️ **N+1 queries potentiels**
-- `.include()` sur `hasMany` sans `separate: true`
-- Exemple : `GET /api/instituts` charge tous programmes de tous instituts
+⚠️ **N+1 potentiels**
+- `.include()` sur `hasMany` sans `separate: true` dans plusieurs controllers (ex: `GET /api/instituts` charge tous programmes de tous instituts dans la même requête SQL).
 
-✅ **Rate limiting — résolu (mai 2026)**
+✅ **Rate limiting — actif**
 - `middleware/rateLimiter.js` (`express-rate-limit` 8) :
   - **Global** : 100 req / 15 min / IP sur tout `/api/*`
-  - **Strict login** : 5 req / 15 min / IP sur `/api/auth/login`
-    (`skipSuccessfulRequests: true`)
-- Réponse JSON standard + log `[RATE LIMIT]` à chaque blocage
-- ⚠️ Pour un déploiement derrière reverse proxy : configurer
-  `app.set('trust proxy', 1)` pour que `req.ip` reflète bien l'IP cliente.
+  - **Strict login** : 5 req / 15 min / IP sur `/api/auth/login` (`skipSuccessfulRequests: true`)
+- Réponse JSON standard + log `[RATE LIMIT]` à chaque blocage.
+- ⚠️ Derrière reverse proxy : `app.set('trust proxy', 1)` à activer pour que `req.ip` reflète l'IP cliente.
 
-⚠️ **Upload fichiers non sécurisé en production**
-- Pas de scan antivirus
-- `/uploads` static public (confidentialité?)
-- Pas de gestion quota disque
-- Pas de compression/optimisation images
+❌ **Upload non durci en production**
+- Filtre par extension uniquement (pas par MIME réel ni magic bytes), `/uploads` exposé en static public, pas de quota disque, pas de scan antivirus.
 
-⚠️ **Endpoints non utilisés**
-- `jeton_rafraichissement` sauvegardé mais jamais utilisé
-- Types notification `nouveau_programme`, `document_manquant` réservés mais non implémentés
+⚠️ **Endpoints / colonnes non utilisés**
+- `utilisateurs.jeton_rafraichissement` : colonne présente, jamais lue ni écrite par le code (pas de flow refresh token).
+- Types `notifications.type` réservés mais jamais émis : `nouveau_programme`, `document_manquant`, `rappel_echeance`.
 
-⚠️ **Pas de versioning API**
-- Pas de `/v1/`, `/v2/` paths
-- Difficile migration future
+❌ **Pas de versioning API** — pas de préfixe `/v1/` actuellement.
 
-⚠️ **Pas d'audit trail formalisé**
-- Notifications ≠ audit (plus métier que système)
-- Pas de journal modifications (`created_by`, `updated_by`, `deleted_at`)
+❌ **Pas d'audit trail** — pas de colonnes `created_by`/`updated_by`/`deleted_at`, pas de table `AuditLog`.
 
-⚠️ **Test pas visible**
-- Pas de dossier `tests/` ou `__tests__`
-- Pas de test unitaires/intégration
-- **Impact :** Fragilité à refactorisation
+❌ **Pas de tests automatisés** — pas de dossier `tests/` côté backend (présent uniquement dans `diploma-verifier/`). `scripts/test-api.js` est un script ad-hoc, pas une suite Jest/Supertest.
 
 ---
 
-## 11. Suggestions d'amélioration
-
-### 11.1 Court terme (Quick wins)
-
-**Priorités stabilisation post-Phase 1 :**
-
-- ✅ **Rate limiting** (`express-rate-limit`) — **FAIT** (`middleware/rateLimiter.js`, point 5)
-- ✅ **Pagination listings principaux** — **FAIT** (programmes, instituts, candidatures admin, point 1)
-- ✅ **Reset password** (token email + page front) — **FAIT** (mai 2026)
-- 🟠 **Middleware erreur global** — **Quick win** (point 3)
-- 🟠 **Étendre pagination** aux listings restants (`/utilisateurs`, `/favoris/mine`,
-  `/notifications/mine`, `/candidatures/mine`, `/candidatures/institute/list`)
-
-1. **Ajouter pagination**
-   ```javascript
-   // routes/programmeRoutes.js
-   const { limit = 20, offset = 0 } = req.query
-   const { count, rows } = await Programme.findAndCountAll({
-     limit: Math.min(limit, 100),
-     offset
-   })
-   res.json({ total: count, programmes: rows, limit, offset })
-   ```
-
-2. **Validation schemas (Joi)**
-   ```javascript
-   // middleware/validateSchema.js
-   const schema = Joi.object({
-     email: Joi.string().email().required(),
-     password: Joi.string().min(8).required()
-   })
-   const { error, value } = schema.validate(req.body)
-   if (error) return res.status(400).json({ error: error.details })
-   ```
-
-3. **Middleware erreur global**
-   ```javascript
-   // middleware/errorHandler.js
-   app.use((err, req, res, next) => {
-     const status = err.status || 500
-     const message = err.message || 'Erreur serveur'
-     res.status(status).json({ message, error: process.env.NODE_ENV === 'dev' ? err.stack : undefined })
-   })
-   ```
-
-4. **Logger structuré (Winston)**
-   ```javascript
-   // config/logger.js
-   const winston = require('winston')
-   const logger = winston.createLogger({
-     level: process.env.LOG_LEVEL || 'info',
-     format: winston.format.json(),
-     transports: [
-       new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-       new winston.transports.File({ filename: 'logs/combined.log' })
-     ]
-   })
-   ```
-
-5. **Rate limiting (express-rate-limit)**
-   ```javascript
-   // middleware/rateLimiter.js
-   const rateLimit = require('express-rate-limit')
-   const limiter = rateLimit({
-     windowMs: 15 * 60 * 1000,  // 15 min
-     max: 100,                   // max 100 reqs
-     message: 'Trop de requêtes, réessayez plus tard'
-   })
-   app.use('/api/auth/login', limiter)
-   ```
-
-> ℹ️ Le frontend (Phase 1) est pleinement intégré à ce backend. Toute
-> modification de schéma, de route, ou de format de réponse doit être
-> coordonnée avec `frontend/frontend.md` et `CLAUDE.md`.
-
-### 11.2 Moyen terme
-
-1. **Audit trail formalisé**
-   - Ajouter colonne `created_by`, `updated_by` sur tables clés
-   - Table `AuditLog` séparée (qui, quoi, quand, avant/après)
-
-2. **Optimisation N+1**
-   ```javascript
-   // Utiliser `separate: true` pour hasMany
-   Institut.findAll({
-     include: [{
-       model: Programme,
-       as: 'programmes',
-       separate: true  // Requête SQL séparée
-     }]
-   })
-   ```
-
-3. **Gestion fichiers production**
-   - S3 ou stockage cloud (vs disque local)
-   - CDN pour compression/caching
-   - Scan antivirus (ClamAV)
-
-4. **API versioning**
-   ```
-   /api/v1/auth/register
-   /api/v1/users
-   /api/v2/applications (futur)
-   ```
-
-5. **Documentation API (OpenAPI/Swagger)**
-   ```javascript
-   // npm install swagger-jsdoc swagger-ui-express
-   // Lister tous endpoints avec schémas
-   ```
-
-### 11.3 Long terme (Architectural)
-
-1. **Microservices** (si scalabilité forte)
-   - Auth service
-   - Programs service
-   - Applications service
-   - Notifications service (asynchrone)
-
-2. **Queues asynchrones** (Bull + Redis)
-   - Uploads fichiers lourds
-   - Envoi notifications (email, SMS)
-   - Reporting
-
-3. **Caching** (Redis)
-   - `GET /api/programmes` (données rarement mises à jour)
-   - Sessions JWT long terme
-   - Compteurs (nb candidatures par programme)
-
-4. **GraphQL** (complémentaire REST)
-   - Queries complexes (candidat + tous favoris + instituts)
-   - Réduire transfert données
-
-5. **Tests automatisés**
-   - Jest + Supertest pour routes
-   - 80%+ coverage
-   - CI/CD (GitHub Actions, GitLab CI)
-
-6. **Monitoring & APM**
-   - Sentry ou DataDog (erreurs)
-   - New Relic (performance)
-   - Logs centralisés (ELK stack)
-
----
-
-## Annexe : Commandes utiles
+## 11. Annexe : Commandes utiles
 
 ### Démarrage
 
