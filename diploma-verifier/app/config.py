@@ -46,6 +46,10 @@ DIPLOMA_KEYWORDS: dict[str, list[str]] = {
 }
 
 # --- Mentions officielles par pattern de pays ---
+# V6: ajout de variantes Arabic plus permissives — Tesseract 5.5
+# rate parfois التعليم qui suit وزارة (espacement variable).
+# Les variantes \s+\w+ matchent toute mention "وزارة X" ou
+# "الجمهورية Y" même si le suffixe spécifique n'est pas reconnu.
 OFFICIAL_PATTERNS: dict[str, list[str]] = {
     "republic": [
         r"r[ée]publique\s+\w+",
@@ -64,6 +68,8 @@ OFFICIAL_PATTERNS: dict[str, list[str]] = {
         r"minist[èeé]re\s+.*(?:éducation|enseignement)",
         r"ministry\s+of\s+.*education",
         r"وزارة\s+.*التعليم",
+        r"وزارة\s+\w+",         # V6: permissif pour OCR Tesseract 5.5
+        r"الجمهورية\s+\w+",      # V6: permissif (variante du republic)
         r"ministerio\s+de\s+.*educaci[óo]n",
         r"ministerium\s+.*bildung",
     ],

@@ -24,7 +24,10 @@ langdetect==1.0.9
 pydantic==2.7.1
 
 # Utilitaires
-python-magic-bin==0.4.14
+# python-magic = wrapper Linux/Mac (utilise libmagic system, installé via apt dans le Dockerfile)
+# python-magic-bin = wrapper Windows (inclut libmagic.dll)
+python-magic==0.4.27; sys_platform != 'win32'
+python-magic-bin==0.4.14; sys_platform == 'win32'
 aiofiles==23.2.1
 
 # Tests

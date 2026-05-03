@@ -468,6 +468,27 @@ def compute_score(
             )
             raw_score = 18.0
 
+    # ── 12ter. V6 perf-fix: élargi pour gérer les hallucinations OCR.
+    # Tesseract peut halluciner un nom à partir de bruit (typique sur
+    # logo Linux/Tesseract 5.5 vs Windows 5.4). Si le seul "champ"
+    # détecté est le nom, sans diplôme/date, et que le texte est très
+    # court (< 50 chars), c'est probablement une fausse détection.
+    has_degree_keyword = float(analysis.get("has_degree_keyword", 0.0)) >= 0.5
+    has_date = float(analysis.get("has_date", 0.0)) >= 0.5
+    if (
+        structure_count <= 1
+        and not has_degree_keyword
+        and not has_date
+        and len(raw_text.strip()) < 50
+    ):
+        if raw_score > 18.0:
+            logger.info(
+                "V6 hallucination ceiling: struct=%d, no degree/date, "
+                "text_len=%d → capped at 18 (was %.1f)",
+                structure_count, len(raw_text.strip()), raw_score,
+            )
+            raw_score = 18.0
+
     # ── 13. Clamp strict ──
     score = round(_clamp(raw_score), 1)
 

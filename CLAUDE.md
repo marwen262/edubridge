@@ -1,7 +1,7 @@
 # Projet : EduBridge
 
 ## Objectif
-Plateforme de mise en relation entre candidats et écoles d'ingénieurs tunisiennes.
+Plateforme de mise en relation entre candidats et les instituts privées tunisiennes.
 Trois rôles métier : `candidat` (étudiants cherchant une formation), `institut`
 (écoles qui publient leurs programmes) et `admin`. Le frontend est connecté à
 l'API backend via un client axios centralisé et un AuthContext JWT — la phase
