@@ -143,10 +143,10 @@ export function Login() {
         {/* Card */}
         <div className="glass-card rounded-3xl p-8 shadow-2xl">
           <h1 className="text-3xl font-bold text-[var(--edu-text-primary)] mb-2 text-center">
-            Welcome back
+            Bienvenue
           </h1>
           <p className="text-[var(--edu-text-secondary)] text-center mb-8">
-            Sign in to your account to continue
+            Connectez-vous pour continuer
           </p>
 
           {/* Bannières d'erreur login spéciales */}
@@ -188,11 +188,11 @@ export function Login() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Adresse e-mail</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder="votre@email.com"
                 {...register('email')}
                 className="rounded-xl mt-1"
               />
@@ -202,12 +202,12 @@ export function Login() {
             </div>
 
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <div className="relative mt-1">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder="Saisissez votre mot de passe"
                   {...register('password')}
                   className="rounded-xl pr-10"
                 />
@@ -230,7 +230,7 @@ export function Login() {
                 onClick={() => setForgotOpen(true)}
                 className="text-sm text-[var(--edu-blue)] hover:underline"
               >
-                Forgot password?
+                Mot de passe oublié ?
               </button>
             </div>
 
@@ -239,21 +239,21 @@ export function Login() {
               disabled={isSubmitting}
               className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 font-medium disabled:opacity-60"
             >
-              {isSubmitting ? 'Signing in…' : 'Sign in'}
+              {isSubmitting ? 'Connexion en cours…' : 'Se connecter'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-[var(--edu-text-secondary)] mt-6">
-            Don't have an account?{' '}
+            Pas encore de compte ?{' '}
             <Link to="/signup" className="text-[var(--edu-blue)] hover:underline font-medium">
-              Sign up
+              Créer un compte
             </Link>
           </p>
         </div>
 
         <div className="text-center mt-6">
           <Link to="/" className="text-sm text-[var(--edu-text-secondary)] hover:text-[var(--edu-blue)]">
-            ← Back to home
+            ← Retour à l'accueil
           </Link>
         </div>
       </div>
@@ -294,11 +294,11 @@ export function Login() {
               </DialogHeader>
               <form onSubmit={forgotForm.handleSubmit(onForgotSubmit)} className="space-y-4">
                 <div>
-                  <Label htmlFor="forgot-email">Email</Label>
+                  <Label htmlFor="forgot-email">Adresse e-mail</Label>
                   <Input
                     id="forgot-email"
                     type="email"
-                    placeholder="your@email.com"
+                    placeholder="votre@email.com"
                     {...forgotForm.register('email')}
                     className="rounded-xl mt-1"
                     autoFocus

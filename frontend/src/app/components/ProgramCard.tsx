@@ -169,7 +169,7 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
                       <span>•</span>
                       <div className="flex items-center gap-1 text-[var(--edu-warning)]">
                         <Calendar className="w-3 h-3" />
-                        <span>Deadline : {new Date(deadline).toLocaleDateString()}</span>
+                        <span>Date limite : {new Date(deadline).toLocaleDateString()}</span>
                       </div>
                     </>
                   )}
@@ -213,7 +213,7 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
                   </button>
 
                   <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
-                    Voir détails
+                    Voir les détails
                   </Button>
                 </div>
               </div>

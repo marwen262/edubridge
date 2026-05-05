@@ -154,7 +154,7 @@ export function InstitutCard({ institut }: { institut: Institut }) {
             className="mt-auto flex items-center gap-1 text-sm font-medium transition-all hover:gap-2"
             style={{ color: 'var(--edu-blue)' }}
           >
-            Voir détails
+            Voir les détails
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>

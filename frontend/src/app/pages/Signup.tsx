@@ -71,14 +71,14 @@ export function Signup() {
   };
 
   const passwordStrength = getPasswordStrength();
-  const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+  const strengthLabels = ['', 'Faible', 'Moyen', 'Bon', 'Fort'];
   const strengthColors = ['', '#FF3B30', '#FF9F0A', '#64D2FF', '#30D158'];
 
   const passwordChecks = [
-    { label: 'At least 8 characters', met: watchedPassword.length >= 8 },
-    { label: 'Contains uppercase letter', met: /[A-Z]/.test(watchedPassword) },
-    { label: 'Contains number', met: /[0-9]/.test(watchedPassword) },
-    { label: 'Contains special character', met: /[!@#$%^&*]/.test(watchedPassword) },
+    { label: '8 caractères minimum', met: watchedPassword.length >= 8 },
+    { label: 'Une lettre majuscule', met: /[A-Z]/.test(watchedPassword) },
+    { label: 'Un chiffre', met: /[0-9]/.test(watchedPassword) },
+    { label: 'Un caractère spécial', met: /[!@#$%^&*]/.test(watchedPassword) },
   ];
 
   const onSubmit = async (data: SignupFormData) => {
@@ -113,10 +113,10 @@ export function Signup() {
         {/* Card */}
         <div className="glass-card rounded-3xl p-8 shadow-2xl">
           <h1 className="text-3xl font-bold text-[var(--edu-text-primary)] mb-2 text-center">
-            Create your candidate account
+            Créer votre compte candidat
           </h1>
           <p className="text-[var(--edu-text-secondary)] text-center mb-8">
-            Start your journey to find the perfect program
+            Commencez votre parcours vers le programme idéal
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -126,7 +126,7 @@ export function Signup() {
                 <Input
                   id="prenom"
                   type="text"
-                  placeholder="prenom"
+                  placeholder="Votre prénom"
                   {...register('prenom')}
                   className="rounded-xl mt-1"
                 />
@@ -140,7 +140,7 @@ export function Signup() {
                 <Input
                   id="nom"
                   type="text"
-                  placeholder="nom"
+                  placeholder="Votre nom"
                   {...register('nom')}
                   className="rounded-xl mt-1"
                 />
@@ -152,11 +152,11 @@ export function Signup() {
 
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">Adresse e-mail *</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder="votre@email.com"
                   {...register('email')}
                   className="rounded-xl mt-1"
                 />
@@ -167,7 +167,7 @@ export function Signup() {
             </div>
 
             <div>
-              <Label htmlFor="nationalite">Nationality *</Label>
+              <Label htmlFor="nationalite">Nationalité *</Label>
               <div className="mt-1">
                 <Controller
                   control={control}
@@ -177,7 +177,7 @@ export function Signup() {
                       id="nationalite"
                       value={field.value}
                       onChange={field.onChange}
-                      placeholder="Select your nationality"
+                      placeholder="Sélectionnez votre nationalité"
                     />
                   )}
                 />
@@ -189,12 +189,12 @@ export function Signup() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="password">Password *</Label>
+                <Label htmlFor="password">Mot de passe *</Label>
                 <div className="relative mt-1">
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a strong password"
+                    placeholder="Créez un mot de passe fort"
                     {...register('password')}
                     className="rounded-xl pr-10"
                   />
@@ -229,12 +229,12 @@ export function Signup() {
               </div>
 
               <div>
-                <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                <Label htmlFor="confirmPassword">Confirmer le mot de passe *</Label>
                 <div className="relative mt-1">
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm your password"
+                    placeholder="Répétez le mot de passe"
                     {...register('confirmPassword')}
                     className="rounded-xl pr-10"
                   />
@@ -261,7 +261,7 @@ export function Signup() {
             {watchedPassword && (
               <div className="bg-[var(--edu-surface)] rounded-xl p-4">
                 <p className="text-sm font-medium text-[var(--edu-text-primary)] mb-2">
-                  Password Requirements:
+                  Critères du mot de passe :
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {passwordChecks.map((check, i) => (
@@ -298,13 +298,13 @@ export function Signup() {
                 )}
               />
               <label htmlFor="terms" className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
-                I agree to the{' '}
+                J'accepte les{' '}
                 <a href="#" className="text-[var(--edu-blue)] hover:underline">
-                  Terms of Service
+                  Conditions d'utilisation
                 </a>{' '}
-                and{' '}
+                et la{' '}
                 <a href="#" className="text-[var(--edu-blue)] hover:underline">
-                  Privacy Policy
+                  Politique de confidentialité
                 </a>
               </label>
             </div>
@@ -319,21 +319,21 @@ export function Signup() {
               disabled={isSubmitting}
               className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 font-medium disabled:opacity-60"
             >
-              {isSubmitting ? 'Creating account…' : 'Create account'}
+              {isSubmitting ? 'Création en cours…' : 'Créer mon compte'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-[var(--edu-text-secondary)] mt-6">
-            Already have an account?{' '}
+            Vous avez déjà un compte ?{' '}
             <Link to="/login" className="text-[var(--edu-blue)] hover:underline font-medium">
-              Sign in
+              Se connecter
             </Link>
           </p>
         </div>
 
         <div className="text-center mt-6">
           <Link to="/" className="text-sm text-[var(--edu-text-secondary)] hover:text-[var(--edu-blue)]">
-            ← Back to home
+            ← Retour à l'accueil
           </Link>
         </div>
       </div>
