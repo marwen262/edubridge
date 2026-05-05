@@ -4,6 +4,7 @@ const router = require('express').Router();
 const auth   = require('../middleware/authMiddleware');
 const { isAdmin, restrictTo, optionalAuth } = require('../middleware/authMiddleware');
 const ctrl   = require('../controllers/institutController');
+const upload = require('../middleware/upload');
 
 // ── Routes publiques (catalogue) ──────────────────────────────────────
 router.get('/', optionalAuth, ctrl.getAllInstituts);
@@ -15,7 +16,9 @@ router.post('/admin/inviter',       auth, isAdmin, ctrl.createInstitut);
 // ── Routes paramétrées ─────────────────────────────────────────────────
 router.get   ('/:id',              ctrl.getInstitutById);
 router.post  ('/',                 auth, isAdmin, ctrl.createInstitut);
-router.put   ('/:id',             auth, restrictTo('admin', 'institut'), ctrl.updateInstitut);
+router.put   ('/:id',             auth, restrictTo('admin', 'institut'),
+  upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'image_couverture', maxCount: 1 }]),
+  ctrl.updateInstitut);
 router.delete('/:id',             auth, isAdmin, ctrl.deleteInstitut);
 
 // Actions de validation par id

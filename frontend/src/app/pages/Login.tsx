@@ -21,11 +21,11 @@ import { authService } from '@/services/api';
 
 const loginSchema = z.object({
   email: z
-    .string({ required_error: 'Email requis' })
+    .string()
     .min(1, 'Email requis')
     .email('Email invalide'),
   password: z
-    .string({ required_error: 'Mot de passe requis' })
+    .string()
     .min(1, 'Mot de passe requis'),
 });
 
@@ -33,7 +33,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 const forgotSchema = z.object({
   email: z
-    .string({ required_error: 'Email requis' })
+    .string()
     .min(1, 'Email requis')
     .email('Email invalide'),
 });

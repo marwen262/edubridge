@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
-import { FileText, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CreateProgramDialog } from './CreateProgramDialog';
+import { EditProgramDialog } from './EditProgramDialog';
 import { useAuth } from '@/context/AuthContext';
 import { usePrograms } from '@/hooks/usePrograms';
 import { useInstitutCandidatures } from '@/hooks/useCandidatures';
 import { programmeService } from '@/services/api';
+import type { Programme } from '@/types/api';
 
 const PAGE_SIZE = 10;
 
@@ -18,7 +20,9 @@ export function InstitutionProgramsSection() {
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [showCreate, setShowCreate] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [editingProgram, setEditingProgram] = useState<Programme | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; titre: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filtered = React.useMemo(() => {
     if (!search.trim()) return programmes;
@@ -32,15 +36,15 @@ export function InstitutionProgramsSection() {
 
   const candCount = (pid: string) => candidatures.filter((c) => c.programme_id === pid).length;
 
-  const handleDelete = async (id: string, titre: string) => {
-    if (!window.confirm(`Supprimer définitivement « ${titre} » ?`)) return;
-    setDeleting(id);
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
     try {
-      await programmeService.delete(id);
+      await programmeService.delete(deleteConfirm.id);
       toast.success('Programme supprimé.');
       refetch();
     } catch { toast.error('Erreur lors de la suppression.'); }
-    finally { setDeleting(null); }
+    finally { setDeleting(false); setDeleteConfirm(null); }
   };
 
   return (
@@ -106,8 +110,10 @@ export function InstitutionProgramsSection() {
                     <td className="px-6 py-4 text-sm text-[var(--edu-text-secondary)]">{p.date_limite_candidature ? new Date(p.date_limite_candidature).toLocaleDateString('fr-FR') : '—'}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm"><Edit className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="sm" disabled={deleting === p.id} onClick={() => handleDelete(p.id, p.titre)}>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingProgram(p)} title="Modifier">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm({ id: p.id, titre: p.titre })}>
                           <Trash2 className="w-4 h-4 text-[var(--edu-danger)]" />
                         </Button>
                       </div>
@@ -129,8 +135,43 @@ export function InstitutionProgramsSection() {
         </motion.div>
       </div>
 
+      {/* Dialog création */}
       {user?.institut_id && (
         <CreateProgramDialog institutId={user.institut_id} open={showCreate} onClose={() => setShowCreate(false)} onCreated={refetch} />
+      )}
+
+      {/* Dialog modification */}
+      <EditProgramDialog
+        programme={editingProgram}
+        open={editingProgram !== null}
+        onClose={() => setEditingProgram(null)}
+        onUpdated={() => { setEditingProgram(null); refetch(); }}
+      />
+
+      {/* Dialog confirmation suppression */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !deleting && setDeleteConfirm(null)} />
+          <div className="relative bg-white dark:bg-[#1D1D1F] rounded-2xl shadow-2xl border border-[var(--edu-border)] p-6 w-full max-w-sm mx-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(255,59,48,0.1)' }}>
+                <AlertTriangle className="w-5 h-5" style={{ color: 'var(--edu-danger)' }} />
+              </div>
+              <h3 className="text-base font-bold text-[var(--edu-text-primary)]">Supprimer ce programme ?</h3>
+            </div>
+            <p className="text-sm text-[var(--edu-text-secondary)] mb-6">
+              <span className="font-semibold text-[var(--edu-text-primary)]">« {deleteConfirm.titre} »</span> sera définitivement supprimé. Cette action est irréversible.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <Button variant="outline" onClick={() => setDeleteConfirm(null)} disabled={deleting} className="rounded-xl">
+                Annuler
+              </Button>
+              <Button onClick={confirmDelete} disabled={deleting} className="rounded-xl text-white" style={{ backgroundColor: 'var(--edu-danger)' }}>
+                {deleting ? 'Suppression…' : 'Supprimer'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

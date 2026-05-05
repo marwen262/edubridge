@@ -75,13 +75,13 @@ EduBridge est un **backend monolithique** (Node.js/Express) qui facilite la mise
     └──────────────┬───────────────────┘
                    │
                    ▼
-    ┌──────────────────────────────────┐
-    │     MODELS (ORM - Sequelize)     │
-    │  • Utilisateur ├─────┐           │
-    │  • Candidat    │     ├─► Roles   │
-    │  • Institut    ├─────┘           │
-    │  • Programme                     │
-    │  • Candidature                   │
+    ┌──────────────────────────────────┐        ┌─────────────────────────────┐
+    │     MODELS (ORM - Sequelize)     │        │  DIPLOMA VERIFIER (Python)  │
+    │  • Utilisateur ├─────┐           │        │  (Microservice externe via  │
+    │  • Candidat    │     ├─► Roles   │<───────┤   REST API POST /api/verify)│
+    │  • Institut    ├─────┘           │        │  • Déterministe (V5/V6)     │
+    │  • Programme                     │        │  • Fallback longueur texte  │
+    │  • Candidature                   │        └─────────────────────────────┘
     │  • Notification                  │
     │  • Media                         │
     │  • Favori                        │
@@ -1728,6 +1728,12 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 - Codes HTTP corrects
 - Messages d'erreur clairs
 - Filtres de recherche standards
+
+✅ **Microservice Diploma-Verifier (V5 Upgrade)**
+- Architecture de vérification OCR modulaire et robuste (sans IA générative)
+- Sélection de texte optimale (plus long ou plus sémantique)
+- Analyse de cohérence et pénalités de densité
+- Totalement découplé (REST stateless)
 
 ---
 

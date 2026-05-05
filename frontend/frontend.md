@@ -40,7 +40,7 @@ Interface Vite (HMR en dev)
     ↓
 App.tsx (AuthProvider + RouterProvider)
     ↓
-routes.tsx (16 routes nommées + wildcard 404, dont 5 protégées par rôle)
+routes.tsx (20 routes nommées + wildcard 404, dont plusieurs protégées par rôle)
     ↓
 ProtectedRoute (vérification JWT + rôle)
     ↓
@@ -92,7 +92,7 @@ src/
 │   └── useComparaison.ts             # localStorage compare list (max 3 programmes)
 ├── app/
 │   ├── App.tsx                       # AuthProvider > RouterProvider > Toaster
-│   ├── routes.tsx                    # 16 routes nommées + wildcard 404 (5 routes dashboard protégées par rôle, dont 2 dynamiques `:section`)
+│   ├── routes.tsx                    # 20 routes nommées + wildcard 404 (plusieurs routes dashboard protégées par rôle)
 │   ├── pages/                        # Pages de niveau routing
 │   │   ├── Home.tsx                  # Landing page
 │   │   ├── SearchResults.tsx         # Recherche & filtrage
@@ -105,7 +105,11 @@ src/
 │   │   ├── Signup.tsx                # Inscription réelle (useAuth + RHF + zod)
 │   │   ├── FirstLogin.tsx            # Activation premier login institut (token email — invitation admin)
 │   │   ├── ResetPassword.tsx         # Réinitialisation mot de passe via lien email (token 1h)
-│   │   ├── CandidateDashboard.tsx    # Dashboard candidat
+│   │   ├── CandidateDashboard.tsx    # Dashboard candidat (overview)
+│   │   ├── MesCandidatures.tsx       # Liste détaillée des candidatures
+│   │   ├── MesFavoris.tsx            # Liste détaillée des favoris
+│   │   ├── MesDocuments.tsx          # Historique des documents uploadés
+│   │   ├── Parametres.tsx            # Modification du profil complet du candidat
 │   │   ├── InstitutionDashboard.tsx  # Dashboard institution (+ variante `/dashboard/institution/:section`)
 │   │   └── AdminDashboard.tsx        # Dashboard admin (+ variante `/dashboard/admin/:section`)
 │   ├── components/                   # Composants réutilisables
@@ -122,6 +126,7 @@ src/
 │   │   ├── StatusBadge.tsx           # Badge de statut
 │   │   ├── SkeletonCard.tsx          # Skeleton loading
 │   │   ├── EmptyState.tsx            # État vide
+│   │   ├── forms/                    # Composants de formulaires (NationaliteSelect, IndicatifTelephone, AdresseFields)
 │   │   ├── admin/                    # Sections AdminDashboard (Overview, Users, Institutes, Programs, Candidatures, Notifications)
 │   │   ├── institution/              # Sections InstitutionDashboard + CreateProgramDialog
 │   │   ├── figma/
@@ -154,8 +159,9 @@ Fichiers racine:
 | `context/` | AuthContext — état global utilisateur + token JWT |
 | `components/` | ProtectedRoute — garde les routes privées |
 | `hooks/` | Fetch hooks (loading/error/refetch par ressource) |
-| `pages/` | Pages complètes du routing (16 routes nommées + wildcard 404) |
+| `pages/` | Pages complètes du routing (20 routes nommées + wildcard 404) |
 | `app/components/` | Composants réutilisables (business logic + présentation) |
+| `app/components/forms/` | Composants spécifiques aux formulaires (Nationalité, Téléphone, etc.) |
 | `app/components/ui/` | Design system primitif (Radix UI wrappé — NE PAS ÉDITER) |
 | `app/components/admin/` | Sections du dashboard admin (Overview, Users, Institutes, Programs, Candidatures, Notifications) |
 | `app/components/institution/` | Sections du dashboard institut + `CreateProgramDialog` |
@@ -181,18 +187,17 @@ export const router = createBrowserRouter([
   { path: '/signup',              Component: Signup },
   { path: '/first-login',         Component: FirstLogin },
   { path: '/reset-password',      Component: ResetPassword },
-  // Dashboards protégés par rôle (chacun avec variante `:section` dynamique pour institut/admin)
-  { path: '/dashboard/candidate',
-    element: <ProtectedRoute requiredRole="candidat"><CandidateDashboard /></ProtectedRoute> },
-  { path: '/dashboard/institution',
-    element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
-  { path: '/dashboard/institution/:section',
-    element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
-  { path: '/dashboard/admin',
-    element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
-  { path: '/dashboard/admin/:section',
-    element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
-  { path: '*', Component: () => /* JSX 404 inline (pas de composant nommé) */ },
+  // Dashboards protégés par rôle
+  { path: '/dashboard/candidate',    element: <ProtectedRoute requiredRole="candidat"><CandidateDashboard /></ProtectedRoute> },
+  { path: '/dashboard/candidatures', element: <ProtectedRoute requiredRole="candidat"><MesCandidatures /></ProtectedRoute> },
+  { path: '/dashboard/favoris',      element: <ProtectedRoute requiredRole="candidat"><MesFavoris /></ProtectedRoute> },
+  { path: '/dashboard/documents',    element: <ProtectedRoute requiredRole="candidat"><MesDocuments /></ProtectedRoute> },
+  { path: '/dashboard/parametres',   element: <ProtectedRoute requiredRole="candidat"><Parametres /></ProtectedRoute> },
+  { path: '/dashboard/institution',  element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
+  { path: '/dashboard/institution/:section', element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
+  { path: '/dashboard/admin',        element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
+  { path: '/dashboard/admin/:section',       element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
+  { path: '*', Component: () => /* JSX 404 inline */ },
 ]);
 ```
 
@@ -271,12 +276,19 @@ export const router = createBrowserRouter([
   toast succès + redirection `/login`
 
 #### 9. **CandidateDashboard** (`/dashboard/candidate`)
-- Sidebar navigation
+- Vue principale / Overview
 - Stats cards (applications, saved, decisions)
-- Upcoming deadlines
-- My applications table
-- Recent messages
+- Actions rapides (Explorer, Compléter profil, Uploader documents)
+- My applications table (récentes)
+- Notifications (badge + liste)
 - Recommended programs
+
+#### 9 bis. **Sous-pages Candidat**
+- **MesCandidatures** (`/dashboard/candidatures`) : Vue détaillée de l'historique
+- **MesFavoris** (`/dashboard/favoris`) : Liste des programmes sauvegardés
+- **MesDocuments** (`/dashboard/documents`) : Historique des fichiers déposés dans les candidatures (avec prévisualisation)
+- **Parametres** (`/dashboard/parametres`) : Formulaire pour gérer les informations de profil (Identité, Adresse, Parcours académique)
+
 
 #### 10. **InstitutionDashboard** (`/dashboard/institution`)
 - Sidebar navigation (role-based)
@@ -369,6 +381,9 @@ Wrappés Radix UI avec Tailwind CSS
   - À la soumission : `candidatureService.create(formData)` → POST `/api/candidatures`
 - `Stepper.tsx` - Stepper UI avec progress bar
 - `NotificationDropdown.tsx` - Dropdown Navbar avec badge `unreadCount`, click sur item → `markAsRead`
+- `NationaliteSelect.tsx` - Sélecteur de nationalité moderne (shadcn/ui `Select`) avec drapeaux en emojis.
+- `IndicatifTelephone.tsx` - Champ téléphone gérant automatiquement l'indicatif en fonction de la nationalité, et préservant les modifications manuelles.
+- `AdresseFields.tsx` - Groupe de champs pour gérer une entité Adresse (rue, ville, code_postal, etc.).
 
 **Media:**
 - `ImageWithFallback.tsx` - Image avec fallback

@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Link } from 'react-router';
 import {
   FileText, Users, Clock, Send, Plus, ChevronRight, TrendingUp,
-  Clock3, CheckCircle2, XCircle, AlertTriangle, RefreshCw, Bell,
+  Clock3, CheckCircle2, XCircle, AlertTriangle, RefreshCw, Bell, Phone,
 } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '../ui/dialog';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -70,6 +73,7 @@ export function InstitutionOverviewSection({ institut }: Props) {
   const { user } = useAuth();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedCandidat, setSelectedCandidat] = useState<Candidature | null>(null);
 
   const nomInstitut = institut?.nom ?? user?.email ?? 'Institution';
   const validationStatus = (institut?.validation_status ?? user?.validation_status) as ValidationStatus | undefined;
@@ -207,17 +211,24 @@ export function InstitutionOverviewSection({ institut }: Props) {
                       ) : cards.map((c) => {
                         const nomComplet = [c.candidat?.prenom, c.candidat?.nom].filter(Boolean).join(' ') || 'Candidat';
                         return (
-                          <div key={c.id} className="bg-white dark:bg-[#1D1D1F] rounded-xl p-3 border border-[var(--edu-border)] hover:shadow-md transition-all">
-                            <div className="flex items-center gap-2 mb-2">
+                          <div
+                            key={c.id}
+                            onClick={() => setSelectedCandidat(c)}
+                            className="bg-white dark:bg-[#1D1D1F] rounded-xl p-3 border border-[var(--edu-border)] hover:shadow-md hover:border-[var(--edu-blue)]/30 transition-all cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2 mb-1.5">
                               <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--edu-blue), #6366F1)' }}>
                                 {nomComplet.charAt(0).toUpperCase()}
                               </div>
                               <p className="text-sm font-semibold text-[var(--edu-text-primary)] truncate">{nomComplet}</p>
                             </div>
-                            <p className="text-xs text-[var(--edu-text-secondary)] mb-1 line-clamp-1">{c.programme?.titre ?? 'Programme'}</p>
+                            {c.score_diplome != null && (
+                              <PipelineScoreChip score={c.score_diplome} />
+                            )}
+                            <p className="text-xs text-[var(--edu-text-secondary)] mb-1 line-clamp-1 mt-1">{c.programme?.titre ?? 'Programme'}</p>
                             <p className="text-xs text-[var(--edu-text-tertiary)] mb-2">{(c.soumise_le ?? c.cree_le) ? new Date((c.soumise_le ?? c.cree_le)!).toLocaleDateString() : '—'}</p>
                             {transitions.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
+                              <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
                                 {transitions.map((t) => (
                                   <button key={t} onClick={() => handleChangerStatut(c.id, t)} disabled={processingId === c.id}
                                     className="text-xs px-2 py-0.5 rounded-full font-semibold text-white transition-opacity disabled:opacity-50"
@@ -303,6 +314,106 @@ export function InstitutionOverviewSection({ institut }: Props) {
           onCreated={refetchProgrammes}
         />
       )}
+
+      {/* Candidat detail Dialog */}
+      <Dialog open={selectedCandidat != null} onOpenChange={(open) => { if (!open) setSelectedCandidat(null); }}>
+        <DialogContent className="max-w-md rounded-2xl">
+          {selectedCandidat && <CandidatDetailDialog candidature={selectedCandidat} />}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Chip score sur les cartes pipeline
+// ─────────────────────────────────────────────────────────────
+function PipelineScoreChip({ score }: { score: number }) {
+  const color = score >= 70 ? 'var(--edu-success)' : score >= 50 ? 'var(--edu-warning)' : 'var(--edu-danger)';
+  const bg    = score >= 70 ? 'rgba(52,199,89,0.1)' : score >= 50 ? 'rgba(255,159,10,0.1)' : 'rgba(255,59,48,0.1)';
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold" style={{ color, backgroundColor: bg }}>
+      Score : {score}/100
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Contenu du Dialog candidat
+// ─────────────────────────────────────────────────────────────
+const STATUT_DIALOG: Record<string, { label: string; color: string; bg: string }> = {
+  soumise:       { label: 'Soumise',        color: 'var(--edu-blue)',    bg: 'rgba(0,113,227,0.1)' },
+  en_examen:     { label: 'En examen',      color: 'var(--edu-warning)', bg: 'rgba(255,159,10,0.1)' },
+  acceptee:      { label: 'Acceptée',       color: 'var(--edu-success)', bg: 'rgba(52,199,89,0.1)' },
+  refusee:       { label: 'Refusée',        color: 'var(--edu-danger)',  bg: 'rgba(255,59,48,0.1)' },
+  liste_attente: { label: "Liste d'attente", color: '#8B5CF6',           bg: 'rgba(139,92,246,0.1)' },
+};
+
+function CandidatDetailDialog({ candidature }: { candidature: Candidature }) {
+  const nom = [candidature.candidat?.prenom, candidature.candidat?.nom].filter(Boolean).join(' ') || 'Candidat';
+  const st  = STATUT_DIALOG[candidature.statut] ?? STATUT_DIALOG.soumise;
+  const date = (candidature.soumise_le ?? candidature.cree_le)
+    ? new Date((candidature.soumise_le ?? candidature.cree_le)!).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '—';
+  const score = candidature.score_diplome;
+
+  return (
+    <>
+      <DialogHeader className="pb-2">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--edu-blue), #6366F1)' }}>
+            {nom.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <DialogTitle className="text-lg font-bold text-[var(--edu-text-primary)] leading-tight">{nom}</DialogTitle>
+            <p className="text-xs text-[var(--edu-text-secondary)] mt-0.5">{candidature.programme?.titre ?? '—'}</p>
+          </div>
+        </div>
+      </DialogHeader>
+
+      <div className="space-y-3 pt-2">
+        {/* Statut */}
+        <DialogRow label="Statut">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style={{ color: st.color, backgroundColor: st.bg }}>{st.label}</span>
+        </DialogRow>
+
+        {/* Score */}
+        <DialogRow label="Score diplôme">
+          {score != null ? (
+            (() => {
+              const color = score >= 70 ? 'var(--edu-success)' : score >= 50 ? 'var(--edu-warning)' : 'var(--edu-danger)';
+              const bg    = score >= 70 ? 'rgba(52,199,89,0.1)' : score >= 50 ? 'rgba(255,159,10,0.1)' : 'rgba(255,59,48,0.1)';
+              return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style={{ color, backgroundColor: bg }}>{score}/100</span>;
+            })()
+          ) : (
+            <span className="text-sm text-[var(--edu-text-tertiary)]">Non vérifié</span>
+          )}
+        </DialogRow>
+
+        {/* Date */}
+        <DialogRow label="Date de soumission">
+          <span className="text-sm text-[var(--edu-text-primary)]">{date}</span>
+        </DialogRow>
+
+        {/* Téléphone */}
+        {candidature.candidat?.telephone && (
+          <DialogRow label="Téléphone">
+            <a href={`tel:${candidature.candidat.telephone}`} className="text-sm text-[var(--edu-blue)] hover:underline flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5" />
+              {candidature.candidat.telephone}
+            </a>
+          </DialogRow>
+        )}
+      </div>
+    </>
+  );
+}
+
+function DialogRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2.5 border-b border-[var(--edu-divider)] last:border-0">
+      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)] shrink-0">{label}</p>
+      <div className="text-right">{children}</div>
     </div>
   );
 }

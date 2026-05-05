@@ -6,15 +6,14 @@ const { verifierPropriete } = require('../middleware/candidatureGuards');
 const upload = require('../middleware/upload');
 const ctrl   = require('../controllers/candidatureController');
 
-// Upload multi-fichiers
+// Upload multi-fichiers — uniquement documents académiques.
+// L'identité (CIN/passeport/nationalité) vit dans le profil Candidat (non dupliquée).
+// La lettre de motivation est un champ TEXT sur Candidature (req.body.lettre_motivation).
 const candidatureUpload = upload.fields([
   { name: 'diplome_bac',           maxCount: 1 },
   { name: 'diplome_licence',       maxCount: 1 },
   { name: 'releves_notes',         maxCount: 1 },
   { name: 'attestation_prepa',     maxCount: 1 },
-  { name: 'lettre_motivation',     maxCount: 1 },
-  { name: 'piece_identite',        maxCount: 1 },
-  { name: 'photo_identite',        maxCount: 1 },
   { name: 'lettre_recommandation', maxCount: 1 },
   { name: 'attestation_stage',     maxCount: 1 },
 ]);
@@ -39,7 +38,7 @@ router.patch('/:id/statut', auth, restrictTo('admin', 'institut'), ctrl.changerS
 // Consultation
 router.get('/:id', auth, ctrl.getCandidatureById);
 
-// Suppression (admin)
-router.delete('/:id', auth, isAdmin, ctrl.deleteCandidature);
+// Suppression — admin (toute candidature) ou candidat propriétaire (brouillon uniquement)
+router.delete('/:id', auth, restrictTo('admin', 'candidat'), ctrl.deleteCandidature);
 
 module.exports = router;

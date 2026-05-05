@@ -72,6 +72,9 @@ export const authService = {
   terminerPremierLogin: (data: TerminerPremierLoginData) =>
     api.post('/auth/premier-login/terminer', data),
 
+  changerMotDePasse: (oldPassword: string, newPassword: string) =>
+    api.post('/auth/change-password', { oldPassword, newPassword }),
+
   // Workflow réinitialisation de mot de passe
   demanderResetPassword: (email: string) =>
     api.post('/auth/mot-de-passe/oublie', { email }),
@@ -116,7 +119,7 @@ export const institutService = {
   inviter: (data: InviterInstitutData) =>
     api.post('/instituts', data),
 
-  update: (id: string, data: Partial<CreateInstitutData>) =>
+  update: (id: string, data: Partial<CreateInstitutData> | FormData) =>
     api.put(`/instituts/${id}`, data),
 
   delete: (id: string) =>
@@ -153,6 +156,11 @@ export const candidatureService = {
 
   soumettre: (id: string) =>
     api.post(`/candidatures/${id}/soumettre`),
+
+  // Soumission avec auto-update du profil Candidat (cf. candidatureWorkflow.soumettre).
+  // Le backend met à jour le Candidat depuis `profil` AVANT de valider la complétude.
+  soumettreAvecProfil: (id: string, profil: Record<string, unknown>) =>
+    api.post(`/candidatures/${id}/soumettre`, { profil }),
 
   changerStatut: (id: string, statut: string, notes?: string) =>
     api.patch(`/candidatures/${id}/statut`, {
