@@ -98,9 +98,9 @@ export function ProgramDetail() {
       <div className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)]">
         <div className="max-w-[1440px] mx-auto px-6 py-4">
           <div className="flex items-center gap-2 text-sm text-[var(--edu-text-secondary)]">
-            <Link to="/" className="hover:text-[var(--edu-blue)]">Home</Link>
+            <Link to="/" className="hover:text-[var(--edu-blue)]">Accueil</Link>
             <ChevronRight className="w-4 h-4" />
-            <Link to="/search" className="hover:text-[var(--edu-blue)]">Search</Link>
+            <Link to="/search" className="hover:text-[var(--edu-blue)]">Recherche</Link>
             {program.institut && (
               <>
                 <ChevronRight className="w-4 h-4" />
@@ -188,10 +188,10 @@ export function ProgramDetail() {
         <div className="max-w-[1440px] mx-auto px-6">
           <div className="flex w-full">
             {[
-              { value: 'overview', label: 'Overview' },
-              { value: 'requirements', label: 'Requirements' },
-              { value: 'tuition', label: 'Tuition' },
-              { value: 'institution', label: 'Institution' },
+              { value: 'overview', label: 'Vue d\'ensemble' },
+              { value: 'requirements', label: 'Prérequis' },
+              { value: 'tuition', label: 'Frais' },
+              { value: 'institution', label: 'Établissement' },
             ].map((tab) => (
               <button
                 key={tab.value}
@@ -218,14 +218,14 @@ export function ProgramDetail() {
               <TabsContent value="overview" className="space-y-8">
                 {/* Faits clés */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Key Facts</h2>
+                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Informations clés</h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {[
-                      { label: 'Level', value: program.niveau ?? null, icon: <Star className="w-5 h-5" /> },
-                      { label: 'Duration', value: program.duree_annees != null ? `${program.duree_annees} ans` : null, icon: <Clock className="w-5 h-5" /> },
-                      { label: 'Start Date', value: program.date_debut ?? null, icon: <Calendar className="w-5 h-5" /> },
-                      { label: 'Deadline', value: deadlineDate ? deadlineDate.toLocaleDateString() : null, icon: <Calendar className="w-5 h-5" /> },
-                      { label: 'Language', value: program.langue ?? null, icon: <Globe className="w-5 h-5" /> },
+                      { label: 'Niveau', value: program.niveau ?? null, icon: <Star className="w-5 h-5" /> },
+                      { label: 'Durée', value: program.duree_annees != null ? `${program.duree_annees} ans` : null, icon: <Clock className="w-5 h-5" /> },
+                      { label: 'Date de rentrée', value: program.date_debut ?? null, icon: <Calendar className="w-5 h-5" /> },
+                      { label: 'Date limite', value: deadlineDate ? deadlineDate.toLocaleDateString() : null, icon: <Calendar className="w-5 h-5" /> },
+                      { label: 'Langue', value: program.langue ?? null, icon: <Globe className="w-5 h-5" /> },
                       { label: 'Mode', value: program.mode ?? null, icon: <MapPin className="w-5 h-5" /> },
                     ].filter((f) => f.value != null).map((fact) => (
                       <div key={fact.label} className="glass-card rounded-2xl p-6">
@@ -240,7 +240,7 @@ export function ProgramDetail() {
                 {/* Description */}
                 {program.description && (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
-                    <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-4">About the Program</h2>
+                    <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-4">À propos du programme</h2>
                     <div className="glass-card rounded-2xl p-6">
                       <p className="text-[var(--edu-text-secondary)] leading-relaxed">{program.description}</p>
                     </div>
@@ -250,7 +250,7 @@ export function ProgramDetail() {
 
               <TabsContent value="requirements">
                 <div className="glass-card rounded-2xl p-8">
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Admission Requirements</h2>
+                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Conditions d'admission</h2>
                   {docs.length === 0 ? (
                     <p className="text-[var(--edu-text-secondary)]">Aucun document requis spécifié.</p>
                   ) : (
@@ -273,7 +273,7 @@ export function ProgramDetail() {
 
               <TabsContent value="tuition">
                 <div className="glass-card rounded-2xl p-8">
-                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Tuition & Funding</h2>
+                  <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-6">Frais et financement</h2>
                   <div className="space-y-6">
                     {program.frais_inscription != null && (
                       <div className="flex items-center justify-between py-4 border-b border-[var(--edu-divider)]">
@@ -329,9 +329,9 @@ export function ProgramDetail() {
             <div className="glass-card rounded-2xl p-6">
               {daysLeft != null && (
                 <div className="text-center mb-6">
-                  <p className="text-sm text-[var(--edu-text-secondary)] mb-2">Application Deadline</p>
+                  <p className="text-sm text-[var(--edu-text-secondary)] mb-2">Date limite de candidature</p>
                   <p className={`text-3xl font-bold mb-1 ${daysLeft <= 7 ? 'text-[var(--edu-danger)]' : 'text-[var(--edu-text-primary)]'}`}>
-                    {daysLeft > 0 ? `${daysLeft} days` : 'Expired'}
+                    {daysLeft > 0 ? `${daysLeft} jours` : 'Expiré'}
                   </p>
                   {deadlineDate && (
                     <p className="text-sm text-[var(--edu-text-secondary)]">
@@ -343,7 +343,7 @@ export function ProgramDetail() {
 
               {canApply && (
                 <Button onClick={handleApply} className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 mb-3">
-                  Apply now
+                  Candidater
                 </Button>
               )}
 
@@ -359,7 +359,7 @@ export function ProgramDetail() {
                   }`}
                 >
                   <Heart className={`w-4 h-4 ${isFavori ? 'fill-current' : ''}`} />
-                  {isFavori ? 'Saved' : 'Save'}
+                  {isFavori ? 'Sauvegardé' : 'Sauvegarder'}
                 </button>
                 {/* Share button */}
                 <button
@@ -367,7 +367,7 @@ export function ProgramDetail() {
                   className="flex-1 flex items-center justify-center gap-2 border border-[var(--edu-border)] rounded-full py-2 text-[var(--edu-text-secondary)] hover:bg-[var(--edu-surface)] transition-all"
                 >
                   {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link2 className="w-4 h-4" />}
-                  {copied ? 'Copied!' : 'Share'}
+                  {copied ? 'Copié !' : 'Partager'}
                 </button>
               </div>
             </div>
@@ -375,7 +375,7 @@ export function ProgramDetail() {
             {/* Mini carte institution */}
             {program.institut && (
               <div className="glass-card rounded-2xl p-6">
-                <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">Institution</h3>
+                <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">Établissement</h3>
                 <div className="flex items-center gap-3 mb-4">
                   {program.institut.logo && (
                     <img src={program.institut.logo} alt={program.institut.nom} className="w-12 h-12 rounded-lg object-cover" />
@@ -388,7 +388,7 @@ export function ProgramDetail() {
                   </div>
                 </div>
                 <Link to={`/institution/${program.institut.id}`}>
-                  <Button variant="outline" className="w-full rounded-full">View Profile</Button>
+                  <Button variant="outline" className="w-full rounded-full">Voir le profil</Button>
                 </Link>
               </div>
             )}
