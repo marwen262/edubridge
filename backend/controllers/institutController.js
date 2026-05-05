@@ -137,6 +137,7 @@ exports.createInstitut = async (req, res) => {
 };
 
 // PUT /api/instituts/:id — admin ou institut propriétaire
+// Accepte application/json ET multipart/form-data (upload logo + image_couverture)
 exports.updateInstitut = async (req, res) => {
   try {
     const institut = await Institut.findByPk(req.params.id);
@@ -147,6 +148,23 @@ exports.updateInstitut = async (req, res) => {
     }
 
     const updates = pick(req.body, CHAMPS_EDITABLES);
+
+    // Les champs JSONB arrivent en tant que chaînes JSON dans un upload multipart
+    for (const field of ['contact', 'adresse', 'accreditations']) {
+      if (typeof updates[field] === 'string') {
+        try { updates[field] = JSON.parse(updates[field]); } catch { /* ignore */ }
+      }
+    }
+
+    // Fichiers uploadés via multer (champs logo et image_couverture)
+    if (req.files) {
+      if (req.files.logo?.[0]) {
+        updates.logo = `/uploads/${req.files.logo[0].filename}`;
+      }
+      if (req.files.image_couverture?.[0]) {
+        updates.image_couverture = `/uploads/${req.files.image_couverture[0].filename}`;
+      }
+    }
 
     // L'admin peut forcer est_verifie et validation_status
     if (req.user.role === 'admin') {

@@ -295,6 +295,8 @@ export interface Candidature {
   documents_soumis?: DocumentSoumis[];
   lettre_motivation?: string;
   notes_institut?: string;
+  /** Score DiplomaVerifier (0-100), null si non vérifié. Champ virtuel backend. */
+  score_diplome?: number | null;
   soumise_le?: string;
   cree_le?: string;
   mis_a_jour_le?: string;

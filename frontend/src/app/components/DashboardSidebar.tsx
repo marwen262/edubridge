@@ -1,23 +1,24 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
+import { cn } from '@/app/components/ui/utils';
 import {
-  Home,
-  Search,
-  FileText,
-  Heart,
-  Upload,
-  MessageSquare,
-  User,
-  Settings,
-  Building2,
-  Users,
-  BarChart3,
   LayoutDashboard,
+  FileText,
+  BookOpen,
+  Heart,
+  FolderOpen,
+  Settings,
+  MessageSquare,
   Bell,
   Activity,
   PieChart,
   Sliders,
+  Building2,
+  Users,
+  BarChart3,
+  User,
   LogOut,
 } from 'lucide-react';
 import logoedubridge from '@/assets/logo/logoedubridge.png';
@@ -26,6 +27,13 @@ interface NavItem {
   label: string;
   icon: React.ReactNode;
   href: string;
+  disabled?: boolean;
+  badge?: number;
+}
+
+interface NavGroup {
+  label?: string;
+  items: NavItem[];
 }
 
 interface DashboardSidebarProps {
@@ -40,49 +48,116 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const location = useLocation();
   const { logout } = useAuth();
+  const { unreadCount } = useNotifications();
 
-  const candidateNav: NavItem[] = [
-    { label: 'Home', icon: <Home className="w-5 h-5" />, href: '/dashboard/candidate' },
-    { label: 'Explore Programs', icon: <Search className="w-5 h-5" />, href: '/search' },
-    { label: 'My Applications', icon: <FileText className="w-5 h-5" />, href: '/dashboard/candidate/applications' },
-    { label: 'Saved Programs', icon: <Heart className="w-5 h-5" />, href: '/dashboard/candidate/saved' },
-    { label: 'Documents', icon: <Upload className="w-5 h-5" />, href: '/dashboard/candidate/documents' },
-    { label: 'Messages', icon: <MessageSquare className="w-5 h-5" />, href: '/dashboard/candidate/messages' },
-    { label: 'Profile', icon: <User className="w-5 h-5" />, href: '/dashboard/candidate/profile' },
-    { label: 'Settings', icon: <Settings className="w-5 h-5" />, href: '/dashboard/candidate/settings' },
+  const candidateGroups: NavGroup[] = [
+    {
+      label: 'PRINCIPAL',
+      items: [
+        {
+          label: 'Tableau de bord',
+          icon: <LayoutDashboard className="w-5 h-5" />,
+          href: '/dashboard/candidate',
+          badge: unreadCount,
+        },
+        {
+          label: 'Mes candidatures',
+          icon: <FileText className="w-5 h-5" />,
+          href: '/dashboard/candidatures',
+        },
+        {
+          label: 'Programmes',
+          icon: <BookOpen className="w-5 h-5" />,
+          href: '/search',
+        },
+      ],
+    },
+    {
+      label: 'DOSSIER',
+      items: [
+        {
+          label: 'Mes favoris',
+          icon: <Heart className="w-5 h-5" />,
+          href: '/dashboard/favoris',
+        },
+        {
+          label: 'Documents',
+          icon: <FolderOpen className="w-5 h-5" />,
+          href: '/dashboard/documents',
+        },
+      ],
+    },
+    {
+      label: 'COMPTE',
+      items: [
+        {
+          label: 'Paramètres',
+          icon: <Settings className="w-5 h-5" />,
+          href: '/dashboard/parametres',
+        },
+        {
+          label: 'Messages',
+          icon: <MessageSquare className="w-5 h-5" />,
+          href: '#',
+          disabled: true,
+        },
+      ],
+    },
   ];
 
-  const institutionNav: NavItem[] = [
-    { label: 'Tableau de bord', icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/institution' },
-    { label: 'Programmes', icon: <FileText className="w-5 h-5" />, href: '/dashboard/institution/programmes' },
-    { label: 'Candidatures', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/institution/candidatures' },
-    { label: 'Candidats', icon: <User className="w-5 h-5" />, href: '/dashboard/institution/candidats' },
-    { label: 'Notifications', icon: <Bell className="w-5 h-5" />, href: '/dashboard/institution/notifications' },
-    { label: 'Rapports', icon: <PieChart className="w-5 h-5" />, href: '/dashboard/institution/rapports' },
-    { label: 'Profil établissement', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/institution/profil' },
-    { label: 'Paramètres', icon: <Settings className="w-5 h-5" />, href: '/dashboard/institution/parametres' },
+  const institutionGroups: NavGroup[] = [
+    {
+      items: [
+        { label: 'Tableau de bord', icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/institution' },
+        { label: 'Programmes', icon: <FileText className="w-5 h-5" />, href: '/dashboard/institution/programmes' },
+        { label: 'Candidatures', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/institution/candidatures' },
+        { label: 'Candidats', icon: <User className="w-5 h-5" />, href: '/dashboard/institution/candidats' },
+        { label: 'Notifications', icon: <Bell className="w-5 h-5" />, href: '/dashboard/institution/notifications' },
+        { label: 'Rapports', icon: <PieChart className="w-5 h-5" />, href: '/dashboard/institution/rapports' },
+        { label: 'Profil établissement', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/institution/profil' },
+        { label: 'Paramètres', icon: <Settings className="w-5 h-5" />, href: '/dashboard/institution/parametres' },
+      ],
+    },
   ];
 
-  const adminNav: NavItem[] = [
-    { label: 'Tableau de bord', icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/admin' },
-    { label: 'Utilisateurs', icon: <Users className="w-5 h-5" />, href: '/dashboard/admin/utilisateurs' },
-    { label: 'Instituts', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/admin/instituts' },
-    { label: 'Programmes', icon: <FileText className="w-5 h-5" />, href: '/dashboard/admin/programmes' },
-    { label: 'Candidatures', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/admin/candidatures' },
-    { label: 'Notifications', icon: <Bell className="w-5 h-5" />, href: '/dashboard/admin/notifications' },
-    { label: 'Rapports', icon: <PieChart className="w-5 h-5" />, href: '/dashboard/admin/rapports' },
-    { label: "Journal d'activité", icon: <Activity className="w-5 h-5" />, href: '/dashboard/admin/journal' },
-    { label: 'Paramètres système', icon: <Sliders className="w-5 h-5" />, href: '/dashboard/admin/parametres' },
+  const adminGroups: NavGroup[] = [
+    {
+      items: [
+        { label: 'Tableau de bord', icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/admin' },
+        { label: 'Utilisateurs', icon: <Users className="w-5 h-5" />, href: '/dashboard/admin/utilisateurs' },
+        { label: 'Instituts', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/admin/instituts' },
+        { label: 'Programmes', icon: <FileText className="w-5 h-5" />, href: '/dashboard/admin/programmes' },
+        { label: 'Candidatures', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/admin/candidatures' },
+        { label: 'Notifications', icon: <Bell className="w-5 h-5" />, href: '/dashboard/admin/notifications' },
+        { label: 'Rapports', icon: <PieChart className="w-5 h-5" />, href: '/dashboard/admin/rapports' },
+        { label: "Journal d'activité", icon: <Activity className="w-5 h-5" />, href: '/dashboard/admin/journal' },
+        { label: 'Paramètres système', icon: <Sliders className="w-5 h-5" />, href: '/dashboard/admin/parametres' },
+      ],
+    },
   ];
 
-  const navItems = role === 'candidate' ? candidateNav : role === 'institution' ? institutionNav : adminNav;
+  const groups =
+    role === 'candidate'
+      ? candidateGroups
+      : role === 'institution'
+      ? institutionGroups
+      : adminGroups;
 
   const accentColor = role === 'candidate' ? 'var(--edu-blue)' : 'var(--edu-indigo)';
+
+  const roleLabels: Record<typeof role, string> = {
+    candidate: 'Candidat',
+    institution: 'Institut',
+    admin: 'Administrateur',
+  };
 
   return (
     <aside className="w-64 bg-white dark:bg-[#1D1D1F] border-r border-[var(--edu-border)] flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <Link to="/" className="flex justify-center items-center px-4 py-5 border-b border-[var(--edu-border)]">
+      <Link
+        to="/"
+        className="flex justify-center items-center px-4 py-5 border-b border-[var(--edu-border)]"
+      >
         <img
           src={logoedubridge}
           alt="EduBridge"
@@ -90,58 +165,94 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
         />
       </Link>
 
-      {/* User */}
-      <div className="px-6 py-6 border-b border-[var(--edu-border)]">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="space-y-5">
+          {groups.map((group, gi) => (
+            <div key={gi}>
+              {group.label && (
+                <p className="px-3 mb-1.5 text-[10px] font-semibold tracking-widest text-[var(--edu-text-tertiary)] uppercase select-none">
+                  {group.label}
+                </p>
+              )}
+              <ul className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive = location.pathname === item.href;
+
+                  if (item.disabled) {
+                    return (
+                      <li key={item.label}>
+                        <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--edu-text-tertiary)] opacity-50 cursor-not-allowed select-none">
+                          {item.icon}
+                          <span className="text-[15px] flex-1">{item.label}</span>
+                          <span className="text-[10px] bg-[var(--edu-surface)] text-[var(--edu-text-tertiary)] px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
+                            Bientôt
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  }
+
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        to={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
+                          isActive
+                            ? 'text-white font-medium'
+                            : 'text-[var(--edu-text-secondary)] hover:bg-[var(--edu-surface)] hover:text-[var(--edu-text-primary)]'
+                        )}
+                        style={isActive ? { backgroundColor: accentColor } : {}}
+                      >
+                        {item.icon}
+                        <span className="text-[15px] flex-1">{item.label}</span>
+                        {item.badge !== undefined && item.badge > 0 && (
+                          <span
+                            className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold text-white leading-none"
+                            style={{ backgroundColor: 'var(--edu-danger)' }}
+                          >
+                            {item.badge > 99 ? '99+' : item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </nav>
+
+      {/* User + Logout */}
+      <div className="px-4 py-4 border-t border-[var(--edu-border)] space-y-2">
         <div className="flex items-center gap-3">
-          <div
-            className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--edu-blue)] to-[var(--edu-indigo)] flex items-center justify-center text-white font-semibold text-lg"
-          >
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--edu-blue)] to-[var(--edu-indigo)] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 overflow-hidden">
             {user.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
             ) : (
               user.name.charAt(0).toUpperCase()
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-[var(--edu-text-primary)] truncate">{user.name}</p>
-            {user.role && <p className="text-xs text-[var(--edu-text-secondary)] truncate">{user.role}</p>}
+            <p className="text-sm font-semibold text-[var(--edu-text-primary)] truncate">
+              {user.name}
+            </p>
+            <span
+              className="inline-block text-[11px] font-medium px-1.5 py-0.5 rounded mt-0.5"
+              style={{ backgroundColor: `${accentColor}18`, color: accentColor }}
+            >
+              {roleLabels[role]}
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <ul className="space-y-1">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <li key={item.href}>
-                <Link
-                  to={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-                    isActive
-                      ? 'text-white font-medium'
-                      : 'text-[var(--edu-text-secondary)] hover:bg-[var(--edu-surface)] hover:text-[var(--edu-text-primary)]'
-                  }`}
-                  style={isActive ? { backgroundColor: accentColor } : {}}
-                >
-                  {item.icon}
-                  <span className="text-[15px]">{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      {/* Logout */}
-      <div className="px-3 py-4 border-t border-[var(--edu-border)]">
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--edu-text-secondary)] hover:bg-[var(--edu-surface)] hover:text-[var(--edu-danger)] transition-colors w-full text-left"
+          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-[var(--edu-text-secondary)] hover:bg-[var(--edu-surface)] hover:text-[var(--edu-danger)] transition-colors text-sm"
         >
-          <LogOut className="w-5 h-5" />
-          <span className="text-[15px]">Déconnexion</span>
+          <LogOut className="w-4 h-4" />
+          <span>Déconnexion</span>
         </button>
       </div>
     </aside>

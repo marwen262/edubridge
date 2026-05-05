@@ -1,4 +1,5 @@
 // controllers/candidatureController.js — Endpoints candidatures (couche mince → services/candidatureWorkflow)
+const { Op } = require('sequelize');
 const { Candidature, Candidat, Programme, Institut } = require('../models');
 const workflow = require('../services/candidatureWorkflow');
 const { lirePagination, construirePaginationMeta } = require('../utils/pagination');
@@ -49,6 +50,8 @@ exports.mettreAJourCandidature = async (req, res) => {
 };
 
 // POST /api/candidatures/:id/soumettre — Soumet le brouillon (candidat)
+// Le frontend envoie aussi les champs de profil dans req.body.profil — ils sont
+// appliqués au Candidat AVANT la validation de complétude (auto-update).
 exports.soumettreCandidature = async (req, res) => {
   try {
     if (!req.user.candidat_id) {
@@ -57,10 +60,17 @@ exports.soumettreCandidature = async (req, res) => {
     const candidature = await workflow.soumettre({
       candidature_id: req.params.id,
       user_id: req.user.id,
+      profil: req.body?.profil,
     });
     return res.status(200).json({ message: 'Candidature soumise avec succès.', candidature });
   } catch (error) {
-    if (error.status) return res.status(error.status).json({ message: error.message, manquants: error.manquants });
+    if (error.status) {
+      return res.status(error.status).json({
+        message: error.message,
+        manquants: error.manquants,
+        manquants_profil: error.manquants_profil,
+      });
+    }
     console.error(error);
     return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
   }
@@ -109,19 +119,31 @@ exports.getMesCandidatures = async (req, res) => {
 };
 
 // GET /api/candidatures/institute/list — Candidatures reçues par l'institut connecté
+// On inclut les champs d'identité du Candidat pour permettre à l'institut de
+// décider sans appel API supplémentaire (cf. Phase D du refactor candidature).
 exports.getCandidaturesInstitut = async (req, res) => {
   try {
     if (!req.user.institut_id) {
       return res.status(403).json({ message: 'Profil institut introuvable.' });
     }
     const candidatures = await Candidature.findAll({
+      where: { statut: { [Op.ne]: 'brouillon' } },
       include: [
         {
           model: Programme, as: 'programme',
           where: { institut_id: req.user.institut_id },
           attributes: ['id', 'titre'],
         },
-        { model: Candidat, as: 'candidat', attributes: ['id', 'prenom', 'nom'] },
+        {
+          model: Candidat, as: 'candidat',
+          attributes: [
+            'id', 'prenom', 'nom', 'date_naissance', 'genre',
+            'telephone', 'adresse', 'nationalite',
+            'cin', 'numero_passeport', 'type_piece_identite',
+            'niveau_actuel', 'type_bac', 'moyenne_bac', 'annee_bac',
+            'parcours_academique',
+          ],
+        },
       ],
       order: [['cree_le', 'DESC']],
     });
@@ -192,11 +214,27 @@ exports.getCandidatureById = async (req, res) => {
   }
 };
 
-// DELETE /api/candidatures/:id — Suppression (admin)
+// DELETE /api/candidatures/:id — Suppression
+// Admin : toute candidature. Candidat : uniquement ses propres brouillons.
 exports.deleteCandidature = async (req, res) => {
   try {
     const candidature = await Candidature.findByPk(req.params.id);
     if (!candidature) return res.status(404).json({ message: 'Ressource introuvable.' });
+
+    const { role, candidat_id } = req.user;
+    if (role === 'candidat') {
+      if (candidature.candidat_id !== candidat_id) {
+        return res.status(403).json({ message: 'Accès refusé.' });
+      }
+      if (candidature.statut !== 'brouillon') {
+        return res.status(409).json({
+          message: 'Seuls les brouillons peuvent être supprimés.',
+        });
+      }
+    } else if (role !== 'admin') {
+      return res.status(403).json({ message: 'Accès refusé.' });
+    }
+
     await candidature.destroy();
     return res.status(200).json({ message: 'Candidature supprimée.' });
   } catch (error) {

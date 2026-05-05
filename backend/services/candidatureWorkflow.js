@@ -1,7 +1,22 @@
 // services/candidatureWorkflow.js — Moteur de workflow simplifié des candidatures MVP
-const { sequelize, Candidature, Programme, Media } = require('../models');
+const { sequelize, Candidature, Candidat, Programme, Media } = require('../models');
 const { Op } = require('sequelize');
+const path = require('path');
 const notif = require('./notificationService');
+const { verifierDiplome, NOMS_DIPLOMES } = require('./diplomaVerifierService');
+
+// Champs du profil Candidat que la soumission peut mettre à jour.
+// Whitelist explicite : on n'accepte JAMAIS d'autres champs depuis req.body
+// (évite l'élévation de privilèges via mass-assignment).
+const CHAMPS_PROFIL_AUTORISES = [
+  'prenom', 'nom', 'date_naissance', 'genre', 'telephone', 'adresse',
+  'nationalite', 'cin', 'numero_passeport',
+  'situation_familiale', 'type_bac', 'moyenne_bac', 'annee_bac',
+  'langues', 'parcours_academique', 'niveau_actuel', 'photo_profil',
+];
+
+// Référence métier (alignée avec Candidat.NATIONALITE_TUNISIENNE)
+const NATIONALITE_TUNISIENNE = 'tunisienne';
 
 // Statuts terminaux : aucune transition sortante
 const STATUTS_TERMINAUX = ['acceptee', 'refusee'];
@@ -148,6 +163,42 @@ async function verifierCompletude(candidature) {
   };
 }
 
+// Vérifie la complétude du profil Candidat avant soumission d'une candidature.
+// Liste exhaustive des champs requis :
+//   prenom, nom, telephone, nationalite, adresse.ville, parcours_academique (≥1)
+//   + cin (si tunisien) OU numero_passeport (sinon)
+// Retourne { complet, manquants: string[] } — manquants utilise des chemins
+// de notation pointée pour les champs imbriqués (ex: 'adresse.ville').
+function verifierProfilComplet(candidat) {
+  if (!candidat) return { complet: false, manquants: ['profil_introuvable'] };
+
+  const manquants = [];
+
+  if (!candidat.prenom) manquants.push('prenom');
+  if (!candidat.nom) manquants.push('nom');
+  if (!candidat.telephone) manquants.push('telephone');
+  if (!candidat.nationalite) manquants.push('nationalite');
+
+  // Identité légale conditionnelle (cohérente avec le hook beforeValidate du modèle)
+  const estTunisien =
+    candidat.nationalite?.toLowerCase().trim() === NATIONALITE_TUNISIENNE;
+  if (estTunisien) {
+    if (!candidat.cin) manquants.push('cin');
+  } else if (candidat.nationalite) {
+    if (!candidat.numero_passeport) manquants.push('numero_passeport');
+  }
+
+  // Adresse : seule la ville est strictement requise au MVP
+  if (!candidat.adresse || !candidat.adresse.ville) manquants.push('adresse.ville');
+
+  // Au moins une entrée de parcours académique
+  if (!Array.isArray(candidat.parcours_academique) || candidat.parcours_academique.length === 0) {
+    manquants.push('parcours_academique');
+  }
+
+  return { complet: manquants.length === 0, manquants };
+}
+
 // Vérifie qu'aucune autre candidature active n'existe pour ce couple (candidat, programme)
 async function verifierDoublon(candidat_id, programme_id, exclude_id) {
   const where = { candidat_id, programme_id };
@@ -215,29 +266,105 @@ exports.mettreAJourBrouillon = async ({ candidature_id, lettre_motivation, files
   });
 };
 
-// Soumet le brouillon : valide la complétude des documents puis passe en statut 'soumise'
-exports.soumettre = async ({ candidature_id, user_id }) => {
+// Soumet le brouillon. Pipeline en 3 étapes (toutes dans la même transaction) :
+//   1. Si `profil` fourni, met à jour le Candidat (whitelist + hook identité)
+//   2. Vérifie la complétude du profil (verifierProfilComplet)
+//   3. Vérifie la complétude documentaire (verifierCompletude)
+// Puis bascule statut → 'soumise' et déclenche les notifications.
+//
+// Source de vérité : Candidat. Aucune duplication d'identité dans Candidature.
+exports.soumettre = async ({ candidature_id, user_id, profil }) => {
   const candidature = await Candidature.findByPk(candidature_id);
   if (!candidature) throw { status: 404, message: 'Candidature introuvable.' };
 
   validerTransition('candidat', candidature.statut, 'soumise');
 
-  const { complet, manquants, details } = await verifierCompletude(candidature);
-  if (!complet) {
-    throw {
-      status: 400,
-      message: `Documents obligatoires manquants : ${details.map((d) => d.label).join(', ')}.`,
-      manquants,
-      details,
-    };
-  }
-
   const ancien_statut = candidature.statut;
 
   return sequelize.transaction(async (t) => {
+    // ── 1. Auto-update du profil Candidat (avant validation) ──
+    const candidat = await Candidat.findByPk(candidature.candidat_id, { transaction: t });
+    if (!candidat) throw { status: 404, message: 'Profil candidat introuvable.' };
+
+    if (profil && typeof profil === 'object') {
+      // Whitelist stricte : ignore silencieusement les champs hors liste
+      const maj = {};
+      for (const champ of CHAMPS_PROFIL_AUTORISES) {
+        if (profil[champ] !== undefined) maj[champ] = profil[champ];
+      }
+      if (Object.keys(maj).length > 0) {
+        try {
+          await candidat.update(maj, { transaction: t });
+        } catch (err) {
+          // Le hook beforeValidate jette des Error ("CIN obligatoire…") :
+          // on les normalise au format API (status 400) sans masquer le message.
+          if (err.status) throw err;
+          throw { status: 400, message: err.message || 'Profil invalide.' };
+        }
+        await candidat.reload({ transaction: t });
+      }
+    }
+
+    // ── 2. Vérifier la complétude du profil ──
+    const profilCheck = verifierProfilComplet(candidat);
+    if (!profilCheck.complet) {
+      throw {
+        status: 400,
+        message: 'Veuillez compléter votre profil avant de soumettre la candidature.',
+        manquants_profil: profilCheck.manquants,
+      };
+    }
+
+    // ── 3. Vérifier la complétude documentaire ──
+    const docCheck = await verifierCompletude(candidature);
+    if (!docCheck.complet) {
+      throw {
+        status: 400,
+        message: `Documents obligatoires manquants : ${docCheck.details.map((d) => d.label).join(', ')}.`,
+        manquants: docCheck.manquants,
+        details: docCheck.details,
+      };
+    }
+
+    // ── 4. Vérification authenticité diplôme (non-bloquante) ──────────────
+    const docDiplome = (candidature.documents_soumis ?? []).find(
+      (d) => d && d.nom && NOMS_DIPLOMES.includes(d.nom)
+    );
+
+    if (docDiplome && docDiplome.url) {
+      const cheminFichier = path.resolve(
+        __dirname,
+        '../../uploads',
+        path.basename(docDiplome.url)
+      );
+
+      const resultatVerif = await verifierDiplome(cheminFichier, docDiplome.nom);
+
+      if (resultatVerif.succes && resultatVerif.score !== null) {
+        const scoreTag = `[DiplomaVerifier] score=${resultatVerif.score}/100, niveau=${resultatVerif.niveau}`;
+        const notesExistantes = candidature.notes_institut ?? '';
+        candidature.notes_institut = notesExistantes
+          ? `${notesExistantes}\n${scoreTag}`
+          : scoreTag;
+        candidature.changed('notes_institut', true);
+
+        if (resultatVerif.score < 50) {
+          console.warn(
+            '[candidatureWorkflow] Score diplôme faible pour candidature %s : %d/100 — raisons : %s',
+            candidature.id,
+            resultatVerif.score,
+            (resultatVerif.raisons ?? []).join(', ')
+          );
+        }
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── 5. Bascule de statut + notifications ──
     await candidature.update({
       statut: 'soumise',
       soumise_le: new Date(),
+      notes_institut: candidature.notes_institut,
     }, { transaction: t });
 
     await notif.notifierChangementStatut(candidature, ancien_statut, 'soumise', t);
@@ -271,6 +398,8 @@ exports.changerStatut = async ({ candidature_id, statut_cible, user_id, role, no
 
 exports.STATUTS_TERMINAUX = STATUTS_TERMINAUX;
 exports.TRANSITIONS = TRANSITIONS;
+exports.CHAMPS_PROFIL_AUTORISES = CHAMPS_PROFIL_AUTORISES;
 exports.validerTransition = validerTransition;
 exports.verifierCompletude = verifierCompletude;
+exports.verifierProfilComplet = verifierProfilComplet;
 exports.verifierDoublon = verifierDoublon;

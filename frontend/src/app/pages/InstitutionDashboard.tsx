@@ -7,6 +7,8 @@ import { InstitutionProgramsSection } from '../components/institution/Institutio
 import { InstitutionCandidaturesSection } from '../components/institution/InstitutionCandidaturesSection';
 import { InstitutionCandidatsSection } from '../components/institution/InstitutionCandidatsSection';
 import { InstitutionNotificationsSection } from '../components/institution/InstitutionNotificationsSection';
+import { InstitutionProfilSection } from '../components/institution/InstitutionProfilSection';
+import { InstitutionParametresSection } from '../components/institution/InstitutionParametresSection';
 import { InstitutionPlaceholderSection } from '../components/institution/InstitutionPlaceholderSection';
 
 export function InstitutionDashboard() {
@@ -42,22 +44,10 @@ export function InstitutionDashboard() {
       );
       break;
     case 'profil':
-      content = (
-        <InstitutionPlaceholderSection
-          title="Profil établissement"
-          subtitle="Gérez les informations de votre établissement"
-          description="Modification du profil public, logo, description, accréditations et coordonnées. Disponible prochainement."
-        />
-      );
+      content = <InstitutionProfilSection />;
       break;
     case 'parametres':
-      content = (
-        <InstitutionPlaceholderSection
-          title="Paramètres"
-          subtitle="Configuration de votre compte"
-          description="Gestion des préférences, notifications email, sécurité du compte et autres réglages. Disponible prochainement."
-        />
-      );
+      content = <InstitutionParametresSection />;
       break;
     default:
       content = <InstitutionOverviewSection institut={institut} />;

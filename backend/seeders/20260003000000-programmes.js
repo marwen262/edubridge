@@ -58,26 +58,24 @@ const dateLimite = '2026-08-31'
 // verifierCompletude() lit ces listes dynamiquement — aucune règle globale hardcodée.
 // Champ label : affiché par le frontend ; ignoré par la logique de validation.
 //
+// Documents = uniquement académiques. L'identité vit dans le profil Candidat
+// (nationalite + cin|numero_passeport) ; la lettre de motivation est un
+// champ TEXT sur Candidature, pas un fichier.
+//
 // IMPORTANT : seuls les noms de champs Multer valides sont autorisés :
 //   diplome_bac, diplome_licence, releves_notes, attestation_prepa,
-//   lettre_motivation, piece_identite, photo_identite,
 //   lettre_recommandation, attestation_stage
-// ❌ cv n'est PAS un champ Multer — ne jamais l'inclure.
 
 // Cycle Préparatoire Intégré (post-bac, 2 ans)
 const documentsRequisPreparatoire = JSON.stringify([
-  { nom: 'diplome_bac',       obligatoire: true,  label: 'Diplôme / Attestation Baccalauréat' },
-  { nom: 'releves_notes',     obligatoire: true,  label: 'Relevés de notes lycée (2e et 3e années)' },
-  { nom: 'piece_identite',    obligatoire: true,  label: 'CIN ou Passeport' },
-  { nom: 'lettre_motivation', obligatoire: false, label: 'Lettre de motivation' },
+  { nom: 'diplome_bac',   obligatoire: true, label: 'Diplôme / Attestation Baccalauréat' },
+  { nom: 'releves_notes', obligatoire: true, label: 'Relevés de notes lycée (2e et 3e années)' },
 ])
 
 // Licence (bac+3, entrée directe)
 const documentsRequisLicence = JSON.stringify([
-  { nom: 'diplome_bac',       obligatoire: true,  label: 'Diplôme Baccalauréat' },
-  { nom: 'releves_notes',     obligatoire: true,  label: 'Relevés de notes' },
-  { nom: 'piece_identite',    obligatoire: true,  label: 'CIN ou Passeport' },
-  { nom: 'lettre_motivation', obligatoire: false, label: 'Lettre de motivation' },
+  { nom: 'diplome_bac',   obligatoire: true, label: 'Diplôme Baccalauréat' },
+  { nom: 'releves_notes', obligatoire: true, label: 'Relevés de notes' },
 ])
 
 // Cycle Ingénieur (bac+5) — après Cycle Préparatoire validé ou concours national
@@ -85,8 +83,6 @@ const documentsRequisIngenieur = JSON.stringify([
   { nom: 'diplome_bac',           obligatoire: true,  label: 'Diplôme Baccalauréat' },
   { nom: 'attestation_prepa',     obligatoire: false, label: 'Attestation validation Cycle Préparatoire (ou résultat concours)' },
   { nom: 'releves_notes',         obligatoire: true,  label: 'Relevés de notes Cycle Préparatoire' },
-  { nom: 'piece_identite',        obligatoire: true,  label: 'CIN ou Passeport' },
-  { nom: 'lettre_motivation',     obligatoire: false, label: 'Lettre de motivation' },
   { nom: 'lettre_recommandation', obligatoire: false, label: 'Lettre de recommandation' },
 ])
 
@@ -94,8 +90,6 @@ const documentsRequisIngenieur = JSON.stringify([
 const documentsRequisMaster = JSON.stringify([
   { nom: 'diplome_licence',       obligatoire: true,  label: 'Diplôme Licence (ou Diplôme Ingénieur équivalent)' },
   { nom: 'releves_notes',         obligatoire: true,  label: 'Relevés de notes Licence' },
-  { nom: 'piece_identite',        obligatoire: true,  label: 'CIN ou Passeport' },
-  { nom: 'lettre_motivation',     obligatoire: false, label: 'Lettre de motivation' },
   { nom: 'lettre_recommandation', obligatoire: false, label: 'Lettre de recommandation' },
   { nom: 'attestation_stage',     obligatoire: false, label: 'Attestation de stage' },
 ])

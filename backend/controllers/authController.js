@@ -417,6 +417,42 @@ exports.reinitialiserPassword = async (req, res) => {
   }
 };
 
+// POST /api/auth/change-password — change le mot de passe de l'utilisateur connecté
+exports.changerMotDePasse = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: 'Ancien et nouveau mot de passe requis.' });
+    }
+
+    const pwdRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!pwdRegex.test(newPassword)) {
+      return res.status(400).json({
+        message: 'Le nouveau mot de passe doit contenir au moins 8 caractères, une majuscule et un chiffre.',
+      });
+    }
+
+    const utilisateur = await Utilisateur.findByPk(req.user.id);
+    if (!utilisateur || !utilisateur.mot_de_passe) {
+      return res.status(404).json({ message: 'Utilisateur introuvable.' });
+    }
+
+    const valid = await bcrypt.compare(oldPassword, utilisateur.mot_de_passe);
+    if (!valid) {
+      return res.status(400).json({ message: 'Mot de passe actuel incorrect.' });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await utilisateur.update({ mot_de_passe: hashed });
+
+    return res.status(200).json({ message: 'Mot de passe modifié avec succès.' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+  }
+};
+
 // GET /api/auth/me — utilisateur courant + son profil lié (candidat ou institut)
 exports.getMe = async (req, res) => {
   try {

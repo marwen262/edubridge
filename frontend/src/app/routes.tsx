@@ -11,6 +11,10 @@ import { Signup } from './pages/Signup';
 import { FirstLogin } from './pages/FirstLogin';
 import { ResetPassword } from './pages/ResetPassword';
 import { CandidateDashboard } from './pages/CandidateDashboard';
+import { MesCandidatures } from './pages/MesCandidatures';
+import { MesFavoris } from './pages/MesFavoris';
+import { MesDocuments } from './pages/MesDocuments';
+import { Parametres } from './pages/Parametres';
 import { InstitutionDashboard } from './pages/InstitutionDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -65,6 +69,38 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute requiredRole="candidat">
         <CandidateDashboard />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/candidatures',
+    element: (
+      <ProtectedRoute requiredRole="candidat">
+        <MesCandidatures />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/favoris',
+    element: (
+      <ProtectedRoute requiredRole="candidat">
+        <MesFavoris />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/documents',
+    element: (
+      <ProtectedRoute requiredRole="candidat">
+        <MesDocuments />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/parametres',
+    element: (
+      <ProtectedRoute requiredRole="candidat">
+        <Parametres />
       </ProtectedRoute>
     ),
   },

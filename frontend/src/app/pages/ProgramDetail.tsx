@@ -403,8 +403,7 @@ export function ProgramDetail() {
         <MultiStepDialog
           open={applyDialogOpen}
           onOpenChange={setApplyDialogOpen}
-          programmeId={program.id}
-          programmeTitre={program.titre}
+          programme={program}
         />
       )}
     </div>

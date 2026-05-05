@@ -37,18 +37,18 @@ Le repo contient trois composants indépendants :
 - **react-router 7** (`createBrowserRouter`)
 - **axios 1.15** (client HTTP centralisé `src/services/api.ts`)
 - **motion** (animations), **lucide-react** (icônes), **sonner** (toasts)
-- **react-hook-form** 7 + **zod 4** + **@hookform/resolvers 5** (formulaires Login/Signup)
+- **react-hook-form** 7 + **zod 4** + **@hookform/resolvers 5** (formulaires Login/Signup/Paramètres)
 - **AuthContext** (`src/context/AuthContext.tsx`) — JWT + localStorage + intercepteurs
 - **ProtectedRoute** (`src/components/ProtectedRoute.tsx`) — garde routes dashboard
 - Scaffold d'origine : **Figma Make** (refonte UI, branding uniformisé EduBridge, dashboards modernisés)
 
 ### Diploma Verifier (`diploma-verifier/`)
 - **Python 3.11** + **FastAPI** (la fonction d'analyse est `async` mais le pipeline interne est synchrone — pas de `await` sur les modules internes)
-- Pipeline déterministe d'analyse heuristique (V5/V6) — pas de machine learning entraîné
+- Pipeline déterministe d'analyse heuristique (V5/V6 Upgrade) — pas de machine learning entraîné, robuste au bruit OCR
 - **Tesseract OCR** (5 passes parallélisées via `ThreadPoolExecutor` : ara, fra, eng, ara+fra, fra+eng) + **spaCy** NER pré-entraîné (modèles `fr_core_news_sm`, `xx_ent_wiki_sm`)
-- **OpenCV** / **scikit-image** / **NumPy** : signature_detector (contours), stamp_detector (Hough circles, downsample 1200px)
-- `text_analyzer` : classification de document (`classify_document`), cohérence sémantique (`check_coherence`), pénalité de densité de mots-clés (`keyword_density_penalty`) — multilingue (fra, eng, ara, spa, deu)
-- `scoring_engine` : pondération `TEXT_WEIGHTS` + plafonds heuristiques (no-content, hallucination, safety ceiling)
+- **OpenCV** / **scikit-image** / **NumPy** : auto-rotation, signature_detector (contours), stamp_detector (Hough circles, downsample 1200px)
+- `text_analyzer` : classification de document (`classify_document`), cohérence sémantique (`check_coherence`), pénalité de densité de mots-clés (`keyword_density_penalty`), sélection du meilleur texte basé sur score sémantique ou longueur (fallback) — multilingue (fra, eng, ara, spa, deu)
+- `scoring_engine` : pondération `TEXT_WEIGHTS` + plafonds heuristiques (no-content, hallucination, safety ceiling 10 chars)
 - **PyMuPDF** + **python-magic** : utilisés pour l'import PDF (`utils/image_converter`)
 - Conteneurisé (Dockerfile + docker-compose), exposé sur port 8000
 - **Stateless** : aucune base de données, pas d'authentification, pas de rate limiting
@@ -187,9 +187,10 @@ edubridge/
 │   │   │   └── useComparaison.ts   # localStorage compare list (max 3 programmes)
 │   │   ├── app/
 │   │   │   ├── App.tsx           # AuthProvider > RouterProvider > Toaster
-│   │   │   ├── routes.tsx        # 12 routes (3 dashboards protégés par ProtectedRoute)
-│   │   │   ├── pages/            # Pages de haut niveau (1 fichier / route)
+│   │   │   ├── routes.tsx        # 20 routes (plusieurs routes dashboard protégées par ProtectedRoute)
+│   │   │   ├── pages/            # Pages de haut niveau (1 fichier / route, inclut Parametres, MesDocuments)
 │   │   │   ├── components/       # Composants applicatifs (Navbar, MultiStepDialog, …)
+│   │   │   │   ├── forms/        # Composants de formulaires (NationaliteSelect, IndicatifTelephone...)
 │   │   │   │   ├── NotificationDropdown.tsx  # Badge unreadCount + dropdown Navbar
 │   │   │   │   ├── admin/        # Sections du dashboard admin (Overview, Users, Programs…)
 │   │   │   │   ├── institution/  # Sections du dashboard institut + CreateProgramDialog
@@ -413,13 +414,15 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - [x] SearchResults → GET /api/programmes
   - [x] ProgramDetail → GET /api/programmes/:id
   - [x] InstitutionProfile → GET /api/instituts/:id
-  - [x] CandidatDashboard → candidatures, favoris, notifications
+  - [x] CandidatDashboard → sous-pages (MesCandidatures, MesFavoris, MesDocuments, Parametres)
   - [x] InstitutionDashboard → pipeline kanban, transitions statut
   - [x] AdminDashboard → utilisateurs, candidatures, création instituts
   - [x] Compare → localStorage + programmeService.getById
   - [x] Favoris synchronisés (useFavoriStatus transversal)
   - [x] MultiStepDialog → POST /api/candidatures + upload Multer
   - [x] Notifications Navbar → badge + dropdown temps réel
+  - [x] Profil Candidat → Modifiable via `/dashboard/parametres`
+  - [x] Sélecteurs UI modernes → Nationalité avec emojis et indicatif téléphonique dynamique
   - [x] mockData.ts supprimé (staticData.ts pour données statiques)
 - **Stabilisation (mai 2026)** :
   - [x] Reset password complet : email SMTP + page `/reset-password` + dialog
@@ -433,6 +436,9 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
         `page` / `limit` ; UI `Pagination` (Précédent/Suivant + numéros)
         branchée sur `SearchResults`, `Institutions`, admin
         `CandidaturesSection` (reset page à 1 sur changement de filtres)
+  - [x] Intégration diploma-verifier : vérification non-bloquante des diplômes
+        uploadés lors de la soumission d'une candidature (`services/diplomaVerifierService.js`)
+        — score et niveau stockés dans `notes_institut`, warning console si score < 50
 - **TODOs / Améliorations futures (hors scope MVP)** :
 
   **Backend**
@@ -461,6 +467,6 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - Authentification + rate limiting (API publique actuellement).
   - Monitoring (Prometheus / métriques exportées) et tracing.
   - Suivre la divergence Tesseract 5.4 (Windows local) vs 5.5 (Docker) — atténuée par les plafonds anti-hallucination dans `scoring_engine.py:478` (cf. `microservices.md`).
-- **Priorité immédiate** : stabilisation, corrections de bugs, intégration diploma-verifier au workflow candidature backend (vérification automatique des diplômes uploadés via `POST /api/verify`).
+- **Priorité immédiate** : stabilisation, corrections de bugs.
 - Commits descriptifs en **français**, format court style :
   `feat(auth): ajouter endpoint /me` ou `fix(front): corriger navigation sidebar`.

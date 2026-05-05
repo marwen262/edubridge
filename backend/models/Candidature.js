@@ -27,6 +27,18 @@ module.exports = (sequelize, DataTypes) => {
     lettre_motivation: { type: DataTypes.TEXT, allowNull: true },
     notes_institut: { type: DataTypes.TEXT, allowNull: true },
     soumise_le: { type: DataTypes.DATE, allowNull: true },
+
+    // Champ virtuel : extrait le score DiplomaVerifier depuis notes_institut
+    // Format attendu : "[DiplomaVerifier] score=82/100, niveau=..."
+    score_diplome: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        const notes = this.getDataValue('notes_institut');
+        if (!notes) return null;
+        const match = notes.match(/\[DiplomaVerifier\] score=(\d+)\/100/);
+        return match ? parseInt(match[1], 10) : null;
+      },
+    },
   }, {
     tableName: 'candidatures',
     timestamps: true,
