@@ -116,9 +116,9 @@ export function Login() {
       const axiosError = err as {
         response?: { data?: { message?: string; code?: string; reason?: string } };
       };
-      const code    = axiosError.response?.data?.code;
+      const code = axiosError.response?.data?.code;
       const message = axiosError.response?.data?.message;
-      const reason  = axiosError.response?.data?.reason;
+      const reason = axiosError.response?.data?.reason;
 
       if (code === 'FIRST_LOGIN_REQUIRED' || code === 'ACCOUNT_SUSPENDED') {
         setLoginError({ code, message, reason });

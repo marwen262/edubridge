@@ -18,7 +18,7 @@ exports.register = async (req, res) => {
   try {
     const {
       email, password, role,
-      prenom, nom, genre, date_naissance, telephone,
+      prenom, nom, genre, date_naissance, telephone, nationalite,
     } = req.body;
 
     if (!email || !password) {
@@ -64,6 +64,7 @@ exports.register = async (req, res) => {
       const candidat = await Candidat.create({
         utilisateur_id: utilisateur.id,
         prenom, nom, genre, date_naissance, telephone,
+        nationalite: nationalite || null,
       }, { transaction: t });
 
       return { utilisateur, profil: candidat };

@@ -11,12 +11,14 @@ import { Label } from '../components/ui/label';
 import { Checkbox } from '../components/ui/checkbox';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { NationaliteSelect } from '../components/forms/NationaliteSelect';
 
 const signupSchema = z
   .object({
     prenom: z.string().min(2, 'Prénom requis'),
     nom: z.string().min(2, 'Nom requis'),
     email: z.string().email('Email invalide'),
+    nationalite: z.string().min(1, 'Nationalité requise'),
     password: z
       .string()
       .min(8, '8 caractères minimum')
@@ -51,6 +53,7 @@ export function Signup() {
       prenom: '',
       nom: '',
       email: '',
+      nationalite: '',
       password: '',
       confirmPassword: '',
       termsAccepted: false,
@@ -86,6 +89,7 @@ export function Signup() {
         role: 'candidat',
         prenom: data.prenom,
         nom: data.nom,
+        nationalite: data.nationalite,
       });
       navigate('/dashboard/candidate');
     } catch (err: unknown) {
@@ -160,6 +164,27 @@ export function Signup() {
                   <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.email.message}</p>
                 )}
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="nationalite">Nationality *</Label>
+              <div className="mt-1">
+                <Controller
+                  control={control}
+                  name="nationalite"
+                  render={({ field }) => (
+                    <NationaliteSelect
+                      id="nationalite"
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select your nationality"
+                    />
+                  )}
+                />
+              </div>
+              {errors.nationalite && (
+                <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.nationalite.message}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
