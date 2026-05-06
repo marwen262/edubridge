@@ -111,6 +111,18 @@ module.exports = (sequelize, DataTypes) => {
 
         if (!champsIdentiteModifies) return;
 
+        // Si aucun document d'identité n'est fourni (inscription initiale),
+        // on skip la validation — les pièces sont saisies dans les paramètres du profil.
+        if (!candidat.cin && !candidat.numero_passeport) {
+          candidat.type_piece_identite = null;
+          if (options && Array.isArray(options.fields)) {
+            if (!options.fields.includes('type_piece_identite')) {
+              options.fields.push('type_piece_identite');
+            }
+          }
+          return;
+        }
+
         // Normalisation : absorbe les variations de casse et espaces
         // venant d'une API externe pays future
         // ex: 'Tunisienne', 'TUNISIENNE', ' tunisienne ' → match correct

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router';
 import { Facebook, Twitter, Linkedin, Instagram } from 'lucide-react';
 import logoedubridge from '@/assets/logo/logoedubridge.png';
@@ -32,7 +31,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/search" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                <Link to="/institutions" className="text-[#86868B] hover:text-white text-sm transition-colors">
                   Trouver un institut
                 </Link>
               </li>
@@ -63,6 +62,16 @@ export function Footer() {
                   Mon espace
                 </Link>
               </li>
+              <li>
+                <Link to="/dashboard/candidatures" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                  Mes candidatures
+                </Link>
+              </li>
+              <li>
+                <Link to="/dashboard/favoris" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                  Mes favoris
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -76,8 +85,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard/institution" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Tableau de bord
+                <Link to="/signup" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                  Demander une invitation
                 </Link>
               </li>
             </ul>
@@ -88,24 +97,24 @@ export function Footer() {
             <h4 className="font-semibold mb-4 text-[15px]">Entreprise</h4>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                <Link to="/" className="text-[#86868B] hover:text-white text-sm transition-colors">
                   À propos
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                <Link to="/" className="text-[#86868B] hover:text-white text-sm transition-colors">
                   Contact
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                <Link to="/" className="text-[#86868B] hover:text-white text-sm transition-colors">
                   Politique de confidentialité
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                <Link to="/" className="text-[#86868B] hover:text-white text-sm transition-colors">
                   Conditions d'utilisation
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -161,11 +170,6 @@ export function Footer() {
             </a>
           </div>
 
-          {/* Language Switcher */}
-          <select className="bg-transparent border border-[#3A3A3C] rounded-lg px-4 py-2 text-sm text-[#86868B] focus:outline-none focus:border-[var(--edu-blue)]">
-            <option value="en">English</option>
-            <option value="fr">Français</option>
-          </select>
         </div>
       </div>
     </footer>
