@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import {
   BarChart3,
@@ -11,26 +12,35 @@ import {
 } from 'lucide-react';
 import { Pagination } from '../Pagination';
 import { useAllCandidatures } from '@/hooks/useCandidatures';
+import i18n from '@/i18n';
 import type { Candidature, CandidatureFilters } from '@/types/api';
 
-const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }> = {
-  soumise:       { label: 'Soumise',        color: 'var(--edu-blue)',    bg: 'rgba(0,113,227,0.1)',  icon: Clock },
-  en_examen:     { label: 'En examen',      color: 'var(--edu-warning)', bg: 'rgba(255,159,10,0.1)', icon: AlertTriangle },
-  acceptee:      { label: 'Acceptée',       color: 'var(--edu-success)', bg: 'rgba(52,199,89,0.1)',  icon: CheckCircle2 },
-  refusee:       { label: 'Refusée',        color: 'var(--edu-danger)',  bg: 'rgba(255,59,48,0.1)',  icon: XCircle },
-  liste_attente: { label: "Liste d'attente", color: '#8B5CF6',          bg: 'rgba(139,92,246,0.1)', icon: ListFilter },
-  brouillon:     { label: 'Brouillon',      color: 'var(--edu-text-tertiary)', bg: 'rgba(156,163,175,0.1)', icon: Clock },
+const STATUT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  soumise:       Clock,
+  en_examen:     AlertTriangle,
+  acceptee:      CheckCircle2,
+  refusee:       XCircle,
+  liste_attente: ListFilter,
+  brouillon:     Clock,
+};
+
+const STATUT_STYLE: Record<string, { color: string; bg: string }> = {
+  soumise:       { color: 'var(--edu-blue)',    bg: 'rgba(0,113,227,0.1)'   },
+  en_examen:     { color: 'var(--edu-warning)', bg: 'rgba(255,159,10,0.1)'  },
+  acceptee:      { color: 'var(--edu-success)', bg: 'rgba(52,199,89,0.1)'   },
+  refusee:       { color: 'var(--edu-danger)',  bg: 'rgba(255,59,48,0.1)'   },
+  liste_attente: { color: '#8B5CF6',            bg: 'rgba(139,92,246,0.1)'  },
+  brouillon:     { color: 'var(--edu-text-tertiary)', bg: 'rgba(156,163,175,0.1)' },
 };
 
 const PAGE_SIZE = 12;
 
 export function CandidaturesSection() {
+  const { t } = useTranslation();
   const [search, setSearch] = React.useState('');
   const [statutFilter, setStatutFilter] = React.useState<string>('tous');
   const [page, setPage] = React.useState(1);
 
-  // Filtres serveur — `statut` poussé au backend, recherche texte client-side
-  // (le backend n'a pas d'endpoint de recherche full-text sur candidatures).
   const tableFilters = React.useMemo<CandidatureFilters>(() => ({
     page,
     limit: PAGE_SIZE,
@@ -39,13 +49,8 @@ export function CandidaturesSection() {
 
   const { candidatures, pagination, loading } = useAllCandidatures(tableFilters);
 
-  // Stats globales : second appel non paginé (limit défaut 100) sans filtre
-  // statut. `pagination.total` donne le vrai total backend ; les compteurs
-  // par statut sont dérivés des 100 premières lignes (suffisant pour le MVP ;
-  // un endpoint /candidatures/stats serait l'évolution propre).
   const { candidatures: candidaturesStats, pagination: statsPagination } = useAllCandidatures();
 
-  // Recherche texte appliquée sur la page courante uniquement (limite admise).
   const visible = React.useMemo(() => {
     if (!search.trim()) return candidatures;
     const q = search.toLowerCase();
@@ -58,35 +63,35 @@ export function CandidaturesSection() {
     );
   }, [candidatures, search]);
 
-  // Reset page à 1 quand le filtre statut change (la recherche est client-side
-  // sur la page courante et ne déclenche pas de refetch).
   React.useEffect(() => { setPage(1); }, [statutFilter]);
 
   const getNomCandidat = (c: Candidature) => {
     const prenom = c.candidat?.prenom ?? '';
     const nom = c.candidat?.nom ?? '';
-    return [prenom, nom].filter(Boolean).join(' ') || 'Candidat inconnu';
+    return [prenom, nom].filter(Boolean).join(' ') || t('admin.candidatures.unknownCandidat');
   };
 
   const totalGlobal = statsPagination?.total ?? candidaturesStats.length;
   const stats = [
-    { label: 'Total', value: totalGlobal, color: 'var(--edu-text-primary)' },
-    { label: 'Soumises', value: candidaturesStats.filter((c) => c.statut === 'soumise').length, color: 'var(--edu-blue)' },
-    { label: 'En examen', value: candidaturesStats.filter((c) => c.statut === 'en_examen').length, color: 'var(--edu-warning)' },
-    { label: 'Acceptées', value: candidaturesStats.filter((c) => c.statut === 'acceptee').length, color: 'var(--edu-success)' },
-    { label: 'Refusées', value: candidaturesStats.filter((c) => c.statut === 'refusee').length, color: 'var(--edu-danger)' },
+    { labelKey: 'admin.candidatures.stats.total', value: totalGlobal, color: 'var(--edu-text-primary)' },
+    { labelKey: 'admin.candidatures.stats.submitted', value: candidaturesStats.filter((c) => c.statut === 'soumise').length, color: 'var(--edu-blue)' },
+    { labelKey: 'admin.candidatures.stats.inReview', value: candidaturesStats.filter((c) => c.statut === 'en_examen').length, color: 'var(--edu-warning)' },
+    { labelKey: 'admin.candidatures.stats.accepted', value: candidaturesStats.filter((c) => c.statut === 'acceptee').length, color: 'var(--edu-success)' },
+    { labelKey: 'admin.candidatures.stats.rejected', value: candidaturesStats.filter((c) => c.statut === 'refusee').length, color: 'var(--edu-danger)' },
   ];
+
+  const statutFilters = ['tous', 'soumise', 'en_examen', 'acceptee', 'refusee', 'liste_attente'] as const;
 
   return (
     <div>
       {/* Header */}
       <div className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)] px-8 py-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)] mb-1">
-          Administration
+          {t('admin.candidatures.sectionLabel')}
         </p>
-        <h1 className="text-3xl font-bold text-[var(--edu-text-primary)]">Candidatures</h1>
+        <h1 className="text-3xl font-bold text-[var(--edu-text-primary)]">{t('admin.candidatures.title')}</h1>
         <p className="text-sm text-[var(--edu-text-secondary)] mt-1">
-          Suivi global de toutes les candidatures de la plateforme
+          {t('admin.candidatures.subtitle')}
         </p>
       </div>
 
@@ -99,11 +104,11 @@ export function CandidaturesSection() {
           className="grid grid-cols-2 md:grid-cols-5 gap-4"
         >
           {stats.map((s) => (
-            <div key={s.label} className="bg-white dark:bg-[#1D1D1F] rounded-2xl p-5 border border-[var(--edu-border)]">
+            <div key={s.labelKey} className="bg-white dark:bg-[#1D1D1F] rounded-2xl p-5 border border-[var(--edu-border)]">
               <p className="text-3xl font-bold tracking-tight" style={{ color: s.color }}>
                 {loading ? <span className="inline-block w-10 h-8 bg-[var(--edu-surface)] rounded animate-pulse" /> : s.value}
               </p>
-              <p className="text-xs text-[var(--edu-text-secondary)] mt-1">{s.label}</p>
+              <p className="text-xs text-[var(--edu-text-secondary)] mt-1">{t(s.labelKey)}</p>
             </div>
           ))}
         </motion.div>
@@ -119,14 +124,14 @@ export function CandidaturesSection() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--edu-text-tertiary)]" />
             <input
               type="text"
-              placeholder="Rechercher par candidat, programme, institut…"
+              placeholder={t('admin.candidatures.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--edu-surface)] border border-[var(--edu-border)] text-sm text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--edu-blue)] transition-shadow"
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {['tous', 'soumise', 'en_examen', 'acceptee', 'refusee', 'liste_attente'].map((s) => (
+            {statutFilters.map((s) => (
               <button
                 key={s}
                 onClick={() => setStatutFilter(s)}
@@ -136,7 +141,7 @@ export function CandidaturesSection() {
                     : 'bg-[var(--edu-surface)] text-[var(--edu-text-secondary)] hover:bg-[var(--edu-border)]'
                 }`}
               >
-                {s === 'tous' ? 'Toutes' : STATUT_CONFIG[s]?.label ?? s}
+                {s === 'tous' ? t('admin.candidatures.allFilter') : t(`admin.candidatures.statuses.${s}`, { defaultValue: s })}
               </button>
             ))}
           </div>
@@ -153,12 +158,12 @@ export function CandidaturesSection() {
             <table className="w-full">
               <thead className="bg-[var(--edu-surface)]">
                 <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Candidat</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Programme</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Institut</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Statut</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Soumise le</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Documents</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.candidatures.columns.candidat')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.candidatures.columns.program')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.candidatures.columns.institut')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.candidatures.columns.status')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.candidatures.columns.submittedAt')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.candidatures.columns.documents')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--edu-divider)]">
@@ -176,15 +181,18 @@ export function CandidaturesSection() {
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center">
                       <BarChart3 className="w-8 h-8 mx-auto mb-2 text-[var(--edu-text-tertiary)]" />
-                      <p className="text-sm text-[var(--edu-text-secondary)]">Aucune candidature trouvée.</p>
+                      <p className="text-sm text-[var(--edu-text-secondary)]">{t('admin.candidatures.empty')}</p>
                     </td>
                   </tr>
                 ) : (
                   visible.map((c) => {
                     const nom = getNomCandidat(c);
                     const initial = nom.charAt(0).toUpperCase();
-                    const stCfg = STATUT_CONFIG[c.statut] ?? STATUT_CONFIG.soumise;
-                    const StIcon = stCfg.icon;
+                    const statut = c.statut ?? 'soumise';
+                    const stStyle = STATUT_STYLE[statut] ?? STATUT_STYLE.soumise;
+                    const StIcon = STATUT_ICONS[statut] ?? Clock;
+                    const statutLabel = t(`admin.candidatures.statuses.${statut}`, { defaultValue: statut });
+                    const docCount = c.documents_soumis?.length ?? 0;
 
                     return (
                       <tr key={c.id} className="hover:bg-[var(--edu-surface)] transition-colors">
@@ -212,24 +220,24 @@ export function CandidaturesSection() {
                         <td className="px-6 py-4">
                           <span
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-                            style={{ backgroundColor: stCfg.bg, color: stCfg.color }}
+                            style={{ backgroundColor: stStyle.bg, color: stStyle.color }}
                           >
                             <StIcon className="w-3 h-3" />
-                            {stCfg.label}
+                            {statutLabel}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm text-[var(--edu-text-secondary)]">
                             {c.soumise_le
-                              ? new Date(c.soumise_le).toLocaleDateString('fr-FR')
+                              ? new Date(c.soumise_le).toLocaleDateString(i18n.language)
                               : c.cree_le
-                                ? new Date(c.cree_le).toLocaleDateString('fr-FR')
+                                ? new Date(c.cree_le).toLocaleDateString(i18n.language)
                                 : '—'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm text-[var(--edu-text-secondary)]">
-                            {c.documents_soumis?.length ?? 0} fichier{(c.documents_soumis?.length ?? 0) !== 1 ? 's' : ''}
+                            {t('admin.candidatures.files', { count: docCount })}
                           </span>
                         </td>
                       </tr>
@@ -247,13 +255,13 @@ export function CandidaturesSection() {
                 totalPages={pagination.totalPages}
                 onPageChange={setPage}
                 totalItems={pagination.total}
-                itemLabel="candidature"
+                itemLabel={t('admin.candidatures.title').toLowerCase()}
                 disabled={loading}
                 className="!mt-0"
               />
               {search.trim() && (
                 <p className="text-xs text-[var(--edu-text-tertiary)] text-center mt-2 italic">
-                  Recherche appliquée sur la page courante uniquement.
+                  {t('admin.candidatures.searchNote')}
                 </p>
               )}
             </div>

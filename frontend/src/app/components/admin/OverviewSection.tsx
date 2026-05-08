@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
@@ -39,6 +40,7 @@ import { usePrograms } from '@/hooks/usePrograms';
 import { useInstituts } from '@/hooks/useInstituts';
 import { useNotifications } from '@/hooks/useNotifications';
 import { institutService } from '@/services/api';
+import i18n from '@/i18n';
 import type { Utilisateur, Institut, Candidature, Programme } from '@/types/api';
 
 interface OverviewSectionProps {
@@ -61,16 +63,17 @@ function formatRelative(dateStr?: string): string {
   const date = new Date(dateStr);
   const diff = Date.now() - date.getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "à l'instant";
-  if (minutes < 60) return `il y a ${minutes} min`;
+  if (minutes < 1) return i18n.t('admin.timeAgo.justNow');
+  if (minutes < 60) return i18n.t('admin.timeAgo.minutes', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `il y a ${hours} h`;
+  if (hours < 24) return i18n.t('admin.timeAgo.hours', { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `il y a ${days} j`;
-  return date.toLocaleDateString('fr-FR');
+  if (days < 7) return i18n.t('admin.timeAgo.days', { count: days });
+  return date.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' });
 }
 
 export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
+  const { t } = useTranslation();
   const { utilisateurs: utilisateursRaw, loading: loadingUsers } = useUtilisateurs();
   const utilisateurs = utilisateursRaw as Utilisateur[];
 
@@ -126,7 +129,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
 
   const kpis = [
     {
-      label: 'Utilisateurs',
+      label: t('admin.overview.kpis.users'),
       value: utilisateurs.length,
       icon: Users,
       color: 'var(--edu-indigo)',
@@ -134,7 +137,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
       href: '/dashboard/admin/utilisateurs',
     },
     {
-      label: 'Instituts',
+      label: t('admin.overview.kpis.instituts'),
       value: totalInstituts,
       icon: Building2,
       color: 'var(--edu-blue)',
@@ -142,7 +145,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
       href: '/dashboard/admin/instituts',
     },
     {
-      label: 'Programmes',
+      label: t('admin.overview.kpis.programs'),
       value: programmes.length,
       icon: FileText,
       color: 'var(--edu-info)',
@@ -150,7 +153,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
       href: '/dashboard/admin/programmes',
     },
     {
-      label: 'Candidatures en attente',
+      label: t('admin.overview.kpis.pendingApplications'),
       value: candidaturesEnAttente,
       icon: Clock,
       color: 'var(--edu-warning)',
@@ -158,7 +161,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
       href: '/dashboard/admin/candidatures',
     },
     {
-      label: 'Instituts non vérifiés',
+      label: t('admin.overview.kpis.unverifiedInstituts'),
       value: institutsNonVerifies,
       icon: ShieldAlert,
       color: 'var(--edu-danger)',
@@ -166,7 +169,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
       href: '/dashboard/admin/instituts',
     },
     {
-      label: "Taux d'acceptation",
+      label: t('admin.overview.kpis.acceptanceRate'),
       value: `${tauxAcceptation}%`,
       icon: TrendingUp,
       color: 'var(--edu-success)',
@@ -177,27 +180,27 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
 
   // ── Données graphiques ──────────────────────────────────────
   const dataRoles = [
-    { name: 'Candidats', value: totalCandidats },
-    { name: 'Instituts', value: totalInstituts },
-    { name: 'Admins', value: totalAdmins },
+    { name: t('admin.overview.analytics.roles.candidats'), value: totalCandidats },
+    { name: t('admin.overview.analytics.roles.instituts'), value: totalInstituts },
+    { name: t('admin.overview.analytics.roles.admins'), value: totalAdmins },
   ].filter((d) => d.value > 0);
 
   const dataStatuts = [
-    { statut: 'Soumises', count: candidatures.filter((c) => c.statut === 'soumise').length, fill: 'var(--edu-blue)' },
-    { statut: 'En examen', count: candidatures.filter((c) => c.statut === 'en_examen').length, fill: 'var(--edu-warning)' },
-    { statut: 'Acceptées', count: candidatures.filter((c) => c.statut === 'acceptee').length, fill: 'var(--edu-success)' },
-    { statut: 'Refusées', count: candidatures.filter((c) => c.statut === 'refusee').length, fill: 'var(--edu-danger)' },
-    { statut: "Liste d'attente", count: candidatures.filter((c) => c.statut === 'liste_attente').length, fill: '#8B5CF6' },
+    { statut: t('admin.overview.analytics.statuts.soumises'), count: candidatures.filter((c) => c.statut === 'soumise').length, fill: 'var(--edu-blue)' },
+    { statut: t('admin.overview.analytics.statuts.en_examen'), count: candidatures.filter((c) => c.statut === 'en_examen').length, fill: 'var(--edu-warning)' },
+    { statut: t('admin.overview.analytics.statuts.acceptees'), count: candidatures.filter((c) => c.statut === 'acceptee').length, fill: 'var(--edu-success)' },
+    { statut: t('admin.overview.analytics.statuts.refusees'), count: candidatures.filter((c) => c.statut === 'refusee').length, fill: 'var(--edu-danger)' },
+    { statut: t('admin.overview.analytics.statuts.liste_attente'), count: candidatures.filter((c) => c.statut === 'liste_attente').length, fill: '#8B5CF6' },
   ];
 
-  // Croissance mensuelle (12 derniers mois) sur la base de cree_le des candidats
+  // Croissance mensuelle (12 derniers mois)
   const dataCroissance = React.useMemo(() => {
     const now = new Date();
     const months: { key: string; label: string; count: number }[] = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = d.toLocaleDateString('fr-FR', { month: 'short' });
+      const label = d.toLocaleDateString(i18n.language, { month: 'short' });
       months.push({ key, label, count: 0 });
     }
     utilisateurs
@@ -211,7 +214,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
     return months;
   }, [utilisateurs]);
 
-  // Top instituts les plus demandés (par nombre de candidatures)
+  // Top instituts les plus demandés
   const dataTopInstituts = React.useMemo(() => {
     const counter: Record<string, number> = {};
     candidatures.forEach((c: Candidature) => {
@@ -231,7 +234,6 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
     const out: AdminNotification[] = [];
     const now = Date.now();
 
-    // 1. Instituts en attente de validation
     enAttente
       .filter((i) => i.validation_status === 'pending_admin_review')
       .slice(0, 3)
@@ -240,30 +242,33 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
           id: `pending-${i.id}`,
           type: 'urgent',
           icon: ShieldAlert,
-          title: 'Validation requise',
-          description: `${i.nom ?? i.utilisateur?.email ?? 'Institut'} attend une validation administrateur.`,
+          title: i18n.t('admin.alerts.validationRequired'),
+          description: i18n.t('admin.alerts.validationDesc', {
+            name: i.nom ?? i.utilisateur?.email ?? i18n.t('admin.alerts.institutFallback'),
+          }),
           date: i.cree_le,
         });
       });
 
-    // 2. Nouvelle candidature soumise (< 24h)
     candidatures
       .filter((c) => c.statut === 'soumise' && c.soumise_le)
       .filter((c) => now - new Date(c.soumise_le!).getTime() < 1000 * 60 * 60 * 24)
       .slice(0, 3)
       .forEach((c) => {
-        const candidatNom = [c.candidat?.prenom, c.candidat?.nom].filter(Boolean).join(' ') || 'Un candidat';
+        const candidatNom = [c.candidat?.prenom, c.candidat?.nom].filter(Boolean).join(' ') || i18n.t('admin.alerts.candidatFallback');
         out.push({
           id: `cand-${c.id}`,
           type: 'info',
           icon: FileText,
-          title: 'Nouvelle candidature soumise',
-          description: `${candidatNom} a postulé à ${c.programme?.titre ?? 'un programme'}.`,
+          title: i18n.t('admin.alerts.newApplication'),
+          description: i18n.t('admin.alerts.newApplicationDesc', {
+            name: candidatNom,
+            program: c.programme?.titre ?? i18n.t('admin.alerts.programFallback'),
+          }),
           date: c.soumise_le,
         });
       });
 
-    // 3. Nouvel institut inscrit (< 7j, statut invited)
     instituts
       .filter((i) => i.validation_status === 'invited' && i.cree_le)
       .filter((i) => now - new Date(i.cree_le!).getTime() < 1000 * 60 * 60 * 24 * 7)
@@ -273,13 +278,14 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
           id: `inv-${i.id}`,
           type: 'info',
           icon: Sparkles,
-          title: 'Nouvel institut invité',
-          description: `${i.utilisateur?.email ?? 'Un établissement'} doit finaliser son inscription.`,
+          title: i18n.t('admin.alerts.newInstitut'),
+          description: i18n.t('admin.alerts.newInstitutDesc', {
+            email: i.utilisateur?.email ?? i18n.t('admin.alerts.etablissementFallback'),
+          }),
           date: i.cree_le,
         });
       });
 
-    // 4. Programmes expirés
     (programmes as Programme[])
       .filter((p) => p.date_limite_candidature && new Date(p.date_limite_candidature).getTime() < now)
       .slice(0, 2)
@@ -288,13 +294,12 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
           id: `exp-${p.id}`,
           type: 'warning',
           icon: AlertTriangle,
-          title: 'Programme expiré',
-          description: `${p.titre} — date limite dépassée.`,
+          title: i18n.t('admin.alerts.expiredProgram'),
+          description: i18n.t('admin.alerts.expiredProgramDesc', { title: p.titre }),
           date: p.date_limite_candidature,
         });
       });
 
-    // 5. Comptes suspendus
     instituts
       .filter((i) => i.validation_status === 'suspended')
       .slice(0, 2)
@@ -303,13 +308,14 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
           id: `susp-${i.id}`,
           type: 'warning',
           icon: ShieldOff,
-          title: 'Institut suspendu',
-          description: `${i.nom ?? i.utilisateur?.email} — accès suspendu.`,
+          title: i18n.t('admin.alerts.suspendedInstitut'),
+          description: i18n.t('admin.alerts.suspendedInstitutDesc', {
+            name: i.nom ?? i.utilisateur?.email,
+          }),
           date: i.suspended_at ?? undefined,
         });
       });
 
-    // Trier : urgents en premier, puis par date
     return out
       .sort((a, b) => {
         const order = { urgent: 0, warning: 1, info: 2 };
@@ -325,19 +331,18 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
     setActionLoading(id);
     try {
       await institutService.approuver(id);
-      toast.success('Institut approuvé.');
+      toast.success(t('admin.overview.validation.toasts.approved'));
       chargerEnAttente();
       refetchInsts();
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } } };
-      toast.error(apiErr?.response?.data?.message ?? 'Erreur');
+      toast.error(apiErr?.response?.data?.message ?? t('admin.overview.validation.toasts.error'));
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleSuspendre = async (_id: string) => {
-    // Rediriger vers la page Instituts pour utiliser le dialog de suspension complet
     window.location.href = '/dashboard/admin/instituts';
   };
 
@@ -348,26 +353,28 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)] mb-1">
-              Tableau de bord administrateur
+              {t('admin.overview.sectionLabel')}
             </p>
             <h1 className="text-3xl font-bold text-[var(--edu-text-primary)]">
-              Bonjour, {nomAdmin.split(' ')[0]}
+              {t('admin.overview.greeting', { name: nomAdmin.split(' ')[0] })}
             </h1>
             <p className="text-sm text-[var(--edu-text-secondary)] mt-1">
-              Vue d'ensemble de la plateforme — {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {t('admin.overview.subtitle', {
+                date: new Date().toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+              })}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" className="rounded-full">
               <Link to="/dashboard/admin/instituts">
                 <Building2 className="w-4 h-4 mr-2" />
-                Gérer les instituts
+                {t('admin.overview.manageInstituts')}
               </Link>
             </Button>
             <Button asChild className="rounded-full text-white" style={{ backgroundColor: 'var(--edu-indigo)' }}>
               <Link to="/dashboard/admin/notifications">
                 <Bell className="w-4 h-4 mr-2" />
-                Notifications
+                {t('common.notifications')}
                 {apiNotifCount > 0 && (
                   <span className="ml-2 bg-white/20 text-white text-xs rounded-full px-2 py-0.5">
                     {apiNotifCount}
@@ -426,9 +433,9 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
         <section>
           <div className="flex items-end justify-between mb-5">
             <div>
-              <h2 className="text-xl font-bold text-[var(--edu-text-primary)]">Analytics</h2>
+              <h2 className="text-xl font-bold text-[var(--edu-text-primary)]">{t('admin.overview.analytics.title')}</h2>
               <p className="text-sm text-[var(--edu-text-secondary)]">
-                Indicateurs clés de l'activité plateforme
+                {t('admin.overview.analytics.subtitle')}
               </p>
             </div>
           </div>
@@ -437,12 +444,12 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
             {/* Donut — Répartition par rôle */}
             <div className="bg-white dark:bg-[#1D1D1F] rounded-2xl p-6 border border-[var(--edu-border)]">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-[var(--edu-text-primary)]">Répartition par rôle</h3>
-                <span className="text-xs text-[var(--edu-text-tertiary)]">{utilisateurs.length} comptes</span>
+                <h3 className="font-semibold text-[var(--edu-text-primary)]">{t('admin.overview.analytics.rolesChart')}</h3>
+                <span className="text-xs text-[var(--edu-text-tertiary)]">{t('admin.overview.analytics.accounts', { count: utilisateurs.length })}</span>
               </div>
               {dataRoles.length === 0 ? (
                 <div className="h-[260px] flex items-center justify-center text-sm text-[var(--edu-text-secondary)]">
-                  Pas de données
+                  {t('admin.overview.noData')}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
@@ -482,8 +489,8 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
             {/* Bar — Candidatures par statut */}
             <div className="bg-white dark:bg-[#1D1D1F] rounded-2xl p-6 border border-[var(--edu-border)] lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-[var(--edu-text-primary)]">Candidatures par statut</h3>
-                <span className="text-xs text-[var(--edu-text-tertiary)]">{candidatures.length} au total</span>
+                <h3 className="font-semibold text-[var(--edu-text-primary)]">{t('admin.overview.analytics.statusChart')}</h3>
+                <span className="text-xs text-[var(--edu-text-tertiary)]">{t('admin.overview.analytics.total', { count: candidatures.length })}</span>
               </div>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={dataStatuts} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
@@ -511,8 +518,8 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
             {/* Line — Croissance mensuelle */}
             <div className="bg-white dark:bg-[#1D1D1F] rounded-2xl p-6 border border-[var(--edu-border)] lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-[var(--edu-text-primary)]">Croissance mensuelle des inscriptions</h3>
-                <span className="text-xs text-[var(--edu-text-tertiary)]">12 derniers mois · candidats</span>
+                <h3 className="font-semibold text-[var(--edu-text-primary)]">{t('admin.overview.analytics.growthChart')}</h3>
+                <span className="text-xs text-[var(--edu-text-tertiary)]">{t('admin.overview.analytics.growthSubtitle')}</span>
               </div>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={dataCroissance} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
@@ -548,12 +555,12 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
             {/* Top instituts */}
             <div className="bg-white dark:bg-[#1D1D1F] rounded-2xl p-6 border border-[var(--edu-border)]">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-[var(--edu-text-primary)]">Top instituts demandés</h3>
-                <span className="text-xs text-[var(--edu-text-tertiary)]">par candidatures</span>
+                <h3 className="font-semibold text-[var(--edu-text-primary)]">{t('admin.overview.analytics.topInstituts')}</h3>
+                <span className="text-xs text-[var(--edu-text-tertiary)]">{t('admin.overview.analytics.topInstitutsBy')}</span>
               </div>
               {dataTopInstituts.length === 0 ? (
                 <div className="h-[260px] flex items-center justify-center text-sm text-[var(--edu-text-secondary)]">
-                  Pas de données
+                  {t('admin.overview.noData')}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
@@ -586,17 +593,17 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
               <div>
                 <h3 className="font-semibold text-[var(--edu-text-primary)] flex items-center gap-2">
                   <Bell className="w-4 h-4 text-[var(--edu-indigo)]" />
-                  Centre de notifications
+                  {t('admin.overview.notifCenter.title')}
                 </h3>
                 <p className="text-xs text-[var(--edu-text-secondary)] mt-0.5">
-                  Événements importants nécessitant votre attention
+                  {t('admin.overview.notifCenter.subtitle')}
                 </p>
               </div>
               <Link
                 to="/dashboard/admin/notifications"
                 className="text-xs font-medium text-[var(--edu-blue)] hover:underline flex items-center gap-1"
               >
-                Tout voir <ArrowRight className="w-3 h-3" />
+                {t('admin.overview.notifCenter.viewAll')} <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
             <div className="divide-y divide-[var(--edu-divider)] max-h-[420px] overflow-y-auto">
@@ -604,10 +611,10 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
                 <div className="px-6 py-12 text-center">
                   <CheckCircle className="w-10 h-10 mx-auto mb-3 text-[var(--edu-success)]" />
                   <p className="text-sm font-medium text-[var(--edu-text-primary)]">
-                    Tout est à jour
+                    {t('admin.overview.notifCenter.empty')}
                   </p>
                   <p className="text-xs text-[var(--edu-text-secondary)] mt-1">
-                    Aucune notification urgente pour le moment.
+                    {t('admin.overview.notifCenter.emptySubtitle')}
                   </p>
                 </div>
               ) : (
@@ -615,10 +622,10 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
                   const Icon = n.icon;
                   const palette =
                     n.type === 'urgent'
-                      ? { bg: 'rgba(255, 59, 48, 0.1)', fg: 'var(--edu-danger)', label: 'Urgent' }
+                      ? { bg: 'rgba(255, 59, 48, 0.1)', fg: 'var(--edu-danger)', label: t('admin.overview.palette.urgent') }
                       : n.type === 'warning'
-                      ? { bg: 'rgba(255, 159, 10, 0.1)', fg: 'var(--edu-warning)', label: 'Important' }
-                      : { bg: 'rgba(0, 113, 227, 0.1)', fg: 'var(--edu-blue)', label: 'Info' };
+                      ? { bg: 'rgba(255, 159, 10, 0.1)', fg: 'var(--edu-warning)', label: t('admin.overview.palette.warning') }
+                      : { bg: 'rgba(0, 113, 227, 0.1)', fg: 'var(--edu-blue)', label: t('admin.overview.palette.info') };
                   return (
                     <div
                       key={n.id}
@@ -661,10 +668,10 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
             <div className="px-6 py-5 border-b border-[var(--edu-border)]">
               <h3 className="font-semibold text-[var(--edu-text-primary)] flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 text-[var(--edu-warning)]" />
-                Validation des instituts
+                {t('admin.overview.validation.title')}
               </h3>
               <p className="text-xs text-[var(--edu-text-secondary)] mt-0.5">
-                Établissements en attente de revue
+                {t('admin.overview.validation.subtitle')}
               </p>
             </div>
             <div className="divide-y divide-[var(--edu-divider)] max-h-[420px] overflow-y-auto">
@@ -676,7 +683,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
                 <div className="px-6 py-10 text-center">
                   <CheckCircle className="w-8 h-8 mx-auto mb-2 text-[var(--edu-success)]" />
                   <p className="text-xs text-[var(--edu-text-secondary)]">
-                    Aucun établissement en attente.
+                    {t('admin.overview.validation.noPending')}
                   </p>
                 </div>
               ) : (
@@ -688,17 +695,17 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="min-w-0">
                           <p className="font-medium text-sm text-[var(--edu-text-primary)] truncate">
-                            {inst.nom ?? <span className="italic text-[var(--edu-text-tertiary)]">Sans nom</span>}
+                            {inst.nom ?? <span className="italic text-[var(--edu-text-tertiary)]">{t('admin.overview.validation.noName')}</span>}
                           </p>
                           <p className="text-xs text-[var(--edu-text-secondary)] truncate">
                             {inst.utilisateur?.email}
                           </p>
                           <p className="text-[11px] text-[var(--edu-text-tertiary)] mt-0.5">
-                            Inscrit {formatRelative(inst.cree_le)}
+                            {t('admin.overview.validation.registeredAt', { time: formatRelative(inst.cree_le) })}
                           </p>
                         </div>
                         <span className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 shrink-0">
-                          En attente
+                          {t('admin.overview.validation.pending')}
                         </span>
                       </div>
                       <div className="flex gap-2 mt-3">
@@ -710,7 +717,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
                           style={{ backgroundColor: 'var(--edu-success)' }}
                         >
                           <CheckCircle className="w-3 h-3 mr-1" />
-                          Valider
+                          {t('admin.overview.validation.validate')}
                         </Button>
                         <Button
                           size="sm"
@@ -720,7 +727,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
                           className="rounded-full text-xs flex-1 border-[var(--edu-danger)] text-[var(--edu-danger)]"
                         >
                           <ShieldOff className="w-3 h-3 mr-1" />
-                          Suspendre
+                          {t('admin.overview.validation.suspend')}
                         </Button>
                       </div>
                     </div>
@@ -732,7 +739,7 @@ export function OverviewSection({ nomAdmin }: OverviewSectionProps) {
                 to="/dashboard/admin/instituts"
                 className="text-xs font-medium text-[var(--edu-blue)] hover:underline flex items-center justify-center gap-1"
               >
-                Gérer tous les instituts <ArrowRight className="w-3 h-3" />
+                {t('admin.overview.validation.manageAll')} <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
           </div>

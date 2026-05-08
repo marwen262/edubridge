@@ -1,8 +1,11 @@
 import { Link } from 'react-router';
 import { Facebook, Twitter, Linkedin, Instagram } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import logoedubridge from '@/assets/logo/logoedubridge.png';
 
 export function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-[#1D1D1F] text-white py-16">
       <div className="max-w-[1440px] mx-auto px-6">
@@ -17,76 +20,76 @@ export function Footer() {
               />
             </Link>
             <p className="text-[#86868B] text-sm">
-              Trouvez votre voie vers l'institution idéale
+              {t('footer.tagline')}
             </p>
           </div>
 
-          {/* Product */}
+          {/* Platform */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">Plateforme</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">{t('footer.platform.title')}</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/search" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Parcourir les programmes
+                  {t('footer.platform.browsePrograms')}
                 </Link>
               </li>
               <li>
                 <Link to="/institutions" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Trouver un institut
+                  {t('footer.platform.findInstitution')}
                 </Link>
               </li>
               <li>
                 <Link to="/compare" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Comparer les programmes
+                  {t('footer.platform.comparePrograms')}
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* For Candidates */}
+          {/* Candidates */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">Candidats</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">{t('footer.candidates.title')}</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/signup" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Créer un compte
+                  {t('footer.candidates.createAccount')}
                 </Link>
               </li>
               <li>
                 <Link to="/login" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Se connecter
+                  {t('footer.candidates.login')}
                 </Link>
               </li>
               <li>
                 <Link to="/dashboard/candidate" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Mon espace
+                  {t('footer.candidates.mySpace')}
                 </Link>
               </li>
               <li>
                 <Link to="/dashboard/candidatures" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Mes candidatures
+                  {t('footer.candidates.myApplications')}
                 </Link>
               </li>
               <li>
                 <Link to="/dashboard/favoris" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Mes favoris
+                  {t('footer.candidates.myFavorites')}
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* For Institutions */}
+          {/* Institutions */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">Instituts</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">{t('footer.institutions.title')}</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/login" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Connexion institut
+                  {t('footer.institutions.login')}
                 </Link>
               </li>
               <li>
                 <Link to="/signup" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Demander une invitation
+                  {t('footer.institutions.requestInvitation')}
                 </Link>
               </li>
             </ul>
@@ -94,26 +97,26 @@ export function Footer() {
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">Entreprise</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">{t('footer.company.title')}</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  À propos
+                  {t('footer.company.about')}
                 </Link>
               </li>
               <li>
                 <Link to="/" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Contact
+                  {t('footer.company.contact')}
                 </Link>
               </li>
               <li>
                 <Link to="/" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Politique de confidentialité
+                  {t('footer.company.privacy')}
                 </Link>
               </li>
               <li>
                 <Link to="/" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Conditions d'utilisation
+                  {t('footer.company.terms')}
                 </Link>
               </li>
             </ul>
@@ -121,11 +124,11 @@ export function Footer() {
 
           {/* Resources */}
           <div>
-            <h4 className="font-semibold mb-4 text-[15px]">Ressources</h4>
+            <h4 className="font-semibold mb-4 text-[15px]">{t('footer.resources.title')}</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/guide" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  Guide candidat
+                  {t('footer.resources.candidateGuide')}
                 </Link>
               </li>
             </ul>
@@ -135,41 +138,24 @@ export function Footer() {
         {/* Bottom */}
         <div className="pt-8 border-t border-[#3A3A3C] flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-[#86868B] text-sm">
-            © 2026 EduBridge. Tous droits réservés.
+            {t('footer.copyright')}
           </p>
 
           {/* Social Links */}
           <div className="flex items-center gap-4">
-            <a
-              href="#"
-              className="text-[#86868B] hover:text-white transition-colors"
-              aria-label="Facebook"
-            >
+            <a href="#" className="text-[#86868B] hover:text-white transition-colors" aria-label="Facebook">
               <Facebook className="w-5 h-5" />
             </a>
-            <a
-              href="#"
-              className="text-[#86868B] hover:text-white transition-colors"
-              aria-label="Twitter"
-            >
+            <a href="#" className="text-[#86868B] hover:text-white transition-colors" aria-label="Twitter">
               <Twitter className="w-5 h-5" />
             </a>
-            <a
-              href="#"
-              className="text-[#86868B] hover:text-white transition-colors"
-              aria-label="LinkedIn"
-            >
+            <a href="#" className="text-[#86868B] hover:text-white transition-colors" aria-label="LinkedIn">
               <Linkedin className="w-5 h-5" />
             </a>
-            <a
-              href="#"
-              className="text-[#86868B] hover:text-white transition-colors"
-              aria-label="Instagram"
-            >
+            <a href="#" className="text-[#86868B] hover:text-white transition-colors" aria-label="Instagram">
               <Instagram className="w-5 h-5" />
             </a>
           </div>
-
         </div>
       </div>
     </footer>

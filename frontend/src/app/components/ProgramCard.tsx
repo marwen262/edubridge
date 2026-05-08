@@ -9,6 +9,13 @@ import { toast } from 'sonner';
 import { useFavoriStatus } from '@/hooks/useFavoriStatus';
 import { useComparaison } from '@/hooks/useComparaison';
 
+const NIVEAU_LABELS: Record<string, string> = {
+  cycle_preparatoire: 'Cycle préparatoire',
+  licence: 'Licence',
+  master: 'Master',
+  ingenieur: 'Ingénieur',
+};
+
 // Mapping champs mock → backend :
 // program.title           → programme.titre
 // program.institution.name → programme.institut?.nom
@@ -70,7 +77,7 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
   const institutLogo = programme?.institut?.logo;
   const institutVille = programme?.institut?.adresse?.ville;
   const institutPays = programme?.institut?.adresse?.pays;
-  const niveau = programme?.niveau;
+  const niveau = programme?.niveau ? (NIVEAU_LABELS[programme.niveau] ?? programme.niveau) : null;
   const domaine = programme?.domaine;
   const mode = programme?.mode;
   const duree = programme?.duree_annees != null ? `${programme.duree_annees} ans` : null;

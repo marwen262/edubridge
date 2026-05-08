@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, useFieldArray, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +27,7 @@ import { NationaliteSelect } from './forms/NationaliteSelect';
 import { IndicatifTelephone } from './forms/IndicatifTelephone';
 import type { Programme, Candidat, Adresse, ParcoursAcademique } from '@/types/api';
 import { cn } from './ui/utils';
+import i18n from '@/i18n';
 
 interface MultiStepDialogProps {
   open: boolean;
@@ -43,21 +45,13 @@ interface MultiStepDialogProps {
 // Tout `documents_requis[*].nom` qui n'est PAS dans cette liste est ignoré
 // silencieusement à l'affichage (ne crash pas).
 const FICHIERS_AUTORISES: Record<string, string> = {
-  diplome_bac:           'Diplôme du baccalauréat',
-  diplome_licence:       'Diplôme de licence',
-  releves_notes:         'Relevés de notes',
-  attestation_prepa:     'Attestation de cycle préparatoire',
-  lettre_recommandation: 'Lettre de recommandation',
-  attestation_stage:     'Attestation de stage',
+  diplome_bac:           'candidate.application.documents.types.diplome_bac',
+  diplome_licence:       'candidate.application.documents.types.diplome_licence',
+  releves_notes:         'candidate.application.documents.types.releves_notes',
+  attestation_prepa:     'candidate.application.documents.types.attestation_prepa',
+  lettre_recommandation: 'candidate.application.documents.types.lettre_recommandation',
+  attestation_stage:     'candidate.application.documents.types.attestation_stage',
 };
-
-const steps: Step[] = [
-  { label: 'Identité' },
-  { label: 'Académique' },
-  { label: 'Documents' },
-  { label: 'Motivation' },
-  { label: 'Vérification' },
-];
 
 // ─────────────────────────────────────────────────────────────
 // Schémas zod
@@ -65,46 +59,46 @@ const steps: Step[] = [
 
 const adresseSchema = z.object({
   rue: z.string().optional().or(z.literal('')),
-  ville: z.string().min(1, 'Ville requise'),
+  ville: z.string().min(1, i18n.t('candidate.application.validation.cityRequired', { defaultValue: 'Ville requise' })),
   gouvernorat: z.string().optional().or(z.literal('')),
   code_postal: z.string().optional().or(z.literal('')),
   pays: z.string().optional().or(z.literal('')),
 });
 
 const parcoursSchema = z.object({
-  diplome: z.string().min(1, 'Diplôme requis'),
-  etablissement: z.string().min(1, 'Établissement requis'),
+  diplome: z.string().min(1, i18n.t('candidate.application.validation.degreeRequired', { defaultValue: 'Diplôme requis' })),
+  etablissement: z.string().min(1, i18n.t('candidate.application.validation.institutionRequired', { defaultValue: 'Établissement requis' })),
   annee: z
-    .number({ error: 'Année invalide' })
+    .number({ error: i18n.t('candidate.application.validation.yearInvalid', { defaultValue: 'Année invalide' }) })
     .int()
-    .min(1950, 'Année trop ancienne')
-    .max(new Date().getFullYear() + 1, 'Année future invalide'),
+    .min(1950, i18n.t('candidate.application.validation.yearTooOld', { defaultValue: 'Année trop ancienne' }))
+    .max(new Date().getFullYear() + 1, i18n.t('candidate.application.validation.futureYearInvalid', { defaultValue: 'Année future invalide' })),
   mention: z.string().optional().or(z.literal('')),
 });
 
 const formSchema = z
   .object({
     // Identité
-    prenom: z.string().min(1, 'Prénom requis'),
-    nom: z.string().min(1, 'Nom requis'),
+    prenom: z.string().min(1, i18n.t('candidate.application.validation.firstNameRequired', { defaultValue: 'Prénom requis' })),
+    nom: z.string().min(1, i18n.t('candidate.application.validation.lastNameRequired', { defaultValue: 'Nom requis' })),
     date_naissance: z.string().optional().or(z.literal('')),
     genre: z.union([z.literal('homme'), z.literal('femme'), z.literal('')]).optional(),
-    nationalite: z.string().min(1, 'Nationalité requise'),
+    nationalite: z.string().min(1, i18n.t('candidate.application.validation.nationalityRequired', { defaultValue: 'Nationalité requise' })),
     cin: z.string().optional().or(z.literal('')),
     numero_passeport: z.string().optional().or(z.literal('')),
-    telephone: z.string().min(4, 'Téléphone requis'),
+    telephone: z.string().min(4, i18n.t('candidate.application.validation.phoneRequired', { defaultValue: 'Téléphone requis' })),
     adresse: adresseSchema,
     // Académique
     niveau_actuel: z.string().optional().or(z.literal('')),
     type_bac: z.string().optional().or(z.literal('')),
     moyenne_bac: z.string().optional().or(z.literal('')),
     annee_bac: z.string().optional().or(z.literal('')),
-    parcours_academique: z.array(parcoursSchema).min(1, 'Ajoutez au moins un diplôme'),
+    parcours_academique: z.array(parcoursSchema).min(1, i18n.t('candidate.application.validation.addOneDegree', { defaultValue: 'Ajoutez au moins un diplôme' })),
     // Motivation
-    motivation: z.string().min(20, 'La lettre de motivation doit contenir au moins 20 caractères'),
+    motivation: z.string().min(20, i18n.t('candidate.application.validation.motivationMin', { defaultValue: 'La lettre de motivation doit contenir au moins 20 caractères' })),
     // CGU
-    termsAccepted: z.literal(true, {
-      error: 'Vous devez accepter les conditions',
+    termsAccepted: z.boolean().refine((v) => v === true, {
+      message: i18n.t('candidate.application.validation.termsRequired', { defaultValue: 'Vous devez accepter les conditions générales' }),
     }),
   })
   .superRefine((data, ctx) => {
@@ -114,7 +108,7 @@ const formSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['cin'],
-          message: 'CIN tunisien requis (8 chiffres)',
+          message: i18n.t('candidate.application.validation.cinInvalid', { defaultValue: 'CIN tunisien requis (8 chiffres)' }),
         });
       }
     } else if (data.nationalite) {
@@ -122,7 +116,7 @@ const formSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['numero_passeport'],
-          message: 'Passeport requis (6 à 20 caractères alphanumériques)',
+          message: i18n.t('candidate.application.validation.passportInvalid', { defaultValue: 'Passeport requis (6 à 20 caractères alphanumériques)' }),
         });
       }
     }
@@ -147,7 +141,7 @@ const VALEURS_VIDES: FormValues = {
   annee_bac: '',
   parcours_academique: [],
   motivation: '',
-  termsAccepted: false as unknown as true, // résolu à true via le checkbox au runtime
+  termsAccepted: false,
 };
 
 // Convertit un Candidat backend en valeurs de formulaire
@@ -195,6 +189,7 @@ export function MultiStepDialog({
   lettreMotivationInitiale,
   documentsExistants,
 }: MultiStepDialogProps) {
+  const { t, i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -224,6 +219,13 @@ export function MultiStepDialog({
 
   const nationaliteCourante = watch('nationalite');
   const tunisien = estTunisien(nationaliteCourante);
+  const steps: Step[] = [
+    { label: t('candidate.application.steps.identity', { defaultValue: 'Identité' }) },
+    { label: t('candidate.application.steps.academic', { defaultValue: 'Académique' }) },
+    { label: t('candidate.application.steps.documents', { defaultValue: 'Documents' }) },
+    { label: t('candidate.application.steps.motivation', { defaultValue: 'Motivation' }) },
+    { label: t('candidate.application.steps.verification', { defaultValue: 'Vérification' }) },
+  ];
 
   // ── Auto-link nationalité → indicatif téléphonique ──────────
   // Quand la nationalité change, on pré-remplit l'indicatif sauf si
@@ -292,7 +294,7 @@ export function MultiStepDialog({
 
   const handleClose = (next: boolean) => {
     if (!next && currentStep > 0 && !submitting) {
-      const ok = confirm('Vos modifications ne seront pas conservées. Fermer ?');
+      const ok = confirm(t('candidate.application.closeConfirm', { defaultValue: 'Vos modifications ne seront pas conservées. Fermer ?' }));
       if (!ok) return;
     }
     onOpenChange(next);
@@ -313,7 +315,7 @@ export function MultiStepDialog({
     const f = e.target.files?.[0];
     if (!f) return;
     if (f.size > 5 * 1024 * 1024) {
-      toast.error('Fichier trop volumineux (max 5 Mo)');
+      toast.error(t('candidate.application.toasts.fileTooLarge', { defaultValue: 'Fichier trop volumineux (max 5 Mo)' }));
       return;
     }
     setFichiers((prev) => ({ ...prev, [cle]: f }));
@@ -333,7 +335,7 @@ export function MultiStepDialog({
     if (champs.length > 0) {
       const ok = await trigger(champs as Array<keyof FormValues>);
       if (!ok) {
-        toast.error('Certaines informations sont manquantes ou invalides');
+        toast.error(t('candidate.application.toasts.invalidStep', { defaultValue: 'Certaines informations sont manquantes ou invalides' }));
         return;
       }
     }
@@ -341,9 +343,9 @@ export function MultiStepDialog({
     if (currentStep === 2) {
       const manquants = docsProgramme
         .filter((d) => d.obligatoire && !fichiers[d.nom] && !docDejaDepose(d.nom))
-        .map((d) => FICHIERS_AUTORISES[d.nom] ?? d.nom);
+        .map((d) => t(FICHIERS_AUTORISES[d.nom] ?? d.nom, { defaultValue: d.nom }));
       if (manquants.length > 0) {
-        toast.error(`Documents obligatoires manquants : ${manquants.join(', ')}`);
+        toast.error(t('candidate.application.toasts.missingRequiredDocs', { defaultValue: 'Documents obligatoires manquants : {{docs}}', docs: manquants.join(', ') }));
         return;
       }
     }
@@ -357,7 +359,7 @@ export function MultiStepDialog({
   // - Mode reprise   : update brouillon existant (fichiers + motivation) → soumettre
   const onSubmitFinal = async (data: FormValues) => {
     if (!isAuthenticated) {
-      toast.error('Connectez-vous pour candidater');
+      toast.error(t('candidate.application.toasts.loginRequired', { defaultValue: 'Connectez-vous pour candidater' }));
       return;
     }
     setSubmitting(true);
@@ -408,7 +410,7 @@ export function MultiStepDialog({
       // POST /candidatures/:id/soumettre avec body.profil
       await candidatureService.soumettreAvecProfil(candidatureId, profil);
 
-      toast.success('Candidature soumise avec succès !');
+      toast.success(t('candidate.application.toasts.submitted', { defaultValue: 'Candidature soumise avec succès !' }));
       onOpenChange(false);
       reinitialiser();
     } catch (err: unknown) {
@@ -420,12 +422,12 @@ export function MultiStepDialog({
       const errData = apiErr.response?.data;
       if (errData?.manquants_profil && errData.manquants_profil.length > 0) {
         toast.error(
-          `Profil incomplet : ${errData.manquants_profil.join(', ')}. Vérifiez l'étape Identité ou Académique.`,
+          t('candidate.application.toasts.profileIncomplete', { defaultValue: 'Profil incomplet : {{fields}}. Vérifiez l\'étape Identité ou Académique.', fields: errData.manquants_profil.join(', ') }),
         );
       } else if (errData?.manquants && errData.manquants.length > 0) {
-        toast.error(`Documents manquants : ${errData.manquants.join(', ')}`);
+        toast.error(t('candidate.application.toasts.missingDocs', { defaultValue: 'Documents manquants : {{docs}}', docs: errData.manquants.join(', ') }));
       } else {
-        toast.error(errData?.message ?? 'Erreur lors de la soumission');
+        toast.error(errData?.message ?? t('candidate.application.toasts.submitError', { defaultValue: 'Erreur lors de la soumission' }));
       }
     } finally {
       setSubmitting(false);
@@ -438,18 +440,18 @@ export function MultiStepDialog({
     <div className="space-y-5">
       {profilLoading && (
         <div className="rounded-xl bg-[var(--edu-blue)]/5 border border-[var(--edu-blue)]/20 px-4 py-2 text-xs text-[var(--edu-blue)]">
-          Chargement de votre profil…
+          {t('candidate.application.loadingProfile', { defaultValue: 'Chargement de votre profil…' })}
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="prenom">Prénom <span className="text-[var(--edu-danger)]">*</span></Label>
+          <Label htmlFor="prenom">{t('candidate.application.identity.firstName', { defaultValue: 'Prénom' })} <span className="text-[var(--edu-danger)]">*</span></Label>
           <Input id="prenom" {...register('prenom')} aria-invalid={!!errors.prenom || undefined} />
           {errors.prenom && <p className="text-xs text-[var(--edu-danger)]">{errors.prenom.message}</p>}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="nom">Nom <span className="text-[var(--edu-danger)]">*</span></Label>
+          <Label htmlFor="nom">{t('candidate.application.identity.lastName', { defaultValue: 'Nom' })} <span className="text-[var(--edu-danger)]">*</span></Label>
           <Input id="nom" {...register('nom')} aria-invalid={!!errors.nom || undefined} />
           {errors.nom && <p className="text-xs text-[var(--edu-danger)]">{errors.nom.message}</p>}
         </div>
@@ -457,11 +459,11 @@ export function MultiStepDialog({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="date_naissance">Date de naissance</Label>
+          <Label htmlFor="date_naissance">{t('candidate.application.identity.birthDate', { defaultValue: 'Date de naissance' })}</Label>
           <Input id="date_naissance" type="date" {...register('date_naissance')} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="genre">Genre</Label>
+          <Label htmlFor="genre">{t('candidate.application.identity.gender', { defaultValue: 'Genre' })}</Label>
           <Controller
             name="genre"
             control={control}
@@ -471,11 +473,11 @@ export function MultiStepDialog({
                 onValueChange={(v) => field.onChange(v === '_none' ? '' : v)}
               >
                 <SelectTrigger id="genre">
-                  <SelectValue placeholder="Sélectionner" />
+                  <SelectValue placeholder={t('candidate.application.selectPlaceholder', { defaultValue: 'Sélectionner' })} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="homme">Homme</SelectItem>
-                  <SelectItem value="femme">Femme</SelectItem>
+                  <SelectItem value="homme">{t('candidate.application.identity.male', { defaultValue: 'Homme' })}</SelectItem>
+                  <SelectItem value="femme">{t('candidate.application.identity.female', { defaultValue: 'Femme' })}</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -485,7 +487,7 @@ export function MultiStepDialog({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="nationalite">Nationalité <span className="text-[var(--edu-danger)]">*</span></Label>
+          <Label htmlFor="nationalite">{t('candidate.application.identity.nationality', { defaultValue: 'Nationalité' })} <span className="text-[var(--edu-danger)]">*</span></Label>
           <Controller
             name="nationalite"
             control={control}
@@ -502,12 +504,12 @@ export function MultiStepDialog({
 
         {tunisien ? (
           <div className="space-y-2">
-            <Label htmlFor="cin">CIN <span className="text-[var(--edu-danger)]">*</span></Label>
+            <Label htmlFor="cin">{t('candidate.application.identity.cin', { defaultValue: 'CIN' })} <span className="text-[var(--edu-danger)]">*</span></Label>
             <Input
               id="cin"
               inputMode="numeric"
               maxLength={8}
-              placeholder="12345678"
+              placeholder={t('candidate.application.identity.cinPlaceholder', { defaultValue: '12345678' })}
               {...register('cin')}
               aria-invalid={!!errors.cin || undefined}
             />
@@ -515,11 +517,11 @@ export function MultiStepDialog({
           </div>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="numero_passeport">Numéro de passeport <span className="text-[var(--edu-danger)]">*</span></Label>
+            <Label htmlFor="numero_passeport">{t('candidate.application.identity.passportNumber', { defaultValue: 'Numéro de passeport' })} <span className="text-[var(--edu-danger)]">*</span></Label>
             <Input
               id="numero_passeport"
               maxLength={20}
-              placeholder="AB123456"
+              placeholder={t('candidate.application.identity.passportPlaceholder', { defaultValue: 'AB123456' })}
               {...register('numero_passeport')}
               aria-invalid={!!errors.numero_passeport || undefined}
             />
@@ -529,7 +531,7 @@ export function MultiStepDialog({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="telephone">Téléphone <span className="text-[var(--edu-danger)]">*</span></Label>
+        <Label htmlFor="telephone">{t('candidate.application.identity.phone', { defaultValue: 'Téléphone' })} <span className="text-[var(--edu-danger)]">*</span></Label>
         <Controller
           name="telephone"
           control={control}
@@ -545,7 +547,7 @@ export function MultiStepDialog({
       </div>
 
       <div className="space-y-2">
-        <Label>Adresse <span className="text-[var(--edu-danger)]">*</span></Label>
+        <Label>{t('candidate.application.identity.address', { defaultValue: 'Adresse' })} <span className="text-[var(--edu-danger)]">*</span></Label>
         <Controller
           name="adresse"
           control={control}
@@ -565,49 +567,49 @@ export function MultiStepDialog({
     <div className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="niveau_actuel">Niveau actuel</Label>
+          <Label htmlFor="niveau_actuel">{t('candidate.application.academic.currentLevel', { defaultValue: 'Niveau actuel' })}</Label>
           <Controller
             name="niveau_actuel"
             control={control}
             render={({ field }) => (
               <Select value={field.value || undefined} onValueChange={field.onChange}>
                 <SelectTrigger id="niveau_actuel">
-                  <SelectValue placeholder="Sélectionner" />
+                  <SelectValue placeholder={t('candidate.application.selectPlaceholder', { defaultValue: 'Sélectionner' })} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="terminale">Terminale</SelectItem>
-                  <SelectItem value="bac">Bac obtenu</SelectItem>
-                  <SelectItem value="licence">Licence</SelectItem>
-                  <SelectItem value="master">Master</SelectItem>
+                  <SelectItem value="terminale">{t('candidate.application.academic.level.terminale', { defaultValue: 'Terminale' })}</SelectItem>
+                  <SelectItem value="bac">{t('candidate.application.academic.level.bac', { defaultValue: 'Bac obtenu' })}</SelectItem>
+                  <SelectItem value="licence">{t('candidate.application.academic.level.licence', { defaultValue: 'Licence' })}</SelectItem>
+                  <SelectItem value="master">{t('candidate.application.academic.level.master', { defaultValue: 'Master' })}</SelectItem>
                 </SelectContent>
               </Select>
             )}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="type_bac">Type de bac</Label>
+          <Label htmlFor="type_bac">{t('candidate.application.academic.bacType', { defaultValue: 'Type de bac' })}</Label>
           <Controller
             name="type_bac"
             control={control}
             render={({ field }) => (
               <Select value={field.value || undefined} onValueChange={field.onChange}>
                 <SelectTrigger id="type_bac">
-                  <SelectValue placeholder="Sélectionner" />
+                  <SelectValue placeholder={t('candidate.application.selectPlaceholder', { defaultValue: 'Sélectionner' })} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mathematiques">Mathématiques</SelectItem>
-                  <SelectItem value="sciences">Sciences</SelectItem>
-                  <SelectItem value="technique">Technique</SelectItem>
-                  <SelectItem value="economie">Économie</SelectItem>
-                  <SelectItem value="lettres">Lettres</SelectItem>
-                  <SelectItem value="sport">Sport</SelectItem>
+                  <SelectItem value="mathematiques">{t('candidate.application.academic.bac.mathematiques', { defaultValue: 'Mathématiques' })}</SelectItem>
+                  <SelectItem value="sciences">{t('candidate.application.academic.bac.sciences', { defaultValue: 'Sciences' })}</SelectItem>
+                  <SelectItem value="technique">{t('candidate.application.academic.bac.technique', { defaultValue: 'Technique' })}</SelectItem>
+                  <SelectItem value="economie">{t('candidate.application.academic.bac.economie', { defaultValue: 'Économie' })}</SelectItem>
+                  <SelectItem value="lettres">{t('candidate.application.academic.bac.lettres', { defaultValue: 'Lettres' })}</SelectItem>
+                  <SelectItem value="sport">{t('candidate.application.academic.bac.sport', { defaultValue: 'Sport' })}</SelectItem>
                 </SelectContent>
               </Select>
             )}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="annee_bac">Année du bac</Label>
+          <Label htmlFor="annee_bac">{t('candidate.application.academic.bacYear', { defaultValue: 'Année du bac' })}</Label>
           <Input
             id="annee_bac"
             type="number"
@@ -620,7 +622,7 @@ export function MultiStepDialog({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="moyenne_bac">Moyenne du bac (sur 20)</Label>
+          <Label htmlFor="moyenne_bac">{t('candidate.application.academic.bacAverage', { defaultValue: 'Moyenne du bac (sur 20)' })}</Label>
           <Input
             id="moyenne_bac"
             type="number"
@@ -636,7 +638,7 @@ export function MultiStepDialog({
       {/* Parcours académique (useFieldArray) */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label>Parcours académique <span className="text-[var(--edu-danger)]">*</span></Label>
+          <Label>{t('candidate.application.academic.history', { defaultValue: 'Parcours académique' })} <span className="text-[var(--edu-danger)]">*</span></Label>
           <Button
             type="button"
             variant="outline"
@@ -651,14 +653,14 @@ export function MultiStepDialog({
             }
             className="rounded-full"
           >
-            <Plus className="w-4 h-4 mr-1" /> Ajouter
+            <Plus className="w-4 h-4 mr-1" /> {t('candidate.application.academic.add', { defaultValue: 'Ajouter' })}
           </Button>
         </div>
 
         {parcoursFields.length === 0 && (
           <div className="text-center py-6 border border-dashed border-[var(--edu-border)] rounded-xl">
             <p className="text-sm text-[var(--edu-text-secondary)]">
-              Ajoutez au moins un diplôme pour valider l'étape.
+              {t('candidate.application.academic.addOneToProceed', { defaultValue: 'Ajoutez au moins un diplôme pour valider l\'étape.' })}
             </p>
           </div>
         )}
@@ -667,33 +669,33 @@ export function MultiStepDialog({
           <div key={f.id} className="rounded-xl border border-[var(--edu-border)] p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--edu-text-tertiary)]">
-                Diplôme #{i + 1}
+                {t('candidate.application.academic.degreeIndex', { defaultValue: 'Diplôme #{{index}}', index: i + 1 })}
               </p>
               <button
                 type="button"
                 onClick={() => removeParcours(i)}
                 className="p-1 rounded hover:bg-[var(--edu-danger)]/10 text-[var(--edu-text-tertiary)] hover:text-[var(--edu-danger)]"
-                aria-label="Supprimer"
+                aria-label={t('common.delete')}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor={`pa-${i}-diplome`} className="text-xs">Diplôme</Label>
-                <Input id={`pa-${i}-diplome`} {...register(`parcours_academique.${i}.diplome`)} placeholder="Bac S, Licence Info…" />
+                <Label htmlFor={`pa-${i}-diplome`} className="text-xs">{t('candidate.application.academic.degree', { defaultValue: 'Diplôme' })}</Label>
+                <Input id={`pa-${i}-diplome`} {...register(`parcours_academique.${i}.diplome`)} placeholder={t('candidate.application.academic.degreePlaceholder', { defaultValue: 'Bac S, Licence Info…' })} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`pa-${i}-etab`} className="text-xs">Établissement</Label>
+                <Label htmlFor={`pa-${i}-etab`} className="text-xs">{t('candidate.application.academic.institution', { defaultValue: 'Établissement' })}</Label>
                 <Input id={`pa-${i}-etab`} {...register(`parcours_academique.${i}.etablissement`)} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`pa-${i}-annee`} className="text-xs">Année</Label>
+                <Label htmlFor={`pa-${i}-annee`} className="text-xs">{t('candidate.application.academic.year', { defaultValue: 'Année' })}</Label>
                 <Input id={`pa-${i}-annee`} type="number" {...register(`parcours_academique.${i}.annee`, { valueAsNumber: true })} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`pa-${i}-mention`} className="text-xs">Mention (optionnel)</Label>
-                <Input id={`pa-${i}-mention`} {...register(`parcours_academique.${i}.mention`)} placeholder="Bien, Très bien…" />
+                <Label htmlFor={`pa-${i}-mention`} className="text-xs">{t('candidate.application.academic.mentionOptional', { defaultValue: 'Mention (optionnel)' })}</Label>
+                <Input id={`pa-${i}-mention`} {...register(`parcours_academique.${i}.mention`)} placeholder={t('candidate.application.academic.mentionPlaceholder', { defaultValue: 'Bien, Très bien…' })} />
               </div>
             </div>
           </div>
@@ -702,7 +704,7 @@ export function MultiStepDialog({
         {errors.parcours_academique && (
           <p className="text-xs text-[var(--edu-danger)]">
             {(errors.parcours_academique as { message?: string }).message ??
-              'Ajoutez au moins un diplôme'}
+              t('candidate.application.validation.addOneDegree', { defaultValue: 'Ajoutez au moins un diplôme' })}
           </p>
         )}
       </div>
@@ -714,7 +716,7 @@ export function MultiStepDialog({
       return (
         <div className="text-center py-10 border border-dashed border-[var(--edu-border)] rounded-xl">
           <p className="text-sm text-[var(--edu-text-secondary)]">
-            Ce programme ne demande aucun document.
+            {t('candidate.application.documents.noneRequired', { defaultValue: 'Ce programme ne demande aucun document.' })}
           </p>
         </div>
       );
@@ -723,12 +725,12 @@ export function MultiStepDialog({
     return (
       <div className="space-y-4">
         <p className="text-sm text-[var(--edu-text-secondary)]">
-          Téléversez les documents demandés (PDF, JPG ou PNG — 5 Mo max).
-          Les pièces marquées <span className="text-[var(--edu-danger)]">*</span> sont obligatoires.
+          {t('candidate.application.documents.help', { defaultValue: 'Téléversez les documents demandés (PDF, JPG ou PNG — 5 Mo max).' })}{' '}
+          {t('candidate.application.documents.requiredHint', { defaultValue: 'Les pièces marquées' })} <span className="text-[var(--edu-danger)]">*</span> {t('candidate.application.documents.requiredTail', { defaultValue: 'sont obligatoires.' })}
         </p>
         {docsProgramme.map((doc) => {
           const cle = doc.nom;
-          const libelle = FICHIERS_AUTORISES[cle] ?? doc.nom;
+          const libelle = t(FICHIERS_AUTORISES[cle] ?? doc.nom, { defaultValue: doc.nom });
           const file = fichiers[cle];
           const dejaDepose = docDejaDepose(cle);
           const present = !!file || dejaDepose;
@@ -753,11 +755,11 @@ export function MultiStepDialog({
                   ) : dejaDepose ? (
                     <p className="text-xs text-[var(--edu-success)] flex items-center gap-1 mt-1">
                       <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>Déjà déposé — cliquez pour remplacer</span>
+                      <span>{t('candidate.application.documents.alreadyUploadedReplace', { defaultValue: 'Déjà déposé — cliquez pour remplacer' })}</span>
                     </p>
                   ) : (
                     <p className="text-xs text-[var(--edu-text-secondary)] mt-1">
-                      PDF, JPG ou PNG — 5 Mo max.
+                      {t('candidate.application.documents.acceptedFormats', { defaultValue: 'PDF, JPG ou PNG — 5 Mo max.' })}
                     </p>
                   )}
                 </div>
@@ -772,9 +774,9 @@ export function MultiStepDialog({
                   )}
                 >
                   {present ? (
-                    <><CheckCircle2 className="w-3 h-3" /> {file ? 'Téléversé' : 'Déposé'}</>
+                    <><CheckCircle2 className="w-3 h-3" /> {file ? t('candidate.application.documents.uploaded', { defaultValue: 'Téléversé' }) : t('candidate.application.documents.alreadyUploaded', { defaultValue: 'Déposé' })}</>
                   ) : (
-                    <><Upload className="w-3 h-3" /> {doc.obligatoire ? 'Manquant' : 'Optionnel'}</>
+                    <><Upload className="w-3 h-3" /> {doc.obligatoire ? t('candidate.application.documents.missing', { defaultValue: 'Manquant' }) : t('candidate.application.documents.optional', { defaultValue: 'Optionnel' })}</>
                   )}
                 </div>
               </div>
@@ -794,17 +796,26 @@ export function MultiStepDialog({
 
   const renderStepMotivation = () => (
     <div className="space-y-2">
-      <Label htmlFor="motivation">Lettre de motivation <span className="text-[var(--edu-danger)]">*</span></Label>
-      <Textarea
-        id="motivation"
-        rows={10}
-        placeholder="Présentez votre projet, vos motivations et ce qui fait de vous un bon candidat pour ce programme…"
-        {...register('motivation')}
-        aria-invalid={!!errors.motivation || undefined}
+      <Label htmlFor="motivation">{t('candidate.application.motivation.label', { defaultValue: 'Lettre de motivation' })} <span className="text-[var(--edu-danger)]">*</span></Label>
+      <Controller
+        name="motivation"
+        control={control}
+        render={({ field }) => (
+          <Textarea
+            id="motivation"
+            rows={10}
+            placeholder={t('candidate.application.motivation.placeholder', { defaultValue: 'Présentez votre projet, vos motivations et ce qui fait de vous un bon candidat pour ce programme…' })}
+            value={field.value ?? ''}
+            onChange={(e) => field.onChange(e.target.value)}
+            onBlur={field.onBlur}
+            name={field.name}
+            aria-invalid={!!errors.motivation || undefined}
+          />
+        )}
       />
       {errors.motivation && <p className="text-xs text-[var(--edu-danger)]">{errors.motivation.message}</p>}
       <p className="text-xs text-[var(--edu-text-tertiary)]">
-        Ce texte est enregistré directement dans votre candidature (pas de fichier à téléverser).
+        {t('candidate.application.motivation.hint', { defaultValue: 'Ce texte est enregistré directement dans votre candidature (pas de fichier à téléverser).' })}
       </p>
     </div>
   );
@@ -821,59 +832,58 @@ export function MultiStepDialog({
           <div className="rounded-xl bg-[var(--edu-warning)]/10 border border-[var(--edu-warning)]/30 px-4 py-3 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-[var(--edu-warning)] flex-shrink-0 mt-0.5" />
             <p className="text-xs text-[var(--edu-text-primary)]">
-              <strong>Documents manquants :</strong> {docsManquants.join(', ')}.
-              Retournez à l'étape Documents pour compléter.
+              <strong>{t('candidate.application.verification.missingDocsTitle', { defaultValue: 'Documents manquants :' })}</strong> {docsManquants.join(', ')}. {t('candidate.application.verification.missingDocsHelp', { defaultValue: 'Retournez à l\'étape Documents pour compléter.' })}
             </p>
           </div>
         )}
 
         <section className="rounded-xl border border-[var(--edu-border)] p-4">
-          <h4 className="text-sm font-semibold mb-3 text-[var(--edu-text-primary)]">Identité</h4>
+          <h4 className="text-sm font-semibold mb-3 text-[var(--edu-text-primary)]">{t('candidate.application.steps.identity', { defaultValue: 'Identité' })}</h4>
           <dl className="text-sm space-y-1.5">
-            <RowRecap label="Nom complet" value={`${v.prenom} ${v.nom}`} />
-            <RowRecap label="Date de naissance" value={v.date_naissance} />
-            <RowRecap label="Nationalité" value={v.nationalite} />
+            <RowRecap label={t('candidate.application.verification.fullName', { defaultValue: 'Nom complet' })} value={`${v.prenom} ${v.nom}`} />
+            <RowRecap label={t('candidate.application.identity.birthDate', { defaultValue: 'Date de naissance' })} value={v.date_naissance} />
+            <RowRecap label={t('candidate.application.identity.nationality', { defaultValue: 'Nationalité' })} value={v.nationalite} />
             <RowRecap
-              label={tunisien ? 'CIN' : 'Passeport'}
+              label={tunisien ? t('candidate.application.identity.cin', { defaultValue: 'CIN' }) : t('candidate.application.identity.passport', { defaultValue: 'Passeport' })}
               value={tunisien ? v.cin : v.numero_passeport}
             />
-            <RowRecap label="Téléphone" value={v.telephone} />
+            <RowRecap label={t('candidate.application.identity.phone', { defaultValue: 'Téléphone' })} value={v.telephone} />
             <RowRecap
-              label="Adresse"
+              label={t('candidate.application.identity.address', { defaultValue: 'Adresse' })}
               value={[v.adresse?.rue, v.adresse?.ville, v.adresse?.pays].filter(Boolean).join(', ')}
             />
           </dl>
         </section>
 
         <section className="rounded-xl border border-[var(--edu-border)] p-4">
-          <h4 className="text-sm font-semibold mb-3 text-[var(--edu-text-primary)]">Académique</h4>
+          <h4 className="text-sm font-semibold mb-3 text-[var(--edu-text-primary)]">{t('candidate.application.steps.academic', { defaultValue: 'Académique' })}</h4>
           <dl className="text-sm space-y-1.5">
-            <RowRecap label="Niveau actuel" value={v.niveau_actuel} />
-            <RowRecap label="Bac" value={[v.type_bac, v.moyenne_bac && `${v.moyenne_bac}/20`, v.annee_bac].filter(Boolean).join(' • ')} />
-            <RowRecap label="Diplômes" value={`${v.parcours_academique?.length ?? 0} entrée(s)`} />
+            <RowRecap label={t('candidate.application.academic.currentLevel', { defaultValue: 'Niveau actuel' })} value={v.niveau_actuel} />
+            <RowRecap label={t('candidate.application.verification.bac', { defaultValue: 'Bac' })} value={[v.type_bac, v.moyenne_bac && `${v.moyenne_bac}/20`, v.annee_bac].filter(Boolean).join(' • ')} />
+            <RowRecap label={t('candidate.application.verification.degrees', { defaultValue: 'Diplômes' })} value={t('candidate.application.verification.entriesCount', { defaultValue: '{{count}} entrée(s)', count: v.parcours_academique?.length ?? 0 })} />
           </dl>
         </section>
 
         <section className="rounded-xl border border-[var(--edu-border)] p-4">
-          <h4 className="text-sm font-semibold mb-3 text-[var(--edu-text-primary)]">Documents</h4>
+          <h4 className="text-sm font-semibold mb-3 text-[var(--edu-text-primary)]">{t('candidate.application.steps.documents', { defaultValue: 'Documents' })}</h4>
           <dl className="text-sm space-y-1.5">
             {docsProgramme.length === 0 && (
-              <p className="text-xs text-[var(--edu-text-secondary)]">Aucun document requis.</p>
+              <p className="text-xs text-[var(--edu-text-secondary)]">{t('candidate.application.documents.noneRequiredShort', { defaultValue: 'Aucun document requis.' })}</p>
             )}
             {docsProgramme.map((d) => {
               const present = !!fichiers[d.nom] || docDejaDepose(d.nom);
               return (
                 <div key={d.nom} className="flex justify-between gap-3">
                   <span className="text-[var(--edu-text-secondary)]">
-                    {FICHIERS_AUTORISES[d.nom] ?? d.nom}
+                    {t(FICHIERS_AUTORISES[d.nom] ?? d.nom, { defaultValue: d.nom })}
                     {d.obligatoire && <span className="text-[var(--edu-danger)] ml-1">*</span>}
                   </span>
                   <span className={present ? 'text-[var(--edu-success)]' : 'text-[var(--edu-warning)]'}>
                     {fichiers[d.nom]
                       ? `✓ ${fichiers[d.nom].name}`
                       : present
-                      ? '✓ Déjà déposé'
-                      : '✗ Manquant'}
+                      ? t('candidate.application.documents.alreadyUploadedCheck', { defaultValue: '✓ Déjà déposé' })
+                      : t('candidate.application.documents.missingCheck', { defaultValue: '✗ Manquant' })}
                   </span>
                 </div>
               );
@@ -882,7 +892,7 @@ export function MultiStepDialog({
         </section>
 
         <section className="rounded-xl border border-[var(--edu-border)] p-4">
-          <h4 className="text-sm font-semibold mb-2 text-[var(--edu-text-primary)]">Motivation</h4>
+          <h4 className="text-sm font-semibold mb-2 text-[var(--edu-text-primary)]">{t('candidate.application.steps.motivation', { defaultValue: 'Motivation' })}</h4>
           <p className="text-sm text-[var(--edu-text-secondary)] line-clamp-4 whitespace-pre-line">
             {v.motivation || '—'}
           </p>
@@ -900,7 +910,7 @@ export function MultiStepDialog({
                 className="mt-1"
               />
               <span className="text-sm text-[var(--edu-text-secondary)]">
-                Je certifie que les informations fournies sont exactes et j'accepte les conditions générales de la plateforme.
+                {t('candidate.application.terms', { defaultValue: 'Je certifie que les informations fournies sont exactes et j\'accepte les conditions générales de la plateforme.' })}
               </span>
             </label>
           )}
@@ -927,19 +937,29 @@ export function MultiStepDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-0">
         <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onSubmitFinal)}>
+          <form onSubmit={handleSubmit(onSubmitFinal, (errs) => {
+              // Si une erreur porte sur un champ d'une étape précédente, y naviguer
+              if (errs.prenom || errs.nom || errs.nationalite || errs.cin || errs.numero_passeport || errs.telephone || errs.adresse) {
+                setCurrentStep(0);
+              } else if (errs.parcours_academique) {
+                setCurrentStep(1);
+              } else if (errs.motivation) {
+                setCurrentStep(3);
+                toast.error(t('candidate.application.validation.motivationMin', { defaultValue: 'La lettre de motivation doit contenir au moins 20 caractères' }));
+              }
+            })}>
             <div className="sticky top-0 bg-white dark:bg-[#1D1D1F] z-10 p-6 border-b border-[var(--edu-border)]">
               <button
                 type="button"
                 onClick={() => handleClose(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-[var(--edu-surface)] rounded-full transition-colors"
-                aria-label="Fermer"
+                aria-label={t('common.close')}
               >
                 <X className="w-5 h-5" />
               </button>
 
               <DialogTitle className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
-                Candidater au programme
+                {t('candidate.application.title', { defaultValue: 'Candidater au programme' })}
               </DialogTitle>
               <DialogDescription className="text-sm text-[var(--edu-text-secondary)] mb-6">
                 {programme.titre}
@@ -952,7 +972,7 @@ export function MultiStepDialog({
 
             <div className="sticky bottom-0 bg-white dark:bg-[#1D1D1F] p-6 border-t border-[var(--edu-border)] flex items-center justify-between">
               <div className="text-xs text-[var(--edu-text-tertiary)]">
-                Étape {currentStep + 1} / {steps.length}
+                {t('candidate.application.stepCounter', { defaultValue: 'Étape {{current}} / {{total}}', current: currentStep + 1, total: steps.length })}
               </div>
 
               <div className="flex items-center gap-3">
@@ -964,7 +984,7 @@ export function MultiStepDialog({
                     disabled={submitting}
                     className="rounded-full"
                   >
-                    Précédent
+                    {t('candidate.application.previous', { defaultValue: 'Précédent' })}
                   </Button>
                 )}
 
@@ -974,7 +994,7 @@ export function MultiStepDialog({
                     onClick={handleNext}
                     className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white"
                   >
-                    Suivant
+                    {t('candidate.application.next', { defaultValue: 'Suivant' })}
                   </Button>
                 ) : (
                   <Button
@@ -982,7 +1002,9 @@ export function MultiStepDialog({
                     disabled={submitting}
                     className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white disabled:opacity-50"
                   >
-                    {submitting ? 'Soumission…' : 'Soumettre ma candidature'}
+                    {submitting
+                      ? t('candidate.application.submitting', { defaultValue: 'Soumission…' })
+                      : t('candidate.application.submit', { defaultValue: 'Soumettre ma candidature' })}
                   </Button>
                 )}
               </div>

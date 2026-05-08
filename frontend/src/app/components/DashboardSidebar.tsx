@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/app/components/ui/utils';
@@ -46,6 +47,7 @@ interface DashboardSidebarProps {
 }
 
 export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
+  const { t } = useTranslation();
   const location = useLocation();
   const { logout } = useAuth();
   const { unreadCount } = useNotifications();
@@ -55,18 +57,18 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
       label: 'PRINCIPAL',
       items: [
         {
-          label: 'Tableau de bord',
+          label: t('sidebar.candidate.dashboard'),
           icon: <LayoutDashboard className="w-5 h-5" />,
           href: '/dashboard/candidate',
           badge: unreadCount,
         },
         {
-          label: 'Mes candidatures',
+          label: t('sidebar.candidate.applications'),
           icon: <FileText className="w-5 h-5" />,
           href: '/dashboard/candidatures',
         },
         {
-          label: 'Programmes',
+          label: t('sidebar.candidate.programs'),
           icon: <BookOpen className="w-5 h-5" />,
           href: '/search',
         },
@@ -76,12 +78,12 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
       label: 'DOSSIER',
       items: [
         {
-          label: 'Mes favoris',
+          label: t('sidebar.candidate.favorites'),
           icon: <Heart className="w-5 h-5" />,
           href: '/dashboard/favoris',
         },
         {
-          label: 'Documents',
+          label: t('sidebar.candidate.documents'),
           icon: <FolderOpen className="w-5 h-5" />,
           href: '/dashboard/documents',
         },
@@ -91,12 +93,12 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
       label: 'COMPTE',
       items: [
         {
-          label: 'Paramètres',
+          label: t('sidebar.candidate.settings'),
           icon: <Settings className="w-5 h-5" />,
           href: '/dashboard/parametres',
         },
         {
-          label: 'Messages',
+          label: t('sidebar.candidate.messages'),
           icon: <MessageSquare className="w-5 h-5" />,
           href: '#',
           disabled: true,
@@ -108,14 +110,14 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const institutionGroups: NavGroup[] = [
     {
       items: [
-        { label: 'Tableau de bord', icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/institution' },
-        { label: 'Programmes', icon: <FileText className="w-5 h-5" />, href: '/dashboard/institution/programmes' },
-        { label: 'Candidatures', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/institution/candidatures' },
-        { label: 'Candidats', icon: <User className="w-5 h-5" />, href: '/dashboard/institution/candidats' },
-        { label: 'Notifications', icon: <Bell className="w-5 h-5" />, href: '/dashboard/institution/notifications' },
-        { label: 'Rapports', icon: <PieChart className="w-5 h-5" />, href: '/dashboard/institution/rapports' },
-        { label: 'Profil établissement', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/institution/profil' },
-        { label: 'Paramètres', icon: <Settings className="w-5 h-5" />, href: '/dashboard/institution/parametres' },
+        { label: t('sidebar.institution.dashboard'), icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/institution' },
+        { label: t('sidebar.institution.programs'), icon: <FileText className="w-5 h-5" />, href: '/dashboard/institution/programmes' },
+        { label: t('sidebar.institution.applications'), icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/institution/candidatures' },
+        { label: t('sidebar.institution.candidates'), icon: <User className="w-5 h-5" />, href: '/dashboard/institution/candidats' },
+        { label: t('sidebar.institution.notifications'), icon: <Bell className="w-5 h-5" />, href: '/dashboard/institution/notifications' },
+        { label: t('sidebar.institution.reports'), icon: <PieChart className="w-5 h-5" />, href: '/dashboard/institution/rapports' },
+        { label: t('sidebar.institution.profile'), icon: <Building2 className="w-5 h-5" />, href: '/dashboard/institution/profil' },
+        { label: t('sidebar.institution.settings'), icon: <Settings className="w-5 h-5" />, href: '/dashboard/institution/parametres' },
       ],
     },
   ];
@@ -123,15 +125,15 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const adminGroups: NavGroup[] = [
     {
       items: [
-        { label: 'Tableau de bord', icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/admin' },
-        { label: 'Utilisateurs', icon: <Users className="w-5 h-5" />, href: '/dashboard/admin/utilisateurs' },
-        { label: 'Instituts', icon: <Building2 className="w-5 h-5" />, href: '/dashboard/admin/instituts' },
-        { label: 'Programmes', icon: <FileText className="w-5 h-5" />, href: '/dashboard/admin/programmes' },
-        { label: 'Candidatures', icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/admin/candidatures' },
-        { label: 'Notifications', icon: <Bell className="w-5 h-5" />, href: '/dashboard/admin/notifications' },
-        { label: 'Rapports', icon: <PieChart className="w-5 h-5" />, href: '/dashboard/admin/rapports' },
-        { label: "Journal d'activité", icon: <Activity className="w-5 h-5" />, href: '/dashboard/admin/journal' },
-        { label: 'Paramètres système', icon: <Sliders className="w-5 h-5" />, href: '/dashboard/admin/parametres' },
+        { label: t('sidebar.admin.dashboard'), icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/admin' },
+        { label: t('sidebar.admin.users'), icon: <Users className="w-5 h-5" />, href: '/dashboard/admin/utilisateurs' },
+        { label: t('sidebar.admin.institutions'), icon: <Building2 className="w-5 h-5" />, href: '/dashboard/admin/instituts' },
+        { label: t('sidebar.admin.programs'), icon: <FileText className="w-5 h-5" />, href: '/dashboard/admin/programmes' },
+        { label: t('sidebar.admin.applications'), icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/admin/candidatures' },
+        { label: t('sidebar.admin.notifications'), icon: <Bell className="w-5 h-5" />, href: '/dashboard/admin/notifications' },
+        { label: t('sidebar.admin.reports'), icon: <PieChart className="w-5 h-5" />, href: '/dashboard/admin/rapports' },
+        { label: t('sidebar.admin.activityLog'), icon: <Activity className="w-5 h-5" />, href: '/dashboard/admin/journal' },
+        { label: t('sidebar.admin.systemSettings'), icon: <Sliders className="w-5 h-5" />, href: '/dashboard/admin/parametres' },
       ],
     },
   ];
@@ -146,9 +148,9 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const accentColor = role === 'candidate' ? 'var(--edu-blue)' : 'var(--edu-indigo)';
 
   const roleLabels: Record<typeof role, string> = {
-    candidate: 'Candidat',
-    institution: 'Institut',
-    admin: 'Administrateur',
+    candidate: t('sidebar.roles.candidate'),
+    institution: t('sidebar.roles.institution'),
+    admin: t('sidebar.roles.admin'),
   };
 
   return (
@@ -186,7 +188,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
                           {item.icon}
                           <span className="text-[15px] flex-1">{item.label}</span>
                           <span className="text-[10px] bg-[var(--edu-surface)] text-[var(--edu-text-tertiary)] px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
-                            Bientôt
+                            {t('common.soon')}
                           </span>
                         </span>
                       </li>
@@ -252,7 +254,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
           className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-[var(--edu-text-secondary)] hover:bg-[var(--edu-surface)] hover:text-[var(--edu-danger)] transition-colors text-sm"
         >
           <LogOut className="w-4 h-4" />
-          <span>Déconnexion</span>
+          <span>{t('sidebar.logout')}</span>
         </button>
       </div>
     </aside>

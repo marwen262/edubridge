@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Notification } from '@/types/api';
 
 interface NotificationDropdownProps {
@@ -24,15 +25,17 @@ export function NotificationDropdown({
   onMarkAsRead,
   onClose,
 }: NotificationDropdownProps) {
+  const { t, i18n } = useTranslation();
+
   return (
     <div>
       {/* En-tête */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--edu-divider)]">
-        <h3 className="font-semibold text-[var(--edu-text-primary)]">Notifications</h3>
+        <h3 className="font-semibold text-[var(--edu-text-primary)]">{t('common.notifications')}</h3>
         <button
           onClick={onClose}
           className="p-1 rounded-full hover:bg-[var(--edu-surface)] transition-colors"
-          aria-label="Fermer"
+          aria-label={t('common.close')}
         >
           <X className="w-4 h-4 text-[var(--edu-text-secondary)]" />
         </button>
@@ -41,7 +44,7 @@ export function NotificationDropdown({
       {/* Liste */}
       {notifications.length === 0 ? (
         <div className="px-4 py-8 text-center text-[var(--edu-text-secondary)] text-sm">
-          Aucune notification
+          {t('common.noNotificationsShort')}
         </div>
       ) : (
         <div className="divide-y divide-[var(--edu-divider)] max-h-[360px] overflow-y-auto">
@@ -78,7 +81,7 @@ export function NotificationDropdown({
                     )}
                     {notif.cree_le && (
                       <p className="text-xs text-[var(--edu-text-tertiary)] mt-1">
-                        {new Date(notif.cree_le).toLocaleDateString('fr-FR', {
+                        {new Date(notif.cree_le).toLocaleDateString(i18n.language, {
                           day: 'numeric',
                           month: 'short',
                           hour: '2-digit',
@@ -100,7 +103,7 @@ export function NotificationDropdown({
           onClick={onClose}
           className="text-sm text-[var(--edu-blue)] hover:underline w-full text-center"
         >
-          Voir toutes les notifications
+          {t('common.seeAll')} {t('common.notifications').toLowerCase()}
         </button>
       </div>
     </div>

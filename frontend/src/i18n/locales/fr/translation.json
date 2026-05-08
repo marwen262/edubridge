@@ -1,0 +1,1327 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "noData": "Aucune donnée.",
+    "error": "Erreur",
+    "search": "Rechercher…",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "seeAll": "Voir tout",
+    "page": "page",
+    "soon": "Bientôt",
+    "inDevelopment": "En cours de développement",
+    "institution": "Établissement",
+    "markAsRead": "Marquer lue",
+    "markAsReadFull": "Marquer comme lue",
+    "markAllRead": "Tout marquer comme lu",
+    "notifications": "Notifications",
+    "noNotifications": "Aucune notification pour le moment",
+    "noNotificationsShort": "Aucune notification"
+  },
+  "status": {
+    "brouillon": "Brouillon",
+    "soumise": "Soumise",
+    "en_examen": "En examen",
+    "acceptee": "Acceptée",
+    "refusee": "Refusée",
+    "liste_attente": "Liste d'attente",
+    "actif": "Actif",
+    "inactif": "Inactif",
+    "tous": "Toutes",
+    "nonLues": "Non lues",
+    "lues": "Lues",
+    "pending_admin_review": "En attente de validation administrateur.",
+    "approved": "Votre établissement est approuvé et actif sur la plateforme.",
+    "suspended": "Votre compte établissement est suspendu.",
+    "invited": "Veuillez finaliser votre inscription.",
+    "rejected": "Votre dossier a été rejeté. Veuillez corriger et resoumettre.",
+    "institutionStatus": "Statut de votre établissement",
+    "resubmit": "Resoumettre"
+  },
+  "sidebar": {
+    "candidate": {
+      "groups": {
+        "main": "PRINCIPAL",
+        "file": "DOSSIER",
+        "account": "COMPTE"
+      },
+      "dashboard": "Tableau de bord",
+      "applications": "Mes candidatures",
+      "programs": "Programmes",
+      "favorites": "Mes favoris",
+      "documents": "Documents",
+      "settings": "Paramètres",
+      "messages": "Messages"
+    },
+    "institution": {
+      "dashboard": "Tableau de bord",
+      "programs": "Programmes",
+      "applications": "Candidatures",
+      "candidates": "Candidats",
+      "notifications": "Notifications",
+      "reports": "Rapports",
+      "profile": "Profil établissement",
+      "settings": "Paramètres"
+    },
+    "admin": {
+      "dashboard": "Tableau de bord",
+      "users": "Utilisateurs",
+      "institutions": "Instituts",
+      "programs": "Programmes",
+      "applications": "Candidatures",
+      "notifications": "Notifications",
+      "reports": "Rapports",
+      "activityLog": "Journal d'activité",
+      "systemSettings": "Paramètres système"
+    },
+    "roles": {
+      "candidate": "Candidat",
+      "institution": "Institut",
+      "admin": "Administrateur"
+    },
+    "logout": "Déconnexion"
+  },
+  "candidate": {
+    "dashboard": {
+      "greeting": "Bonjour, {{name}}",
+      "stats": {
+        "total": "Total candidatures",
+        "inProgress": "En cours",
+        "accepted": "Acceptées",
+        "drafts": "Brouillons"
+      },
+      "recentApplications": {
+        "title": "Mes candidatures récentes",
+        "seeAll": "Voir toutes",
+        "empty": "Vous n'avez encore aucune candidature.",
+        "explore": "Explorer les programmes",
+        "columns": {
+          "program": "Programme",
+          "institution": "Institut",
+          "date": "Date",
+          "status": "Statut"
+        }
+      },
+      "quickActions": {
+        "title": "Actions rapides",
+        "explore": "Explorer les programmes",
+        "completeProfile": "Compléter mon profil",
+        "uploadDocuments": "Uploader des documents"
+      },
+      "discoverPrograms": {
+        "title": "Découvrir des programmes",
+        "subtitle": "Explorez les formations disponibles sur EduBridge",
+        "seeAll": "Voir tous"
+      }
+    },
+    "actions": {
+      "continue": "Continuer",
+      "viewDetails": "Voir détails",
+      "viewResult": "Voir résultat"
+    },
+    "application": {
+      "title": "Candidater au programme",
+      "loadingProfile": "Chargement de votre profil…",
+      "closeConfirm": "Vos modifications ne seront pas conservées. Fermer ?",
+      "selectPlaceholder": "Sélectionner",
+      "stepCounter": "Étape {{current}} / {{total}}",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "submit": "Soumettre ma candidature",
+      "submitting": "Soumission…",
+      "terms": "Je certifie que les informations fournies sont exactes et j'accepte les conditions générales de la plateforme.",
+      "steps": {
+        "identity": "Identité",
+        "academic": "Académique",
+        "documents": "Documents",
+        "motivation": "Motivation",
+        "verification": "Vérification"
+      },
+      "identity": {
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "birthDate": "Date de naissance",
+        "gender": "Genre",
+        "male": "Homme",
+        "female": "Femme",
+        "nationality": "Nationalité",
+        "cin": "CIN",
+        "cinPlaceholder": "12345678",
+        "passport": "Passeport",
+        "passportNumber": "Numéro de passeport",
+        "passportPlaceholder": "AB123456",
+        "phone": "Téléphone",
+        "address": "Adresse"
+      },
+      "academic": {
+        "currentLevel": "Niveau actuel",
+        "bacType": "Type de bac",
+        "bacYear": "Année du bac",
+        "bacAverage": "Moyenne du bac (sur 20)",
+        "history": "Parcours académique",
+        "add": "Ajouter",
+        "addOneToProceed": "Ajoutez au moins un diplôme pour valider l'étape.",
+        "degreeIndex": "Diplôme #{{index}}",
+        "degree": "Diplôme",
+        "degreePlaceholder": "Bac S, Licence Info…",
+        "institution": "Établissement",
+        "year": "Année",
+        "mentionOptional": "Mention (optionnel)",
+        "mentionPlaceholder": "Bien, Très bien…",
+        "level": {
+          "terminale": "Terminale",
+          "bac": "Bac obtenu",
+          "licence": "Licence",
+          "master": "Master"
+        },
+        "bac": {
+          "mathematiques": "Mathématiques",
+          "sciences": "Sciences",
+          "technique": "Technique",
+          "economie": "Économie",
+          "lettres": "Lettres",
+          "sport": "Sport"
+        }
+      },
+      "documents": {
+        "noneRequired": "Ce programme ne demande aucun document.",
+        "noneRequiredShort": "Aucun document requis.",
+        "help": "Téléversez les documents demandés (PDF, JPG ou PNG — 5 Mo max).",
+        "requiredHint": "Les pièces marquées",
+        "requiredTail": "sont obligatoires.",
+        "alreadyUploadedReplace": "Déjà déposé — cliquez pour remplacer",
+        "acceptedFormats": "PDF, JPG ou PNG — 5 Mo max.",
+        "uploaded": "Téléversé",
+        "alreadyUploaded": "Déposé",
+        "alreadyUploadedCheck": "✓ Déjà déposé",
+        "missing": "Manquant",
+        "missingCheck": "✗ Manquant",
+        "optional": "Optionnel",
+        "types": {
+          "diplome_bac": "Diplôme du baccalauréat",
+          "diplome_licence": "Diplôme de licence",
+          "releves_notes": "Relevés de notes",
+          "attestation_prepa": "Attestation classes préparatoires",
+          "lettre_recommandation": "Lettre de recommandation",
+          "attestation_stage": "Attestation de stage"
+        }
+      },
+      "motivation": {
+        "label": "Lettre de motivation",
+        "placeholder": "Présentez votre projet, vos motivations et ce qui fait de vous un bon candidat pour ce programme…",
+        "hint": "Ce texte est enregistré directement dans votre candidature (pas de fichier à téléverser)."
+      },
+      "verification": {
+        "fullName": "Nom complet",
+        "bac": "Bac",
+        "degrees": "Diplômes",
+        "entriesCount": "{{count}} entrée(s)",
+        "missingDocsTitle": "Documents manquants :",
+        "missingDocsHelp": "Retournez à l'étape Documents pour compléter."
+      },
+      "toasts": {
+        "fileTooLarge": "Fichier trop volumineux (max 5 Mo)",
+        "invalidStep": "Certaines informations sont manquantes ou invalides",
+        "missingRequiredDocs": "Documents obligatoires manquants : {{docs}}",
+        "loginRequired": "Connectez-vous pour candidater",
+        "submitted": "Candidature soumise avec succès !",
+        "profileIncomplete": "Profil incomplet : {{fields}}. Vérifiez l'étape Identité ou Académique.",
+        "missingDocs": "Documents manquants : {{docs}}",
+        "submitError": "Erreur lors de la soumission"
+      },
+      "validation": {
+        "cityRequired": "Ville requise",
+        "degreeRequired": "Diplôme requis",
+        "institutionRequired": "Établissement requis",
+        "yearInvalid": "Année invalide",
+        "yearTooOld": "Année trop ancienne",
+        "futureYearInvalid": "Année future invalide",
+        "firstNameRequired": "Prénom requis",
+        "lastNameRequired": "Nom requis",
+        "nationalityRequired": "Nationalité requise",
+        "phoneRequired": "Téléphone requis",
+        "addOneDegree": "Ajoutez au moins un diplôme",
+        "motivationMin": "La lettre de motivation doit contenir au moins 20 caractères",
+        "termsRequired": "Vous devez accepter les conditions générales",
+        "cinInvalid": "CIN tunisien requis (8 chiffres)",
+        "passportInvalid": "Passeport requis (6 à 20 caractères alphanumériques)"
+      }
+    }
+  },
+  "institution": {
+    "dashboard": {
+      "label": "Tableau de bord",
+      "createProgram": "Créer un programme",
+      "notValidated": "Votre établissement doit être validé par l'administrateur avant de pouvoir publier des programmes.",
+      "stats": {
+        "publishedPrograms": "Programmes publiés",
+        "newRequests": "Nouvelles demandes",
+        "inReview": "En examen",
+        "decisionsRendered": "Décisions rendues"
+      },
+      "pipeline": {
+        "title": "Pipeline des candidatures",
+        "seeAll": "Voir tout",
+        "empty": "Aucune",
+        "columns": {
+          "soumise": "Soumises",
+          "en_examen": "En examen",
+          "liste_attente": "Liste d'attente",
+          "acceptee": "Acceptées",
+          "refusee": "Refusées"
+        }
+      },
+      "trend": {
+        "title": "Tendance des candidatures",
+        "total": "total",
+        "noData": "Pas encore de données."
+      },
+      "candidateDialog": {
+        "status": "Statut",
+        "score": "Score diplôme",
+        "notVerified": "Non vérifié",
+        "submissionDate": "Date de soumission",
+        "phone": "Téléphone"
+      },
+      "scoreChip": "Score :",
+      "toasts": {
+        "resubmitted": "Dossier resoumis pour validation.",
+        "error": "Erreur"
+      }
+    },
+    "programs": {
+      "sectionLabel": "Établissement",
+      "title": "Programmes",
+      "subtitle": "Gérez vos formations",
+      "createProgram": "Créer un programme",
+      "searchPlaceholder": "Rechercher un programme…",
+      "columns": {
+        "title": "Titre",
+        "level": "Niveau",
+        "status": "Statut",
+        "applications": "Candidatures",
+        "deadline": "Date limite",
+        "actions": "Actions"
+      },
+      "empty": "Aucun programme.",
+      "deleteConfirm": {
+        "title": "Supprimer ce programme ?",
+        "body": "sera définitivement supprimé. Cette action est irréversible.",
+        "cancel": "Annuler",
+        "deleting": "Suppression…",
+        "delete": "Supprimer"
+      },
+      "pagination": "programme",
+      "paginationPlural": "programmes",
+      "toasts": {
+        "deleted": "Programme supprimé.",
+        "deleteError": "Erreur lors de la suppression."
+      }
+    },
+    "candidatures": {
+      "sectionLabel": "Établissement",
+      "title": "Candidatures",
+      "subtitle": "Gérez les demandes d'admission",
+      "searchPlaceholder": "Rechercher par candidat, programme…",
+      "columns": {
+        "candidate": "Candidat",
+        "program": "Programme",
+        "status": "Statut",
+        "score": "Score",
+        "date": "Date",
+        "actions": "Actions"
+      },
+      "empty": "Aucune candidature.",
+      "transitions": {
+        "en_examen": "En examen",
+        "acceptee": "Accepter",
+        "refusee": "Refuser",
+        "liste_attente": "Attente"
+      },
+      "candidatePanel": {
+        "nationality": "Nationalité",
+        "cin": "CIN",
+        "passport": "Passeport",
+        "phone": "Téléphone",
+        "address": "Adresse",
+        "lastDiploma": "Dernier diplôme",
+        "mention": "Mention :",
+        "notFilled": "Non renseigné"
+      },
+      "pagination": "candidature",
+      "paginationPlural": "candidatures",
+      "toasts": {
+        "statusUpdated": "Statut mis à jour",
+        "error": "Erreur"
+      },
+      "ariaExpand": "Voir le détail candidat",
+      "ariaCollapse": "Masquer le détail candidat"
+    },
+    "candidates": {
+      "sectionLabel": "Établissement",
+      "title": "Candidats",
+      "subtitle": "Liste des candidats ayant postulé à vos programmes",
+      "searchPlaceholder": "Rechercher un candidat…",
+      "columns": {
+        "candidate": "Candidat",
+        "appliedPrograms": "Programmes postulés",
+        "nbApplications": "Nb. candidatures",
+        "date": "Date"
+      },
+      "empty": "Aucun candidat.",
+      "more": "autre",
+      "morePlural": "autres",
+      "pagination": "candidat",
+      "paginationPlural": "candidats"
+    },
+    "notifications": {
+      "sectionLabel": "Établissement",
+      "title": "Notifications",
+      "subtitle": "Centre de notifications",
+      "markAllRead": "Tout marquer comme lu",
+      "searchPlaceholder": "Rechercher…",
+      "filters": {
+        "all": "Toutes",
+        "unread": "Non lues",
+        "read": "Lues"
+      },
+      "empty": "Aucune notification",
+      "markAsRead": "Marquer comme lue",
+      "types": {
+        "statut_candidature": "Candidature",
+        "nouveau_programme": "Programme",
+        "document_manquant": "Document",
+        "rappel_echeance": "Échéance",
+        "systeme": "Système"
+      },
+      "pagination": "notification",
+      "paginationPlural": "notifications",
+      "timeAgo": {
+        "justNow": "à l'instant",
+        "minutes": "il y a {{count}} min",
+        "hours": "il y a {{count}} h",
+        "days": "il y a {{count}} j"
+      },
+      "toasts": {
+        "allMarkedRead": "Tout marqué comme lu.",
+        "error": "Erreur."
+      }
+    },
+    "placeholder": {
+      "sectionLabel": "Établissement",
+      "inDevelopment": "En cours de développement",
+      "reports": {
+        "title": "Rapports",
+        "subtitle": "Statistiques et exports",
+        "description": "Rapports périodiques, exports CSV et indicateurs de performance de votre établissement. Disponible prochainement."
+      }
+    }
+  },
+  "navbar": {
+    "home": "Accueil",
+    "programs": "Programmes",
+    "institutions": "Instituts",
+    "compare": "Comparer",
+    "guide": "Guide",
+    "howItWorks": "Comment ça marche",
+    "about": "À propos",
+    "mySpace": "Mon espace",
+    "login": "Se connecter",
+    "start": "Commencer",
+    "logout": "Se déconnecter"
+  },
+  "footer": {
+    "tagline": "Trouvez votre voie vers l'institution idéale",
+    "platform": {
+      "title": "Plateforme",
+      "browsePrograms": "Parcourir les programmes",
+      "findInstitution": "Trouver un institut",
+      "comparePrograms": "Comparer les programmes"
+    },
+    "candidates": {
+      "title": "Candidats",
+      "createAccount": "Créer un compte",
+      "login": "Se connecter",
+      "mySpace": "Mon espace",
+      "myApplications": "Mes candidatures",
+      "myFavorites": "Mes favoris"
+    },
+    "institutions": {
+      "title": "Instituts",
+      "login": "Connexion institut",
+      "requestInvitation": "Demander une invitation"
+    },
+    "company": {
+      "title": "Entreprise",
+      "about": "À propos",
+      "contact": "Contact",
+      "privacy": "Politique de confidentialité",
+      "terms": "Conditions d'utilisation"
+    },
+    "resources": {
+      "title": "Ressources",
+      "candidateGuide": "Guide candidat"
+    },
+    "copyright": "© 2026 EduBridge. Tous droits réservés."
+  },
+  "home": {
+    "hero": {
+      "title": "Trouvez votre voie vers\nl'institution idéale",
+      "subtitle": "Découvrez des programmes, comparez les instituts et gérez vos candidatures — tout en un seul endroit."
+    },
+    "stats": {
+      "programs": "Programmes",
+      "institutions": "Établissements",
+      "fields": "Domaines",
+      "students": "Étudiants"
+    },
+    "about": {
+      "title": "À propos d'EduBridge",
+      "subtitle": "Une plateforme conçue pour simplifier l'accès à l'enseignement supérieur en Tunisie",
+      "description1": "EduBridge est une plateforme numérique tunisienne dédiée à la mise en relation entre les candidats et les établissements d'enseignement supérieur privés en Tunisie. Elle couvre l'ensemble des filières : cycles préparatoires, licences, cycles ingénieurs et masters — dans des domaines aussi variés que l'informatique, le génie civil, l'électrique, la mécanique et bien d'autres.",
+      "description2": "Les candidats peuvent explorer les programmes disponibles, comparer les institutions et soumettre leurs dossiers en ligne. Les institutions disposent d'un espace dédié pour gérer les admissions et communiquer directement avec les candidats.",
+      "mission": {
+        "icon": "🎯",
+        "title": "Notre mission",
+        "text": "Démocratiser l'accès à l'information sur l'enseignement supérieur et réduire les inégalités d'orientation en Tunisie."
+      },
+      "partners": {
+        "icon": "🤝",
+        "title": "Nos partenaires",
+        "text": "Nous collaborons avec des établissements publics et privés accrédités, sélectionnés pour la qualité de leurs formations et leur engagement envers les étudiants."
+      },
+      "privacy": {
+        "icon": "🔒",
+        "title": "Confidentialité",
+        "text": "Les données personnelles des candidats sont protégées et partagées uniquement avec les institutions concernées, dans le strict respect de la vie privée."
+      }
+    },
+    "fields": {
+      "title": "Explorer par domaine",
+      "subtitle": "Trouvez des programmes dans votre domaine d'intérêt",
+      "programs": "programmes"
+    },
+    "featuredPrograms": {
+      "title": "Programmes à la une",
+      "subtitle": "Les meilleurs programmes des principaux instituts",
+      "seeAll": "Voir tout",
+      "browse": "Parcourir les programmes"
+    },
+    "topInstitutions": {
+      "title": "Meilleurs instituts",
+      "subtitle": "Écoles d'ingénieurs et universités de référence",
+      "seeAll": "Voir tout",
+      "loading": "Chargement…"
+    },
+    "howItWorks": {
+      "title": "Comment ça marche",
+      "subtitle": "Votre parcours vers l'admission en quatre étapes simples",
+      "step": "ÉTAPE",
+      "steps": [
+        {
+          "title": "Explorer",
+          "description": "Découvrez les meilleurs instituts et trouvez le programme adapté à votre projet académique.",
+          "icon": "🔍"
+        },
+        {
+          "title": "Candidater",
+          "description": "Déposez votre dossier complet et envoyez votre candidature en quelques étapes simples.",
+          "icon": "📋"
+        },
+        {
+          "title": "Suivre",
+          "description": "Consultez l'avancement de votre candidature et recevez les décisions en temps réel.",
+          "icon": "📡"
+        },
+        {
+          "title": "Confirmer",
+          "description": "Finalisez votre admission et préparez votre intégration dans l'établissement choisi.",
+          "icon": "🎓"
+        }
+      ]
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Bienvenue",
+      "subtitle": "Connectez-vous pour continuer",
+      "emailLabel": "Adresse e-mail",
+      "emailPlaceholder": "votre@email.com",
+      "passwordLabel": "Mot de passe",
+      "passwordPlaceholder": "Saisissez votre mot de passe",
+      "forgotPassword": "Mot de passe oublié ?",
+      "submit": "Se connecter",
+      "submitting": "Connexion en cours…",
+      "noAccount": "Pas encore de compte ?",
+      "createAccount": "Créer un compte",
+      "backHome": "← Retour à l'accueil",
+      "errors": {
+        "emailRequired": "Email requis",
+        "emailInvalid": "Email invalide",
+        "passwordRequired": "Mot de passe requis",
+        "invalidCredentials": "Identifiants incorrects"
+      },
+      "firstLoginBanner": {
+        "title": "Compte non activé",
+        "message": "Votre compte établissement n'a pas encore été activé. Veuillez utiliser le lien d'invitation reçu par email pour définir votre mot de passe.",
+        "contact": "Si vous n'avez pas reçu l'email, contactez l'administrateur."
+      },
+      "suspendedBanner": {
+        "title": "Compte suspendu",
+        "message": "Votre compte établissement a été suspendu par l'administration.",
+        "reason": "Motif :",
+        "contact": "Contactez l'équipe EduBridge pour plus d'informations."
+      },
+      "forgotDialog": {
+        "title": "Mot de passe oublié",
+        "description": "Saisissez l'adresse email associée à votre compte. Nous vous enverrons un lien de réinitialisation.",
+        "emailLabel": "Adresse e-mail",
+        "cancel": "Annuler",
+        "send": "Envoyer le lien",
+        "sending": "Envoi…",
+        "sentTitle": "Email envoyé",
+        "sentDescription": "Si un compte existe pour",
+        "sentDescription2": ", vous recevrez un email avec un lien de réinitialisation valable 1 heure.",
+        "spamNote": "Pensez à vérifier vos spams si vous ne voyez rien arriver.",
+        "close": "Fermer"
+      }
+    },
+    "signup": {
+      "title": "Créer votre compte candidat",
+      "subtitle": "Commencez votre parcours vers le programme idéal",
+      "firstNameLabel": "Prénom *",
+      "firstNamePlaceholder": "Votre prénom",
+      "lastNameLabel": "Nom *",
+      "lastNamePlaceholder": "Votre nom",
+      "emailLabel": "Adresse e-mail *",
+      "emailPlaceholder": "votre@email.com",
+      "nationalityLabel": "Nationalité *",
+      "nationalityPlaceholder": "Sélectionnez votre nationalité",
+      "passwordLabel": "Mot de passe *",
+      "passwordPlaceholder": "Créez un mot de passe fort",
+      "confirmPasswordLabel": "Confirmer le mot de passe *",
+      "confirmPasswordPlaceholder": "Répétez le mot de passe",
+      "submit": "Créer mon compte",
+      "submitting": "Création en cours…",
+      "alreadyHaveAccount": "Vous avez déjà un compte ?",
+      "login": "Se connecter",
+      "backHome": "← Retour à l'accueil",
+      "terms": {
+        "accept": "J'accepte les",
+        "termsLink": "Conditions d'utilisation",
+        "and": "et la",
+        "privacyLink": "Politique de confidentialité"
+      },
+      "passwordCriteria": {
+        "title": "Critères du mot de passe :",
+        "minChars": "8 caractères minimum",
+        "uppercase": "Une lettre majuscule",
+        "digit": "Un chiffre",
+        "special": "Un caractère spécial"
+      },
+      "strength": {
+        "weak": "Faible",
+        "medium": "Moyen",
+        "good": "Bon",
+        "strong": "Fort"
+      },
+      "errors": {
+        "firstNameRequired": "Prénom requis",
+        "lastNameRequired": "Nom requis",
+        "emailInvalid": "Email invalide",
+        "nationalityRequired": "Nationalité requise",
+        "passwordMin": "8 caractères minimum",
+        "passwordUppercase": "Une majuscule requise",
+        "passwordDigit": "Un chiffre requis",
+        "passwordSpecial": "Un caractère spécial requis",
+        "passwordsMismatch": "Les mots de passe ne correspondent pas",
+        "termsRequired": "Accepter les conditions",
+        "registrationError": "Erreur inscription"
+      }
+    }
+  },
+  "search": {
+    "placeholder": "Rechercher des programmes...",
+    "sort": {
+      "relevance": "Pertinence",
+      "deadline": "Date limite",
+      "tuitionAsc": "Frais (croissant)",
+      "tuitionDesc": "Frais (décroissant)"
+    },
+    "view": {
+      "list": "Vue liste",
+      "grid": "Vue grille"
+    },
+    "filters": {
+      "title": "Filtres",
+      "reset": "Réinitialiser",
+      "domain": "Domaine",
+      "level": "Niveau",
+      "tuition": "Frais d'inscription"
+    },
+    "results": {
+      "program": "programme",
+      "programs": "programmes",
+      "found": "trouvé",
+      "foundPlural": "trouvés",
+      "in": "dans",
+      "retry": "Réessayer",
+      "empty": "Aucun programme trouvé",
+      "emptyDescription": "Essayez d'ajuster vos filtres ou votre recherche pour trouver plus de programmes.",
+      "resetFilters": "Réinitialiser les filtres",
+      "clientFilterNote": "Note : les filtres « frais » et les sélections multiples sont appliqués côté client — les pages peuvent contenir moins de résultats que prévu."
+    }
+  },
+  "program": {
+    "notFound": "Programme introuvable",
+    "backToSearch": "Retour à la recherche",
+    "apply": "Candidater",
+    "saved": "Sauvegardé",
+    "save": "Sauvegarder",
+    "copied": "Copié !",
+    "share": "Partager",
+    "viewFullProfile": "Voir le profil complet",
+    "viewProfile": "Voir le profil",
+    "required": "Obligatoire",
+    "optional": "Optionnel",
+    "daysLeft": "{{count}} jours",
+    "expired": "Expiré",
+    "applicationDeadline": "Date limite de candidature",
+    "noDocuments": "Aucun document requis spécifié.",
+    "institutionUnavailable": "Informations institution non disponibles.",
+    "toasts": {
+      "loginRequired": "Connectez-vous pour candidater",
+      "onlyCandidates": "Seuls les candidats peuvent postuler à un programme.",
+      "linkCopied": "Lien copié dans le presse-papiers !",
+      "copyFailed": "Impossible de copier le lien."
+    },
+    "breadcrumb": {
+      "home": "Accueil",
+      "search": "Recherche"
+    },
+    "tabs": {
+      "overview": "Vue d'ensemble",
+      "requirements": "Prérequis",
+      "tuition": "Frais",
+      "institution": "Établissement"
+    },
+    "sections": {
+      "keyInfo": "Informations clés",
+      "about": "À propos du programme",
+      "requirements": "Conditions d'admission",
+      "tuitionFinancing": "Frais et financement",
+      "annualTuition": "Frais d'inscription annuels",
+      "financing": "Options de financement",
+      "institution": "Établissement"
+    },
+    "financing": {
+      "merit": "Bourses au mérite",
+      "needBased": "Aide financière selon les besoins",
+      "studentLoans": "Prêts étudiants",
+      "alternance": "Programmes d'alternance"
+    },
+    "keyFacts": {
+      "level": "Niveau",
+      "duration": "Durée",
+      "years": "ans",
+      "startDate": "Date de rentrée",
+      "deadline": "Date limite",
+      "language": "Langue",
+      "mode": "Mode"
+    },
+    "levels": {
+      "cycle_preparatoire": "Cycle préparatoire",
+      "licence": "Licence",
+      "master": "Master",
+      "ingenieur": "Ingénieur"
+    }
+  },
+  "guide": {
+    "badge": "Guide étudiants étrangers",
+    "nav": {
+      "aria": "Navigation des sections du guide"
+    },
+    "sections": {
+      "visa": "Visa",
+      "bourses": "Bourses",
+      "vie": "Vie",
+      "admission": "Admission",
+      "equivalence": "Diplômes",
+      "documents": "Documents",
+      "securite": "Sécurité",
+      "culture": "Culture"
+    },
+    "scholarships": {
+      "filter": {
+        "all": "Toutes",
+        "gouvernementale": "Gouvernementales",
+        "internationale": "Internationales",
+        "institutionnelle": "Institutionnelles"
+      },
+      "type": {
+        "gouvernementale": "Gouvernementale",
+        "internationale": "Internationale",
+        "institutionnelle": "Institutionnelle"
+      },
+      "apply": "Postuler",
+      "urgent": "Urgent — ferme dans {{count}} jour",
+      "urgentPlural": "Urgent — ferme dans {{count}} jours",
+      "deadline": "Date limite : {{date}}"
+    },
+    "housing": {
+      "type": {
+        "cite": "Logement social",
+        "residence_privee": "Standing élevé",
+        "colocation": "Compromis"
+      }
+    },
+    "documents": {
+      "prepared": "documents préparés",
+      "copyChecklist": "Copier ma checklist",
+      "obligatoire": "Obligatoire",
+      "checklistCopied": "Checklist copiée dans le presse-papier !",
+      "copyError": "Impossible d'accéder au presse-papier.",
+      "noneChecked": "Aucun document coché pour le moment."
+    },
+    "checklist": {
+      "categories": {
+        "identite": "Identité",
+        "academique": "Académique",
+        "financier": "Financier",
+        "sante": "Santé",
+        "logement": "Logement"
+      }
+    },
+    "admission": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "stepOf": "Étape {{current}} sur {{total}}",
+      "documentsRequired": "Documents nécessaires à cette étape",
+      "moreInfo": "Plus d'informations"
+    },
+    "contact": {
+      "community": "Communauté",
+      "permanence": "Permanence",
+      "joinCommunity": "Rejoindre la communauté",
+      "askQuestion": "Poser une question",
+      "loginForAssistance": "Connectez-vous pour accéder à l'assistance personnalisée."
+    },
+    "hero": {
+      "title": "Votre guide complet pour étudier en Tunisie",
+      "subtitle": "De votre première démarche administrative à votre intégration sur le campus, retrouvez ici toutes les réponses concrètes pour préparer sereinement votre arrivée."
+    },
+    "visa": {
+      "step": "Étape 1",
+      "title": "Visa & permis de séjour",
+      "description": "Comprendre les démarches administratives pour entrer et résider légalement en Tunisie en tant qu'étudiant étranger.",
+      "estimatedDelay": "Délai moyen total estimé",
+      "delayDescription": "Comptez <strong>6 à 10 semaines</strong> entre le démarrage du dossier et l'obtention de la carte de séjour. Anticipez votre demande dès l'admission obtenue.",
+      "documentsCount": "Documents à préparer ({{count}})",
+      "goodToKnow": "Bon à savoir",
+      "eduBridgeAttestation": "Votre attestation d'inscription EduBridge peut servir de justificatif d'admission auprès de l'ambassade de Tunisie de votre pays."
+    },
+    "financing": {
+      "step": "Étape 2",
+      "title": "Financer vos études",
+      "description": "Plusieurs dispositifs de financement sont accessibles aux étudiants étrangers, du programme gouvernemental aux bourses des instituts partenaires."
+    },
+    "life": {
+      "step": "Étape 3",
+      "title": "Vivre en Tunisie",
+      "description": "Un coût de la vie maîtrisé, plusieurs options de logement et un système de santé accessible pour les étudiants.",
+      "monthlyBudget": "Budget mensuel estimé",
+      "dormStudent": "Étudiant en cité universitaire",
+      "privateStudent": "Étudiant en logement privé",
+      "housingDorm": "Logement (cité)",
+      "housingPrivate": "Logement (studio privé)",
+      "universityRestaurant": "Restaurant universitaire",
+      "groceries": "Courses & alimentation",
+      "entertainment": "Loisirs & divers",
+      "monthlyTotal": "Total mensuel",
+      "dailyCosts": "Coût de la vie au quotidien",
+      "costCategory": "Poste",
+      "costTND": "Coût en TND",
+      "costEUR": "Équivalent EUR",
+      "housingOptions": "Trois options de logement",
+      "healthInsurance": "Assurance maladie",
+      "healthCnam": "La <strong>CNAM</strong> (Caisse Nationale d'Assurance Maladie) n'est ouverte qu'aux étudiants tunisiens et résidents permanents.",
+      "healthMutual": "Plusieurs <strong>mutuelles étudiantes</strong> proposent des forfaits annuels accessibles (200 à 400 TND/an).",
+      "healthWarning": "<strong>Souscrivez impérativement avant le départ</strong> une assurance internationale couvrant hospitalisation et rapatriement."
+    },
+    "admissionProcess": {
+      "step": "Étape 4",
+      "title": "Processus d'admission",
+      "description": "Cinq étapes structurées pour candidater, soumettre vos pièces officielles et finaliser votre inscription dans un institut tunisien."
+    },
+    "equivalenceSection": {
+      "step": "Étape 5",
+      "title": "Reconnaissance des diplômes",
+      "description": "L'équivalence de votre diplôme étranger est une étape obligatoire pour intégrer un programme tunisien. Voici comment procéder selon votre pays d'origine.",
+      "cneqRole": "Le rôle du CNEQ",
+      "cneqDescription": "Le <strong>Centre National pour l'Évaluation des Qualifications</strong> (CNEQ) est l'organisme officiel chargé d'évaluer les diplômes étrangers et de délivrer les attestations d'équivalence. Toute inscription dans un institut tunisien à un niveau supérieur au baccalauréat passe par lui.",
+      "cneqDelay": "Délai moyen : 4 à 8 semaines",
+      "cneqSite": "Site officiel CNEQ",
+      "educationalSystem": "Système éducatif",
+      "procedure": "Procédure",
+      "contactOrganization": "Organisme contact"
+    },
+    "documentChecklist": {
+      "step": "Étape 6",
+      "title": "Checklist des documents",
+      "description": "Cochez au fur et à mesure que vous rassemblez vos pièces. La copie générée vous accompagne en voyage."
+    },
+    "safety": {
+      "step": "Étape 7",
+      "title": "Sécurité & urgences",
+      "description": "Numéros essentiels et bonnes pratiques pour vivre sereinement votre séjour. À enregistrer avant même le départ.",
+      "emergencyNumbers": "Numéros d'urgence"
+    },
+    "cultureIntegration": {
+      "step": "Étape 8",
+      "title": "S'intégrer culturellement",
+      "description": "La Tunisie est un pays accueillant et pluriel. Quelques repères pour vivre votre intégration avec confiance et respect.",
+      "closingMessage": "Vous arrivez avec votre histoire et votre culture, et la Tunisie vous accueille avec la sienne. Soyez curieux, posez des questions, acceptez les invitations : c'est par le contact humain que se tissent les souvenirs les plus précieux d'un séjour à l'étranger."
+    },
+    "contactSection": {
+      "step": "Besoin d'aide ?",
+      "title": "Une équipe dédiée à votre arrivée",
+      "description": "Notre cellule étudiants étrangers vous accompagne, du premier email jusqu'à votre installation effective sur le campus."
+    }
+  },
+  "compare": {
+    "title": "Comparer les programmes",
+    "subtitle": "Comparaison côte à côte pour vous aider à faire le bon choix",
+    "loadError": "Impossible de charger les programmes sélectionnés.",
+    "backToSearch": "Retour à la recherche",
+    "emptyTitle": "Aucun programme sélectionné pour la comparaison.",
+    "emptyHint": "Utilisez le bouton « Comparer » sur les cartes de programmes pour en ajouter jusqu'à 3.",
+    "browsePrograms": "Parcourir les programmes",
+    "criterion": "Critère",
+    "removeAriaLabel": "Retirer de la comparaison",
+    "viewDetails": "Voir les détails",
+    "addProgram": "Ajouter un programme",
+    "browseMore": "Parcourir plus de programmes",
+    "rows": {
+      "institute": "Institut",
+      "location": "Localisation",
+      "level": "Niveau",
+      "domain": "Domaine",
+      "mode": "Mode",
+      "duration": "Durée",
+      "durationYears": "{{count}} an",
+      "durationYearsPlural": "{{count}} ans",
+      "language": "Langue",
+      "tuition": "Frais inscription",
+      "deadline": "Date limite",
+      "requiredDocuments": "Documents requis",
+      "moreDocuments": "+{{count}} de plus",
+      "prerequisites": "Prérequis",
+      "minAverage": "Moyenne min. : {{value}}",
+      "bacTypes": "Bac : {{types}}",
+      "subjects": "Matières : {{subjects}}"
+    }
+  },
+  "admin": {
+    "timeAgo": {
+      "justNow": "à l'instant",
+      "minutes": "il y a {{count}} min",
+      "hours": "il y a {{count}} h",
+      "days": "il y a {{count}} j"
+    },
+    "instStatus": {
+      "approved": "Approuvé",
+      "pending_admin_review": "En attente",
+      "invited": "Invité",
+      "rejected": "Rejeté",
+      "suspended": "Suspendu"
+    },
+    "alerts": {
+      "validationRequired": "Validation requise",
+      "validationDesc": "{{name}} attend une validation administrateur.",
+      "newApplication": "Nouvelle candidature soumise",
+      "newApplicationDesc": "{{name}} a postulé à {{program}}.",
+      "newInstitut": "Nouvel institut invité",
+      "newInstitutDesc": "{{email}} doit finaliser son inscription.",
+      "expiredProgram": "Programme expiré",
+      "expiredProgramDesc": "{{title}} — date limite dépassée.",
+      "suspendedInstitut": "Institut suspendu",
+      "suspendedInstitutDesc": "{{name}} — accès suspendu.",
+      "candidatFallback": "Un candidat",
+      "institutFallback": "Institut",
+      "etablissementFallback": "Un établissement",
+      "programFallback": "un programme"
+    },
+    "overview": {
+      "sectionLabel": "Tableau de bord administrateur",
+      "greeting": "Bonjour, {{name}}",
+      "subtitle": "Vue d'ensemble de la plateforme — {{date}}",
+      "manageInstituts": "Gérer les instituts",
+      "noData": "Pas de données",
+      "kpis": {
+        "users": "Utilisateurs",
+        "instituts": "Instituts",
+        "programs": "Programmes",
+        "pendingApplications": "Candidatures en attente",
+        "unverifiedInstituts": "Instituts non vérifiés",
+        "acceptanceRate": "Taux d'acceptation"
+      },
+      "analytics": {
+        "title": "Analytics",
+        "subtitle": "Indicateurs clés de l'activité plateforme",
+        "accounts": "{{count}} comptes",
+        "total": "{{count}} au total",
+        "rolesChart": "Répartition par rôle",
+        "statusChart": "Candidatures par statut",
+        "growthChart": "Croissance mensuelle des inscriptions",
+        "growthSubtitle": "12 derniers mois · candidats",
+        "topInstituts": "Top instituts demandés",
+        "topInstitutsBy": "par candidatures",
+        "roles": {
+          "candidats": "Candidats",
+          "instituts": "Instituts",
+          "admins": "Admins"
+        },
+        "statuts": {
+          "soumises": "Soumises",
+          "en_examen": "En examen",
+          "acceptees": "Acceptées",
+          "refusees": "Refusées",
+          "liste_attente": "Liste d'attente"
+        }
+      },
+      "notifCenter": {
+        "title": "Centre de notifications",
+        "subtitle": "Événements importants nécessitant votre attention",
+        "viewAll": "Tout voir",
+        "empty": "Tout est à jour",
+        "emptySubtitle": "Aucune notification urgente pour le moment."
+      },
+      "palette": {
+        "urgent": "Urgent",
+        "warning": "Important",
+        "info": "Info"
+      },
+      "validation": {
+        "title": "Validation des instituts",
+        "subtitle": "Établissements en attente de revue",
+        "noName": "Sans nom",
+        "registeredAt": "Inscrit {{time}}",
+        "pending": "En attente",
+        "validate": "Valider",
+        "suspend": "Suspendre",
+        "manageAll": "Gérer tous les instituts",
+        "noPending": "Aucun établissement en attente.",
+        "toasts": {
+          "approved": "Institut approuvé.",
+          "error": "Erreur"
+        }
+      }
+    },
+    "users": {
+      "sectionLabel": "Administration",
+      "title": "Utilisateurs",
+      "subtitle": "Gestion complète des comptes de la plateforme",
+      "searchPlaceholder": "Rechercher par nom, email…",
+      "allFilter": "Tous",
+      "stats": {
+        "total": "Total",
+        "candidats": "Candidats",
+        "instituts": "Instituts",
+        "admins": "Admins"
+      },
+      "columns": {
+        "user": "Utilisateur",
+        "role": "Rôle",
+        "status": "Statut",
+        "registeredAt": "Inscription",
+        "actions": "Actions"
+      },
+      "userStatus": {
+        "active": "Actif",
+        "disabled": "Désactivé"
+      },
+      "roleLabels": {
+        "candidat": "Candidat",
+        "institut": "Institut",
+        "admin": "Admin"
+      },
+      "actions": {
+        "deactivate": "Désactiver",
+        "reactivate": "Réactiver",
+        "delete": "Supprimer"
+      },
+      "toasts": {
+        "deactivated": "Utilisateur désactivé.",
+        "reactivated": "Utilisateur réactivé.",
+        "updateError": "Erreur lors de la modification.",
+        "deleted": "Utilisateur supprimé.",
+        "deleteError": "Erreur lors de la suppression."
+      },
+      "empty": "Aucun utilisateur trouvé.",
+      "results_one": "{{count}} résultat",
+      "results_other": "{{count}} résultats",
+      "deleteDialog": {
+        "title": "Supprimer l'utilisateur",
+        "about": "Vous êtes sur le point de supprimer définitivement",
+        "warning": "⚠️ Cette action est irréversible. Toutes les données associées seront perdues.",
+        "confirm": "Supprimer définitivement"
+      }
+    },
+    "instituts": {
+      "sectionLabel": "Administration",
+      "title": "Instituts",
+      "subtitle": "Validation, suivi et gestion des établissements partenaires",
+      "inviteButton": "Inviter un institut",
+      "searchPlaceholder": "Rechercher par nom, sigle, email…",
+      "allFilter": "Tous",
+      "stats": {
+        "total": "Total",
+        "approved": "Approuvés",
+        "pending": "En attente",
+        "suspended": "Suspendus"
+      },
+      "columns": {
+        "institut": "Institut",
+        "status": "Statut",
+        "verification": "Vérification",
+        "programs": "Programmes",
+        "registeredAt": "Inscription",
+        "actions": "Actions"
+      },
+      "actions": {
+        "approve": "Approuver",
+        "reject": "Rejeter",
+        "suspend": "Suspendre",
+        "reactivate": "Réactiver",
+        "delete": "Supprimer"
+      },
+      "verified": "Vérifié",
+      "notVerified": "Non vérifié",
+      "noName": "Sans nom",
+      "empty": "Aucun institut trouvé.",
+      "toasts": {
+        "approved": "Institut approuvé.",
+        "rejected": "Institut rejeté.",
+        "suspended": "Institut suspendu.",
+        "reactivated": "Institut réactivé.",
+        "deleted": "Institut supprimé.",
+        "error": "Erreur"
+      },
+      "motifDialog": {
+        "motifLabel": "Motif",
+        "suspendTitle": "Suspendre l'institut",
+        "rejectTitle": "Rejeter l'institut",
+        "suspendPlaceholder": "Décrivez la raison de la suspension…",
+        "rejectPlaceholder": "Décrivez la raison du rejet…",
+        "suspendConfirm": "Suspendre",
+        "rejectConfirm": "Rejeter"
+      },
+      "deleteDialog": {
+        "title": "Supprimer l'institut",
+        "about": "Vous êtes sur le point de supprimer définitivement",
+        "warning": "⚠️ Cette action est irréversible. Toutes les données associées seront perdues.",
+        "confirm": "Supprimer définitivement"
+      },
+      "inviteDialog": {
+        "title": "Inviter un institut",
+        "subtitle": "Un email d'invitation sera envoyé",
+        "emailLabel": "Email",
+        "nomLabel": "Nom de l'établissement",
+        "nomOptional": "(optionnel)",
+        "send": "Envoyer l'invitation",
+        "toastSuccess": "Invitation envoyée à {{email}}",
+        "toastError": "Erreur lors de l'invitation."
+      },
+      "results_one": "{{count}} résultat",
+      "results_other": "{{count}} résultats"
+    },
+    "programs": {
+      "sectionLabel": "Administration",
+      "title": "Programmes",
+      "subtitle": "Vue d'ensemble de toutes les formations publiées sur la plateforme",
+      "searchPlaceholder": "Rechercher par titre, institut, domaine…",
+      "allDomains": "Tous les domaines",
+      "allLevels": "Tous les niveaux",
+      "stats": {
+        "total": "Total",
+        "active": "Actifs",
+        "inactive": "Inactifs",
+        "expired": "Expirés"
+      },
+      "columns": {
+        "program": "Programme",
+        "institut": "Institut",
+        "levelMode": "Niveau / Mode",
+        "status": "Statut",
+        "applications": "Candidatures",
+        "deadline": "Date limite",
+        "fees": "Frais"
+      },
+      "status": {
+        "expired": "Expiré",
+        "active": "Actif",
+        "inactive": "Inactif"
+      },
+      "domains": {
+        "informatique": "Informatique",
+        "genie_civil": "Génie civil",
+        "electrique": "Électrique",
+        "mecanique": "Mécanique",
+        "chimie": "Chimie",
+        "agronomie": "Agronomie",
+        "finance": "Finance",
+        "management": "Management"
+      },
+      "modes": {
+        "cours_du_jour": "Cours du jour",
+        "cours_du_soir": "Cours du soir",
+        "alternance": "Alternance",
+        "formation_continue": "Formation continue"
+      },
+      "empty": "Aucun programme trouvé.",
+      "results_one": "{{count}} programme",
+      "results_other": "{{count}} programmes"
+    },
+    "candidatures": {
+      "sectionLabel": "Administration",
+      "title": "Candidatures",
+      "subtitle": "Suivi global de toutes les candidatures de la plateforme",
+      "searchPlaceholder": "Rechercher par candidat, programme, institut…",
+      "searchNote": "Recherche appliquée sur la page courante uniquement.",
+      "allFilter": "Toutes",
+      "unknownCandidat": "Candidat inconnu",
+      "stats": {
+        "total": "Total",
+        "submitted": "Soumises",
+        "inReview": "En examen",
+        "accepted": "Acceptées",
+        "rejected": "Refusées"
+      },
+      "columns": {
+        "candidat": "Candidat",
+        "program": "Programme",
+        "institut": "Institut",
+        "status": "Statut",
+        "submittedAt": "Soumise le",
+        "documents": "Documents"
+      },
+      "files_one": "{{count}} fichier",
+      "files_other": "{{count}} fichiers",
+      "empty": "Aucune candidature trouvée.",
+      "statuses": {
+        "soumise": "Soumise",
+        "en_examen": "En examen",
+        "acceptee": "Acceptée",
+        "refusee": "Refusée",
+        "liste_attente": "Liste d'attente",
+        "brouillon": "Brouillon"
+      }
+    },
+    "notifications": {
+      "sectionLabel": "Administration",
+      "title": "Notifications",
+      "subtitle": "Centre de notifications — alertes système et événements plateforme",
+      "searchPlaceholder": "Rechercher dans les notifications…",
+      "markAllRead": "Tout marquer comme lu",
+      "markAsRead": "Marquer comme lue",
+      "system": "Système",
+      "stats": {
+        "total": "Total alertes",
+        "urgent": "Urgentes",
+        "important": "Importantes",
+        "info": "Informations"
+      },
+      "filters": {
+        "all": "Toutes",
+        "urgent": "Urgentes",
+        "important": "Importantes",
+        "info": "Infos"
+      },
+      "palette": {
+        "urgent": "Urgent",
+        "warning": "Important",
+        "info": "Info"
+      },
+      "types": {
+        "statut_candidature": "Candidature",
+        "nouveau_programme": "Programme",
+        "document_manquant": "Document",
+        "rappel_echeance": "Échéance",
+        "systeme": "Système"
+      },
+      "toasts": {
+        "markedRead_one": "{{count}} notification marquée comme lue.",
+        "markedRead_other": "{{count}} notifications marquées comme lues.",
+        "markError": "Erreur lors du marquage."
+      },
+      "empty": "Aucune notification",
+      "emptyFilter": "Essayez un autre filtre.",
+      "emptyAll": "La plateforme est à jour.",
+      "pagination_one": "{{count}} notification",
+      "pagination_other": "{{count}} notifications"
+    }
+  },
+  "programDialog": {
+    "create": {
+      "title": "Nouveau programme",
+      "subtitle": "Remplissez les informations pour créer une nouvelle formation"
+    },
+    "edit": {
+      "title": "Modifier le programme"
+    },
+    "fields": {
+      "titleLabel": "Titre du programme",
+      "titleRequired": "Le titre est obligatoire.",
+      "titleMin": "Le titre doit contenir au moins 3 caractères.",
+      "titlePlaceholder": "Ex : Master en Intelligence Artificielle",
+      "domain": "Domaine",
+      "level": "Niveau",
+      "mode": "Mode",
+      "select": "— Sélectionner —",
+      "duration": "Durée (années)",
+      "durationInvalid": "Durée invalide.",
+      "durationPlaceholder": "Ex : 2",
+      "language": "Langue",
+      "languagePlaceholder": "Ex : Français",
+      "capacity": "Capacité",
+      "capacityInvalid": "Capacité invalide.",
+      "capacityPlaceholder": "Ex : 30",
+      "tuition": "Frais d'inscription (TND)",
+      "tuitionInvalid": "Montant invalide.",
+      "tuitionPlaceholder": "Ex : 500",
+      "deadline": "Date limite candidature",
+      "startDate": "Date de début",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez le programme, ses objectifs et débouchés…",
+      "prerequisites": "Prérequis",
+      "minAverage": "Moyenne minimum (/20)",
+      "minAverageInvalid": "Moyenne entre 0 et 20.",
+      "minAveragePlaceholder": "Ex : 12",
+      "bacTypes": "Types de bac (séparés par virgule)",
+      "bacTypesPlaceholder": "Ex : mathematiques, sciences",
+      "requiredDocuments": "Documents requis",
+      "documentName": "Nom du document",
+      "mandatory": "Obligatoire",
+      "optional": "Optionnel",
+      "active": "Programme actif",
+      "activeHint": "(visible immédiatement aux candidats)"
+    },
+    "actions": {
+      "cancel": "Annuler",
+      "create": "Créer le programme",
+      "creating": "Création…",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "toasts": {
+      "created": "Programme créé avec succès !",
+      "createError": "Erreur lors de la création.",
+      "updated": "Programme mis à jour.",
+      "updateError": "Erreur lors de la mise à jour."
+    }
+  }
+}

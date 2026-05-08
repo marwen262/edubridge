@@ -1,6 +1,7 @@
 import React from 'react';
 import { toast } from 'sonner';
 import { X, Plus, Loader2, Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { programmeService } from '@/services/api';
 import type { Programme, DocumentRequis, CreateProgrammeData } from '@/types/api';
@@ -12,32 +13,12 @@ interface EditProgramDialogProps {
   onUpdated: () => void;
 }
 
-const DOMAINES = [
-  { value: 'informatique', label: 'Informatique' },
-  { value: 'genie_civil', label: 'Génie civil' },
-  { value: 'electrique', label: 'Électrique' },
-  { value: 'mecanique', label: 'Mécanique' },
-  { value: 'chimie', label: 'Chimie' },
-  { value: 'agronomie', label: 'Agronomie' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'management', label: 'Management' },
-];
-
-const NIVEAUX = [
-  { value: 'cycle_preparatoire', label: 'Cycle préparatoire' },
-  { value: 'licence', label: 'Licence' },
-  { value: 'master', label: 'Master' },
-  { value: 'ingenieur', label: 'Ingénieur' },
-];
-
-const MODES = [
-  { value: 'cours_du_jour', label: 'Cours du jour' },
-  { value: 'cours_du_soir', label: 'Cours du soir' },
-  { value: 'alternance', label: 'Alternance' },
-  { value: 'formation_continue', label: 'Formation continue' },
-];
+const DOMAINE_VALUES = ['informatique', 'genie_civil', 'electrique', 'mecanique', 'chimie', 'agronomie', 'finance', 'management'] as const;
+const NIVEAU_VALUES = ['cycle_preparatoire', 'licence', 'master', 'ingenieur'] as const;
+const MODE_VALUES = ['cours_du_jour', 'cours_du_soir', 'alternance', 'formation_continue'] as const;
 
 export function EditProgramDialog({ programme, open, onClose, onUpdated }: EditProgramDialogProps) {
+  const { t } = useTranslation();
   const [submitting, setSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
@@ -95,12 +76,12 @@ export function EditProgramDialog({ programme, open, onClose, onUpdated }: EditP
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!titre.trim()) errs.titre = 'Le titre est obligatoire.';
-    if (titre.trim().length < 3) errs.titre = 'Le titre doit contenir au moins 3 caractères.';
-    if (dureeAnnees && (isNaN(Number(dureeAnnees)) || Number(dureeAnnees) < 1)) errs.dureeAnnees = 'Durée invalide.';
-    if (fraisInscription && isNaN(Number(fraisInscription))) errs.fraisInscription = 'Montant invalide.';
-    if (capacite && (isNaN(Number(capacite)) || Number(capacite) < 1)) errs.capacite = 'Capacité invalide.';
-    if (moyenneMin && (isNaN(Number(moyenneMin)) || Number(moyenneMin) < 0 || Number(moyenneMin) > 20)) errs.moyenneMin = 'Moyenne entre 0 et 20.';
+    if (!titre.trim()) errs.titre = t('programDialog.fields.titleRequired');
+    else if (titre.trim().length < 3) errs.titre = t('programDialog.fields.titleMin');
+    if (dureeAnnees && (isNaN(Number(dureeAnnees)) || Number(dureeAnnees) < 1)) errs.dureeAnnees = t('programDialog.fields.durationInvalid');
+    if (fraisInscription && isNaN(Number(fraisInscription))) errs.fraisInscription = t('programDialog.fields.tuitionInvalid');
+    if (capacite && (isNaN(Number(capacite)) || Number(capacite) < 1)) errs.capacite = t('programDialog.fields.capacityInvalid');
+    if (moyenneMin && (isNaN(Number(moyenneMin)) || Number(moyenneMin) < 0 || Number(moyenneMin) > 20)) errs.moyenneMin = t('programDialog.fields.minAverageInvalid');
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -128,12 +109,12 @@ export function EditProgramDialog({ programme, open, onClose, onUpdated }: EditP
         if (typesBac.trim()) data.prerequis.types_bac = typesBac.split(',').map((s) => s.trim()).filter(Boolean);
       }
       await programmeService.update(programme.id, data);
-      toast.success('Programme mis à jour.');
+      toast.success(t('programDialog.toasts.updated'));
       onUpdated();
       onClose();
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } } };
-      toast.error(apiErr?.response?.data?.message ?? 'Erreur lors de la mise à jour.');
+      toast.error(apiErr?.response?.data?.message ?? t('programDialog.toasts.updateError'));
     } finally {
       setSubmitting(false);
     }
@@ -153,7 +134,7 @@ export function EditProgramDialog({ programme, open, onClose, onUpdated }: EditP
         {/* Header */}
         <div className="px-6 py-5 border-b border-[var(--edu-border)] flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-[var(--edu-text-primary)]">Modifier le programme</h2>
+            <h2 className="text-xl font-bold text-[var(--edu-text-primary)]">{t('programDialog.edit.title')}</h2>
             <p className="text-xs text-[var(--edu-text-secondary)] mt-0.5">{programme.titre}</p>
           </div>
           <button onClick={handleClose} className="p-2 rounded-xl hover:bg-[var(--edu-surface)] transition-colors">
@@ -165,106 +146,106 @@ export function EditProgramDialog({ programme, open, onClose, onUpdated }: EditP
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
           <div>
             <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">
-              Titre du programme <span className="text-[var(--edu-danger)]">*</span>
+              {t('programDialog.fields.titleLabel')} <span className="text-[var(--edu-danger)]">*</span>
             </label>
             <input type="text" value={titre} onChange={(e) => setTitre(e.target.value)}
-              placeholder="Ex : Master en Intelligence Artificielle" className={inputClass('titre')} />
+              placeholder={t('programDialog.fields.titlePlaceholder')} className={inputClass('titre')} />
             {errors.titre && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.titre}</p>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Domaine</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.domain')}</label>
               <select value={domaine} onChange={(e) => setDomaine(e.target.value)} className={inputClass()}>
-                <option value="">— Sélectionner —</option>
-                {DOMAINES.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                <option value="">{t('programDialog.fields.select')}</option>
+                {DOMAINE_VALUES.map((v) => <option key={v} value={v}>{t(`admin.programs.domains.${v}`)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Niveau</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.level')}</label>
               <select value={niveau} onChange={(e) => setNiveau(e.target.value)} className={inputClass()}>
-                <option value="">— Sélectionner —</option>
-                {NIVEAUX.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
+                <option value="">{t('programDialog.fields.select')}</option>
+                {NIVEAU_VALUES.map((v) => <option key={v} value={v}>{t(`program.levels.${v}`)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Mode</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.mode')}</label>
               <select value={mode} onChange={(e) => setMode(e.target.value)} className={inputClass()}>
-                <option value="">— Sélectionner —</option>
-                {MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                <option value="">{t('programDialog.fields.select')}</option>
+                {MODE_VALUES.map((v) => <option key={v} value={v}>{t(`admin.programs.modes.${v}`)}</option>)}
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Durée (années)</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.duration')}</label>
               <input type="number" min="1" max="10" value={dureeAnnees} onChange={(e) => setDureeAnnees(e.target.value)}
-                placeholder="Ex : 2" className={inputClass('dureeAnnees')} />
+                placeholder={t('programDialog.fields.durationPlaceholder')} className={inputClass('dureeAnnees')} />
               {errors.dureeAnnees && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.dureeAnnees}</p>}
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Langue</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.language')}</label>
               <input type="text" value={langue} onChange={(e) => setLangue(e.target.value)}
-                placeholder="Ex : Français" className={inputClass()} />
+                placeholder={t('programDialog.fields.languagePlaceholder')} className={inputClass()} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Capacité</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.capacity')}</label>
               <input type="number" min="1" value={capacite} onChange={(e) => setCapacite(e.target.value)}
-                placeholder="Ex : 30" className={inputClass('capacite')} />
+                placeholder={t('programDialog.fields.capacityPlaceholder')} className={inputClass('capacite')} />
               {errors.capacite && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.capacite}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Frais d'inscription (TND)</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.tuition')}</label>
               <input type="number" min="0" step="0.01" value={fraisInscription} onChange={(e) => setFraisInscription(e.target.value)}
-                placeholder="Ex : 500" className={inputClass('fraisInscription')} />
+                placeholder={t('programDialog.fields.tuitionPlaceholder')} className={inputClass('fraisInscription')} />
               {errors.fraisInscription && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.fraisInscription}</p>}
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Date limite candidature</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.deadline')}</label>
               <input type="date" value={dateLimite} onChange={(e) => setDateLimite(e.target.value)} className={inputClass()} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Date de début</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.startDate')}</label>
               <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} className={inputClass()} />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Description</label>
+            <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.description')}</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez le programme, ses objectifs et débouchés…" rows={4} className={inputClass()} />
+              placeholder={t('programDialog.fields.descriptionPlaceholder')} rows={4} className={inputClass()} />
           </div>
 
           <div className="bg-[var(--edu-surface)] rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-[var(--edu-text-primary)]">Prérequis</h3>
+            <h3 className="text-sm font-semibold text-[var(--edu-text-primary)]">{t('programDialog.fields.prerequisites')}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-[var(--edu-text-secondary)] mb-1">Moyenne minimum (/20)</label>
+                <label className="block text-xs text-[var(--edu-text-secondary)] mb-1">{t('programDialog.fields.minAverage')}</label>
                 <input type="number" min="0" max="20" step="0.01" value={moyenneMin} onChange={(e) => setMoyenneMin(e.target.value)}
-                  placeholder="Ex : 12" className={inputClass('moyenneMin')} />
+                  placeholder={t('programDialog.fields.minAveragePlaceholder')} className={inputClass('moyenneMin')} />
                 {errors.moyenneMin && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.moyenneMin}</p>}
               </div>
               <div>
-                <label className="block text-xs text-[var(--edu-text-secondary)] mb-1">Types de bac (séparés par virgule)</label>
+                <label className="block text-xs text-[var(--edu-text-secondary)] mb-1">{t('programDialog.fields.bacTypes')}</label>
                 <input type="text" value={typesBac} onChange={(e) => setTypesBac(e.target.value)}
-                  placeholder="Ex : mathematiques, sciences" className={inputClass()} />
+                  placeholder={t('programDialog.fields.bacTypesPlaceholder')} className={inputClass()} />
               </div>
             </div>
           </div>
 
           <div className="bg-[var(--edu-surface)] rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-[var(--edu-text-primary)]">Documents requis</h3>
+            <h3 className="text-sm font-semibold text-[var(--edu-text-primary)]">{t('programDialog.fields.requiredDocuments')}</h3>
             {documents.length > 0 && (
               <div className="space-y-2">
                 {documents.map((doc, i) => (
                   <div key={i} className="flex items-center gap-2 bg-white dark:bg-[#2D2D2F] rounded-lg px-3 py-2">
                     <span className="text-sm text-[var(--edu-text-primary)] flex-1">{doc.nom}</span>
                     <span className={`text-xs font-semibold ${doc.obligatoire ? 'text-[var(--edu-danger)]' : 'text-[var(--edu-text-tertiary)]'}`}>
-                      {doc.obligatoire ? 'Obligatoire' : 'Optionnel'}
+                      {doc.obligatoire ? t('programDialog.fields.mandatory') : t('programDialog.fields.optional')}
                     </span>
                     <button type="button" onClick={() => removeDocument(i)} className="p-1 hover:bg-[var(--edu-surface)] rounded">
                       <X className="w-3.5 h-3.5 text-[var(--edu-text-tertiary)]" />
@@ -275,12 +256,12 @@ export function EditProgramDialog({ programme, open, onClose, onUpdated }: EditP
             )}
             <div className="flex items-center gap-2">
               <input type="text" value={newDocNom} onChange={(e) => setNewDocNom(e.target.value)}
-                placeholder="Nom du document"
+                placeholder={t('programDialog.fields.documentName')}
                 className="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-[#2D2D2F] border border-[var(--edu-border)] text-sm text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--edu-blue)]"
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); addDocument(); } }} />
               <label className="flex items-center gap-1.5 text-xs text-[var(--edu-text-secondary)] shrink-0 cursor-pointer">
                 <input type="checkbox" checked={newDocObligatoire} onChange={(e) => setNewDocObligatoire(e.target.checked)} className="rounded" />
-                Obligatoire
+                {t('programDialog.fields.mandatory')}
               </label>
               <button type="button" onClick={(e) => { e.preventDefault(); addDocument(); }} disabled={!newDocNom.trim()}
                 className="p-2 rounded-lg border border-[var(--edu-border)] bg-white dark:bg-[#2D2D2F] hover:bg-[var(--edu-surface)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
@@ -292,17 +273,22 @@ export function EditProgramDialog({ programme, open, onClose, onUpdated }: EditP
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={estActif} onChange={(e) => setEstActif(e.target.checked)} className="rounded" />
-              <span className="text-sm font-medium text-[var(--edu-text-primary)]">Programme actif</span>
+              <span className="text-sm font-medium text-[var(--edu-text-primary)]">{t('programDialog.fields.active')}</span>
             </label>
-            <span className="text-xs text-[var(--edu-text-tertiary)]">(visible immédiatement aux candidats)</span>
+            <span className="text-xs text-[var(--edu-text-tertiary)]">{t('programDialog.fields.activeHint')}</span>
           </div>
         </form>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-[var(--edu-border)] flex items-center justify-end gap-3 shrink-0">
-          <Button type="button" variant="outline" onClick={handleClose} disabled={submitting} className="rounded-xl">Annuler</Button>
+          <Button type="button" variant="outline" onClick={handleClose} disabled={submitting} className="rounded-xl">
+            {t('programDialog.actions.cancel')}
+          </Button>
           <Button type="submit" onClick={handleSubmit} disabled={submitting} className="rounded-xl text-white" style={{ backgroundColor: 'var(--edu-blue)' }}>
-            {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enregistrement…</> : <><Save className="w-4 h-4 mr-2" /> Enregistrer</>}
+            {submitting
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t('programDialog.actions.saving')}</>
+              : <><Save className="w-4 h-4 mr-2" /> {t('programDialog.actions.save')}</>
+            }
           </Button>
         </div>
       </div>

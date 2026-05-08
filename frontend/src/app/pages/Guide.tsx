@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { Trans, useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
+import i18n from '@/i18n';
 import {
   AlertTriangle,
   CheckCircle,
@@ -67,15 +69,15 @@ import {
 // Configuration des sections (id + label pour la navigation sticky)
 // ===========================================================================
 
-const SECTIONS: { id: string; label: string }[] = [
-  { id: 'visa',         label: 'Visa' },
-  { id: 'bourses',      label: 'Bourses' },
-  { id: 'vie',          label: 'Vie' },
-  { id: 'admission',    label: 'Admission' },
-  { id: 'equivalence',  label: 'Diplômes' },
-  { id: 'documents',    label: 'Documents' },
-  { id: 'securite',     label: 'Sécurité' },
-  { id: 'culture',      label: 'Culture' },
+const SECTIONS: { id: string }[] = [
+  { id: 'visa' },
+  { id: 'bourses' },
+  { id: 'vie' },
+  { id: 'admission' },
+  { id: 'equivalence' },
+  { id: 'documents' },
+  { id: 'securite' },
+  { id: 'culture' },
 ];
 
 const ICONES_SECURITE: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -104,7 +106,7 @@ function joursRestants(deadlineISO: string): number {
 }
 
 function formaterDate(deadlineISO: string): string {
-  return new Date(deadlineISO).toLocaleDateString('fr-FR', {
+  return new Date(deadlineISO).toLocaleDateString(i18n.language, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -116,6 +118,7 @@ function formaterDate(deadlineISO: string): string {
 // ===========================================================================
 
 function Hero({ stats }: { stats: StatGuide[] }) {
+  const { t } = useTranslation();
   return (
     <section
       id="hero"
@@ -150,14 +153,13 @@ function Hero({ stats }: { stats: StatGuide[] }) {
             variant="outline"
             className="mb-6 border-[var(--edu-blue)] text-[var(--edu-blue)] bg-white"
           >
-            Guide étudiants étrangers
+            {t('guide.badge')}
           </Badge>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[var(--edu-text-primary)] mb-6 leading-tight">
-            Votre guide complet pour étudier en Tunisie
+            {t('guide.hero.title')}
           </h1>
           <p className="text-lg md:text-xl text-[var(--edu-text-secondary)] leading-relaxed">
-            De votre première démarche administrative à votre intégration sur le campus,
-            retrouvez ici toutes les réponses concrètes pour préparer sereinement votre arrivée.
+            {t('guide.hero.subtitle')}
           </p>
         </motion.div>
 
@@ -189,6 +191,7 @@ function Hero({ stats }: { stats: StatGuide[] }) {
 // ===========================================================================
 
 function NavigationSticky() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [actif, setActif] = useState<string>(SECTIONS[0].id);
 
@@ -244,7 +247,7 @@ function NavigationSticky() {
         <nav
           className="flex items-center gap-2 md:gap-1 overflow-x-auto py-3 [&::-webkit-scrollbar]:hidden"
           style={{ scrollbarWidth: 'none' }}
-          aria-label="Navigation des sections du guide"
+          aria-label={t('guide.nav.aria')}
         >
           {SECTIONS.map((section) => {
             const estActif = actif === section.id;
@@ -260,7 +263,7 @@ function NavigationSticky() {
                     : 'text-[var(--edu-text-secondary)] font-medium border-transparent hover:text-[var(--edu-text-primary)]'
                 }`}
               >
-                {section.label}
+                {t(`guide.sections.${section.id}`)}
               </a>
             );
           })}
@@ -303,13 +306,14 @@ function SectionHeader({ surtitre, titre, description }: SectionHeaderProps) {
 // ===========================================================================
 
 function SectionVisa({ etapes }: { etapes: EtapeVisa[] }) {
+  const { t } = useTranslation();
   return (
     <section id="visa" className="py-20 scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-6">
         <SectionHeader
-          surtitre="Étape 1"
-          titre="Visa & permis de séjour"
-          description="Comprendre les démarches administratives pour entrer et résider légalement en Tunisie en tant qu'étudiant étranger."
+          surtitre={t('guide.visa.step')}
+          titre={t('guide.visa.title')}
+          description={t('guide.visa.description')}
         />
 
         {/* Encart délai global */}
@@ -320,11 +324,10 @@ function SectionVisa({ etapes }: { etapes: EtapeVisa[] }) {
           <Info className="w-5 h-5 text-[var(--edu-blue)] shrink-0 mt-0.5" aria-hidden="true" />
           <div>
             <div className="font-semibold text-[var(--edu-text-primary)] mb-1">
-              Délai moyen total estimé
+              {t('guide.visa.estimatedDelay')}
             </div>
             <div className="text-sm text-[var(--edu-text-secondary)]">
-              Comptez <strong>6 à 10 semaines</strong> entre le démarrage du dossier et l'obtention de la carte de séjour.
-              Anticipez votre demande dès l'admission obtenue.
+              <Trans i18nKey="guide.visa.delayDescription" components={{ strong: <strong /> }} />
             </div>
           </div>
         </motion.div>
@@ -365,7 +368,7 @@ function SectionVisa({ etapes }: { etapes: EtapeVisa[] }) {
                 <Accordion type="single" collapsible>
                   <AccordionItem value="docs" className="border-0">
                     <AccordionTrigger className="text-sm text-[var(--edu-blue)] py-2 hover:no-underline">
-                      Documents à préparer ({etape.documents.length})
+                      {t('guide.visa.documentsCount', { count: etape.documents.length })}
                     </AccordionTrigger>
                     <AccordionContent>
                       <ul className="space-y-2 pt-2" role="list">
@@ -398,11 +401,10 @@ function SectionVisa({ etapes }: { etapes: EtapeVisa[] }) {
           <CheckCircle className="w-5 h-5 text-[var(--edu-success)] shrink-0 mt-0.5" aria-hidden="true" />
           <div>
             <div className="font-semibold text-[var(--edu-text-primary)] mb-1">
-              Bon à savoir
+              {t('guide.visa.goodToKnow')}
             </div>
             <div className="text-sm text-[var(--edu-text-secondary)]">
-              Votre attestation d'inscription EduBridge peut servir de justificatif d'admission auprès de l'ambassade
-              de Tunisie de votre pays.
+              {t('guide.visa.eduBridgeAttestation')}
             </div>
           </div>
         </motion.div>
@@ -415,14 +417,15 @@ function SectionVisa({ etapes }: { etapes: EtapeVisa[] }) {
 // Section 4 — Bourses
 // ===========================================================================
 
-const TYPES_BOURSE: { value: 'all' | Bourse['type']; label: string }[] = [
-  { value: 'all',                label: 'Toutes' },
-  { value: 'gouvernementale',    label: 'Gouvernementales' },
-  { value: 'internationale',     label: 'Internationales' },
-  { value: 'institutionnelle',   label: 'Institutionnelles' },
+const TYPES_BOURSE: { value: 'all' | Bourse['type'] }[] = [
+  { value: 'all' },
+  { value: 'gouvernementale' },
+  { value: 'internationale' },
+  { value: 'institutionnelle' },
 ];
 
 function CarteBourse({ bourse, index }: { bourse: Bourse; index: number }) {
+  const { t } = useTranslation();
   const jours = joursRestants(bourse.deadline);
   const urgent = jours <= 30 && jours >= 0;
   const couleurType: Record<Bourse['type'], string> = {
@@ -432,11 +435,6 @@ function CarteBourse({ bourse, index }: { bourse: Bourse; index: number }) {
       'bg-[color-mix(in_srgb,var(--edu-blue)_15%,transparent)] text-[var(--edu-blue)] border-[color-mix(in_srgb,var(--edu-blue)_30%,transparent)]',
     institutionnelle:
       'bg-[color-mix(in_srgb,var(--edu-warning)_15%,transparent)] text-[var(--edu-warning)] border-[color-mix(in_srgb,var(--edu-warning)_30%,transparent)]',
-  };
-  const labelType: Record<Bourse['type'], string> = {
-    gouvernementale: 'Gouvernementale',
-    internationale: 'Internationale',
-    institutionnelle: 'Institutionnelle',
   };
 
   return (
@@ -453,7 +451,7 @@ function CarteBourse({ bourse, index }: { bourse: Bourse; index: number }) {
               {bourse.nom}
             </CardTitle>
             <Badge className={`shrink-0 border ${couleurType[bourse.type]}`}>
-              {labelType[bourse.type]}
+              {t(`guide.scholarships.type.${bourse.type}`)}
             </Badge>
           </div>
           <div className="text-2xl font-bold text-[var(--edu-blue)]">{bourse.montant}</div>
@@ -469,12 +467,12 @@ function CarteBourse({ bourse, index }: { bourse: Bourse; index: number }) {
           {urgent ? (
             <Badge className="bg-[color-mix(in_srgb,var(--edu-danger)_15%,transparent)] text-[var(--edu-danger)] border border-[color-mix(in_srgb,var(--edu-danger)_30%,transparent)]">
               <AlertTriangle className="w-3 h-3" aria-hidden="true" />
-              Urgent — ferme dans {jours} jour{jours > 1 ? 's' : ''}
+              {jours > 1 ? t('guide.scholarships.urgentPlural', { count: jours }) : t('guide.scholarships.urgent', { count: jours })}
             </Badge>
           ) : (
             <Badge className="bg-[color-mix(in_srgb,var(--edu-warning)_15%,transparent)] text-[var(--edu-warning)] border border-[color-mix(in_srgb,var(--edu-warning)_30%,transparent)]">
               <Clock className="w-3 h-3" aria-hidden="true" />
-              Date limite : {formaterDate(bourse.deadline)}
+              {t('guide.scholarships.deadline', { date: formaterDate(bourse.deadline) })}
             </Badge>
           )}
           <a
@@ -488,7 +486,7 @@ function CarteBourse({ bourse, index }: { bourse: Bourse; index: number }) {
               variant="outline"
               className="w-full border-[var(--edu-blue)] text-[var(--edu-blue)] hover:bg-[var(--edu-blue)] hover:text-white"
             >
-              Postuler
+              {t('guide.scholarships.apply')}
               <ExternalLink className="w-4 h-4" aria-hidden="true" />
             </Button>
           </a>
@@ -499,6 +497,7 @@ function CarteBourse({ bourse, index }: { bourse: Bourse; index: number }) {
 }
 
 function SectionBourses({ bourses }: { bourses: Bourse[] }) {
+  const { t } = useTranslation();
   const [filtre, setFiltre] = useState<'all' | Bourse['type']>('all');
   const visibles = useMemo(
     () => (filtre === 'all' ? bourses : bourses.filter((b) => b.type === filtre)),
@@ -509,16 +508,16 @@ function SectionBourses({ bourses }: { bourses: Bourse[] }) {
     <section id="bourses" className="py-20 bg-[var(--edu-surface)] scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-6">
         <SectionHeader
-          surtitre="Étape 2"
-          titre="Financer vos études"
-          description="Plusieurs dispositifs de financement sont accessibles aux étudiants étrangers, du programme gouvernemental aux bourses des instituts partenaires."
+          surtitre={t('guide.financing.step')}
+          titre={t('guide.financing.title')}
+          description={t('guide.financing.description')}
         />
 
         <Tabs value={filtre} onValueChange={(v) => setFiltre(v as 'all' | Bourse['type'])} className="mb-8">
           <TabsList className="bg-white border border-[var(--edu-divider)] h-auto p-1 flex-wrap">
             {TYPES_BOURSE.map((type) => (
               <TabsTrigger key={type.value} value={type.value} className="px-4 py-2">
-                {type.label}
+                {type.value === 'all' ? t('guide.scholarships.filter.all') : t(`guide.scholarships.filter.${type.value}`)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -571,11 +570,7 @@ function BarreBudget({ label, valeur, max }: BarreBudgetProps) {
 }
 
 function CarteLogement({ logement, index }: { logement: Logement; index: number }) {
-  const labelType: Record<Logement['type'], string> = {
-    cite: 'Logement social',
-    residence_privee: 'Standing élevé',
-    colocation: 'Compromis',
-  };
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -586,7 +581,7 @@ function CarteLogement({ logement, index }: { logement: Logement; index: number 
       <Card className="h-full bg-white border-[var(--edu-divider)]">
         <CardHeader>
           <Badge variant="outline" className="w-fit mb-2 border-[var(--edu-blue)] text-[var(--edu-blue)]">
-            {labelType[logement.type]}
+            {t(`guide.housing.type.${logement.type}`)}
           </Badge>
           <CardTitle className="text-lg font-semibold text-[var(--edu-text-primary)]">
             {logement.titre}
@@ -630,6 +625,7 @@ function CarteLogement({ logement, index }: { logement: Logement; index: number 
 }
 
 function SectionVie() {
+  const { t } = useTranslation();
   const { budgetMensuel, coutVie, logements } = guideData;
   const totalCite =
     budgetMensuel.logementCite + budgetMensuel.restaurationU + budgetMensuel.courses + budgetMensuel.divers;
@@ -641,31 +637,31 @@ function SectionVie() {
     <section id="vie" className="py-20 scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-6">
         <SectionHeader
-          surtitre="Étape 3"
-          titre="Vivre en Tunisie"
-          description="Un coût de la vie maîtrisé, plusieurs options de logement et un système de santé accessible pour les étudiants."
+          surtitre={t('guide.life.step')}
+          titre={t('guide.life.title')}
+          description={t('guide.life.description')}
         />
 
         {/* Budget mensuel — 2 colonnes */}
         <motion.div {...MOTION_FADE_IN_UP} className="mb-12">
           <h3 className="text-xl font-semibold text-[var(--edu-text-primary)] mb-6">
-            Budget mensuel estimé
+            {t('guide.life.monthlyBudget')}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="bg-white border-[var(--edu-divider)]">
               <CardHeader>
                 <CardTitle className="text-base font-semibold text-[var(--edu-text-primary)]">
-                  Étudiant en cité universitaire
+                  {t('guide.life.dormStudent')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <BarreBudget label="Logement (cité)" valeur={budgetMensuel.logementCite} max={max} />
-                <BarreBudget label="Restaurant universitaire" valeur={budgetMensuel.restaurationU} max={max} />
-                <BarreBudget label="Courses & alimentation" valeur={budgetMensuel.courses} max={max} />
-                <BarreBudget label="Loisirs & divers" valeur={budgetMensuel.divers} max={max} />
+                <BarreBudget label={t('guide.life.housingDorm')} valeur={budgetMensuel.logementCite} max={max} />
+                <BarreBudget label={t('guide.life.universityRestaurant')} valeur={budgetMensuel.restaurationU} max={max} />
+                <BarreBudget label={t('guide.life.groceries')} valeur={budgetMensuel.courses} max={max} />
+                <BarreBudget label={t('guide.life.entertainment')} valeur={budgetMensuel.divers} max={max} />
                 <Separator />
                 <div className="flex items-baseline justify-between">
-                  <span className="font-semibold text-[var(--edu-text-primary)]">Total mensuel</span>
+                  <span className="font-semibold text-[var(--edu-text-primary)]">{t('guide.life.monthlyTotal')}</span>
                   <span className="text-2xl font-bold text-[var(--edu-blue)]">{totalCite} TND</span>
                 </div>
               </CardContent>
@@ -674,17 +670,17 @@ function SectionVie() {
             <Card className="bg-white border-[var(--edu-divider)]">
               <CardHeader>
                 <CardTitle className="text-base font-semibold text-[var(--edu-text-primary)]">
-                  Étudiant en logement privé
+                  {t('guide.life.privateStudent')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <BarreBudget label="Logement (studio privé)" valeur={budgetMensuel.logementPrive} max={max} />
-                <BarreBudget label="Restaurant universitaire" valeur={budgetMensuel.restaurationU} max={max} />
-                <BarreBudget label="Courses & alimentation" valeur={budgetMensuel.courses} max={max} />
-                <BarreBudget label="Loisirs & divers" valeur={budgetMensuel.divers} max={max} />
+                <BarreBudget label={t('guide.life.housingPrivate')} valeur={budgetMensuel.logementPrive} max={max} />
+                <BarreBudget label={t('guide.life.universityRestaurant')} valeur={budgetMensuel.restaurationU} max={max} />
+                <BarreBudget label={t('guide.life.groceries')} valeur={budgetMensuel.courses} max={max} />
+                <BarreBudget label={t('guide.life.entertainment')} valeur={budgetMensuel.divers} max={max} />
                 <Separator />
                 <div className="flex items-baseline justify-between">
-                  <span className="font-semibold text-[var(--edu-text-primary)]">Total mensuel</span>
+                  <span className="font-semibold text-[var(--edu-text-primary)]">{t('guide.life.monthlyTotal')}</span>
                   <span className="text-2xl font-bold text-[var(--edu-blue)]">{totalPrive} TND</span>
                 </div>
               </CardContent>
@@ -695,15 +691,15 @@ function SectionVie() {
         {/* Tableau coût de la vie */}
         <motion.div {...MOTION_FADE_IN_UP} className="mb-12">
           <h3 className="text-xl font-semibold text-[var(--edu-text-primary)] mb-6">
-            Coût de la vie au quotidien
+            {t('guide.life.dailyCosts')}
           </h3>
           <div className="overflow-x-auto rounded-xl border border-[var(--edu-divider)]">
             <table className="w-full text-sm">
               <thead className="bg-[var(--edu-surface)]">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-[var(--edu-text-primary)]">Poste</th>
-                  <th className="text-left px-4 py-3 font-semibold text-[var(--edu-text-primary)]">Coût en TND</th>
-                  <th className="text-left px-4 py-3 font-semibold text-[var(--edu-text-primary)]">Équivalent EUR</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--edu-text-primary)]">{t('guide.life.costCategory')}</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--edu-text-primary)]">{t('guide.life.costTND')}</th>
+                  <th className="text-left px-4 py-3 font-semibold text-[var(--edu-text-primary)]">{t('guide.life.costEUR')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -725,7 +721,7 @@ function SectionVie() {
         {/* Logements */}
         <motion.div {...MOTION_FADE_IN_UP} className="mb-12">
           <h3 className="text-xl font-semibold text-[var(--edu-text-primary)] mb-6">
-            Trois options de logement
+            {t('guide.life.housingOptions')}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6" role="list">
             {logements.map((l, index) => (
@@ -744,20 +740,17 @@ function SectionVie() {
               className="w-5 h-5 text-[var(--edu-blue)] shrink-0 mt-0.5"
               aria-hidden="true"
             />
-            <h3 className="text-lg font-semibold text-[var(--edu-text-primary)]">Assurance maladie</h3>
+            <h3 className="text-lg font-semibold text-[var(--edu-text-primary)]">{t('guide.life.healthInsurance')}</h3>
           </div>
           <ul className="space-y-2 text-sm text-[var(--edu-text-secondary)] pl-8" role="list">
             <li>
-              La <strong className="text-[var(--edu-text-primary)]">CNAM</strong> (Caisse Nationale d'Assurance Maladie)
-              n'est ouverte qu'aux étudiants tunisiens et résidents permanents.
+              <Trans i18nKey="guide.life.healthCnam" components={{ strong: <strong className="text-[var(--edu-text-primary)]" /> }} />
             </li>
             <li>
-              Plusieurs <strong className="text-[var(--edu-text-primary)]">mutuelles étudiantes</strong> proposent des
-              forfaits annuels accessibles (200 à 400 TND/an).
+              <Trans i18nKey="guide.life.healthMutual" components={{ strong: <strong className="text-[var(--edu-text-primary)]" /> }} />
             </li>
             <li>
-              <strong className="text-[var(--edu-text-primary)]">Souscrivez impérativement avant le départ</strong> une
-              assurance internationale couvrant hospitalisation et rapatriement.
+              <Trans i18nKey="guide.life.healthWarning" components={{ strong: <strong className="text-[var(--edu-text-primary)]" /> }} />
             </li>
           </ul>
         </motion.div>
@@ -771,6 +764,7 @@ function SectionVie() {
 // ===========================================================================
 
 function SectionAdmission({ etapes }: { etapes: EtapeAdmission[] }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const courante = etapes[step];
 
@@ -791,9 +785,9 @@ function SectionAdmission({ etapes }: { etapes: EtapeAdmission[] }) {
     <section id="admission" className="py-20 bg-[var(--edu-surface)] scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-6">
         <SectionHeader
-          surtitre="Étape 4"
-          titre="Processus d'admission"
-          description="Cinq étapes structurées pour candidater, soumettre vos pièces officielles et finaliser votre inscription dans un institut tunisien."
+          surtitre={t('guide.admissionProcess.step')}
+          titre={t('guide.admissionProcess.title')}
+          description={t('guide.admissionProcess.description')}
         />
 
         <div className="rounded-2xl bg-white border border-[var(--edu-divider)] p-6 md:p-8">
@@ -815,7 +809,7 @@ function SectionAdmission({ etapes }: { etapes: EtapeAdmission[] }) {
             <div className="flex flex-wrap items-center gap-3 mb-6">
               <Badge className={`border ${couleurDeadline}`}>
                 <Clock className="w-3 h-3" aria-hidden="true" />
-                Date limite : {formaterDate(courante.deadline)}
+                {t('guide.scholarships.deadline', { date: formaterDate(courante.deadline) })}
               </Badge>
               {courante.lien && (
                 <a
@@ -825,7 +819,7 @@ function SectionAdmission({ etapes }: { etapes: EtapeAdmission[] }) {
                   title={`Plus d'informations sur ${courante.titre}`}
                   className="inline-flex items-center gap-1.5 text-sm text-[var(--edu-blue)] hover:underline"
                 >
-                  Plus d'informations
+                  {t('guide.admission.moreInfo')}
                   <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
                 </a>
               )}
@@ -833,7 +827,7 @@ function SectionAdmission({ etapes }: { etapes: EtapeAdmission[] }) {
 
             <div className="rounded-xl bg-[var(--edu-surface)] p-5">
               <div className="text-sm font-semibold text-[var(--edu-text-primary)] mb-3">
-                Documents nécessaires à cette étape
+                {t('guide.admission.documentsRequired')}
               </div>
               <ul className="space-y-2" role="list">
                 {courante.documents.map((doc) => (
@@ -857,21 +851,21 @@ function SectionAdmission({ etapes }: { etapes: EtapeAdmission[] }) {
               variant="outline"
               onClick={() => setStep((s) => Math.max(0, s - 1))}
               disabled={step === 0}
-              aria-label="Étape précédente"
+              aria-label={t('guide.admission.previous')}
             >
               <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-              Précédent
+              {t('guide.admission.previous')}
             </Button>
             <span className="text-sm text-[var(--edu-text-secondary)]">
-              Étape {step + 1} sur {etapes.length}
+              {t('guide.admission.stepOf', { current: step + 1, total: etapes.length })}
             </span>
             <Button
               onClick={() => setStep((s) => Math.min(etapes.length - 1, s + 1))}
               disabled={step === etapes.length - 1}
               className="bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white"
-              aria-label="Étape suivante"
+              aria-label={t('guide.admission.next')}
             >
-              Suivant
+              {t('guide.admission.next')}
               <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </Button>
           </div>
@@ -886,13 +880,14 @@ function SectionAdmission({ etapes }: { etapes: EtapeAdmission[] }) {
 // ===========================================================================
 
 function SectionEquivalence({ pays }: { pays: EquivalencePays[] }) {
+  const { t } = useTranslation();
   return (
     <section id="equivalence" className="py-20 scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-6">
         <SectionHeader
-          surtitre="Étape 5"
-          titre="Reconnaissance des diplômes"
-          description="L'équivalence de votre diplôme étranger est une étape obligatoire pour intégrer un programme tunisien. Voici comment procéder selon votre pays d'origine."
+          surtitre={t('guide.equivalenceSection.step')}
+          titre={t('guide.equivalenceSection.title')}
+          description={t('guide.equivalenceSection.description')}
         />
 
         <motion.div
@@ -900,26 +895,24 @@ function SectionEquivalence({ pays }: { pays: EquivalencePays[] }) {
           className="mb-10 rounded-xl bg-[var(--edu-elevated)] border border-[var(--edu-divider)] p-6"
         >
           <h3 className="text-lg font-semibold text-[var(--edu-text-primary)] mb-3">
-            Le rôle du CNEQ
+            {t('guide.equivalenceSection.cneqRole')}
           </h3>
           <p className="text-sm text-[var(--edu-text-secondary)] leading-relaxed mb-4">
-            Le <strong className="text-[var(--edu-text-primary)]">Centre National pour l'Évaluation des Qualifications</strong>{' '}
-            (CNEQ) est l'organisme officiel chargé d'évaluer les diplômes étrangers et de délivrer les attestations
-            d'équivalence. Toute inscription dans un institut tunisien à un niveau supérieur au baccalauréat passe par lui.
+            <Trans i18nKey="guide.equivalenceSection.cneqDescription" components={{ strong: <strong className="text-[var(--edu-text-primary)]" /> }} />
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Badge className="bg-[color-mix(in_srgb,var(--edu-warning)_15%,transparent)] text-[var(--edu-warning)] border border-[color-mix(in_srgb,var(--edu-warning)_30%,transparent)]">
               <Clock className="w-3 h-3" aria-hidden="true" />
-              Délai moyen : 4 à 8 semaines
+              {t('guide.equivalenceSection.cneqDelay')}
             </Badge>
             <a
               href="https://www.mesrs.tn"
               target="_blank"
               rel="noopener noreferrer"
-              title="Site officiel du ministère de l'Enseignement supérieur"
+              title={t('guide.equivalenceSection.cneqSite')}
               className="inline-flex items-center gap-1.5 text-sm text-[var(--edu-blue)] hover:underline"
             >
-              Site officiel CNEQ
+              {t('guide.equivalenceSection.cneqSite')}
               <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
             </a>
           </div>
@@ -942,15 +935,15 @@ function SectionEquivalence({ pays }: { pays: EquivalencePays[] }) {
                 <AccordionContent className="pt-2">
                   <div className="space-y-4 text-sm text-[var(--edu-text-secondary)]">
                     <div>
-                      <div className="font-semibold text-[var(--edu-text-primary)] mb-1">Système éducatif</div>
+                      <div className="font-semibold text-[var(--edu-text-primary)] mb-1">{t('guide.equivalenceSection.educationalSystem')}</div>
                       <p className="leading-relaxed">{p.systeme}</p>
                     </div>
                     <div>
-                      <div className="font-semibold text-[var(--edu-text-primary)] mb-1">Procédure</div>
+                      <div className="font-semibold text-[var(--edu-text-primary)] mb-1">{t('guide.equivalenceSection.procedure')}</div>
                       <p className="leading-relaxed">{p.procedure}</p>
                     </div>
                     <div>
-                      <div className="font-semibold text-[var(--edu-text-primary)] mb-1">Organisme contact</div>
+                      <div className="font-semibold text-[var(--edu-text-primary)] mb-1">{t('guide.equivalenceSection.contactOrganization')}</div>
                       <p>{p.organismeContact}</p>
                     </div>
                     <Badge className="bg-[color-mix(in_srgb,var(--edu-warning)_15%,transparent)] text-[var(--edu-warning)] border border-[color-mix(in_srgb,var(--edu-warning)_30%,transparent)]">
@@ -972,15 +965,16 @@ function SectionEquivalence({ pays }: { pays: EquivalencePays[] }) {
 // Section 8 — Documents (checklist)
 // ===========================================================================
 
-const CATEGORIES_CHECKLIST: { value: ItemChecklist['categorie']; label: string }[] = [
-  { value: 'identite',   label: 'Identité' },
-  { value: 'academique', label: 'Académique' },
-  { value: 'financier',  label: 'Financier' },
-  { value: 'sante',      label: 'Santé' },
-  { value: 'logement',   label: 'Logement' },
+const CATEGORIES_CHECKLIST: { value: ItemChecklist['categorie'] }[] = [
+  { value: 'identite' },
+  { value: 'academique' },
+  { value: 'financier' },
+  { value: 'sante' },
+  { value: 'logement' },
 ];
 
 function SectionDocuments({ items }: { items: ItemChecklist[] }) {
+  const { t } = useTranslation();
   const [coches, setCoches] = useState<string[]>([]);
 
   const toggle = useCallback((id: string) => {
@@ -998,18 +992,18 @@ function SectionDocuments({ items }: { items: ItemChecklist[] }) {
     CATEGORIES_CHECKLIST.forEach((cat) => {
       const itemsCat = items.filter((i) => i.categorie === cat.value && coches.includes(i.id));
       if (itemsCat.length === 0) return;
-      lignes.push(`\n## ${cat.label}`);
-      itemsCat.forEach((i) => lignes.push(`✓ ${i.label}${i.obligatoire ? ' (obligatoire)' : ''}`));
+      lignes.push(`\n## ${i18n.t(`guide.checklist.categories.${cat.value}`)}`);
+      itemsCat.forEach((i) => lignes.push(`✓ ${i.label}${i.obligatoire ? ` (${i18n.t('guide.documents.obligatoire')})` : ''}`));
     });
     if (lignes.length === 1) {
-      lignes.push('\nAucun document coché pour le moment.');
+      lignes.push(`\n${i18n.t('guide.documents.noneChecked')}`);
     }
     const texte = lignes.join('\n');
     try {
       await navigator.clipboard.writeText(texte);
-      toast.success('Checklist copiée dans le presse-papier !');
+      toast.success(i18n.t('guide.documents.checklistCopied'));
     } catch {
-      toast.error('Impossible d\'accéder au presse-papier.');
+      toast.error(i18n.t('guide.documents.copyError'));
     }
   }, [coches, items]);
 
@@ -1017,9 +1011,9 @@ function SectionDocuments({ items }: { items: ItemChecklist[] }) {
     <section id="documents" className="py-20 bg-[var(--edu-surface)] scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-6">
         <SectionHeader
-          surtitre="Étape 6"
-          titre="Checklist des documents"
-          description="Cochez au fur et à mesure que vous rassemblez vos pièces. La copie générée vous accompagne en voyage."
+          surtitre={t('guide.documentChecklist.step')}
+          titre={t('guide.documentChecklist.title')}
+          description={t('guide.documentChecklist.description')}
         />
 
         {/* Compteur global */}
@@ -1027,16 +1021,16 @@ function SectionDocuments({ items }: { items: ItemChecklist[] }) {
           <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
             <div>
               <div className="text-2xl font-bold text-[var(--edu-text-primary)]">
-                {fait} / {total} <span className="text-base font-normal text-[var(--edu-text-secondary)]">documents préparés</span>
+                {fait} / {total} <span className="text-base font-normal text-[var(--edu-text-secondary)]">{t('guide.documents.prepared')}</span>
               </div>
             </div>
             <Button
               onClick={handleCopier}
               className="bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white"
-              aria-label="Copier la checklist dans le presse-papier"
+              aria-label={t('guide.documents.copyChecklist')}
             >
               <Copy className="w-4 h-4" aria-hidden="true" />
-              Copier ma checklist
+              {t('guide.documents.copyChecklist')}
             </Button>
           </div>
           <div className="h-2.5 rounded-full bg-[var(--edu-divider)] overflow-hidden">
@@ -1052,7 +1046,7 @@ function SectionDocuments({ items }: { items: ItemChecklist[] }) {
           <TabsList className="bg-white border border-[var(--edu-divider)] h-auto p-1 flex-wrap">
             {CATEGORIES_CHECKLIST.map((cat) => (
               <TabsTrigger key={cat.value} value={cat.value} className="px-4 py-2">
-                {cat.label}
+                {t(`guide.checklist.categories.${cat.value}`)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -1090,7 +1084,7 @@ function SectionDocuments({ items }: { items: ItemChecklist[] }) {
                               </span>
                               {item.obligatoire && (
                                 <Badge className="bg-[color-mix(in_srgb,var(--edu-danger)_15%,transparent)] text-[var(--edu-danger)] border border-[color-mix(in_srgb,var(--edu-danger)_30%,transparent)] text-xs">
-                                  Obligatoire
+                                  {t('guide.documents.obligatoire')}
                                 </Badge>
                               )}
                             </div>
@@ -1126,13 +1120,14 @@ function SectionSecurite({
   urgences: Urgence[];
   conseils: ConseilSecurite[];
 }) {
+  const { t } = useTranslation();
   return (
     <section id="securite" className="py-20 scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-6">
         <SectionHeader
-          surtitre="Étape 7"
-          titre="Sécurité & urgences"
-          description="Numéros essentiels et bonnes pratiques pour vivre sereinement votre séjour. À enregistrer avant même le départ."
+          surtitre={t('guide.safety.step')}
+          titre={t('guide.safety.title')}
+          description={t('guide.safety.description')}
         />
 
         {/* Bloc urgences en premier */}
@@ -1147,7 +1142,7 @@ function SectionSecurite({
           <div className="flex items-center gap-3 mb-6">
             <Phone className="w-6 h-6 text-[var(--edu-danger)]" aria-hidden="true" />
             <h3 className="text-xl font-semibold text-[var(--edu-text-primary)]">
-              Numéros d'urgence
+              {t('guide.safety.emergencyNumbers')}
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="list">
@@ -1204,13 +1199,14 @@ function SectionSecurite({
 // ===========================================================================
 
 function SectionCulture({ themes }: { themes: ThemeCulture[] }) {
+  const { t } = useTranslation();
   return (
     <section id="culture" className="py-20 bg-[var(--edu-surface)] scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-6">
         <SectionHeader
-          surtitre="Étape 8"
-          titre="S'intégrer culturellement"
-          description="La Tunisie est un pays accueillant et pluriel. Quelques repères pour vivre votre intégration avec confiance et respect."
+          surtitre={t('guide.cultureIntegration.step')}
+          titre={t('guide.cultureIntegration.title')}
+          description={t('guide.cultureIntegration.description')}
         />
 
         <motion.div {...MOTION_FADE_IN_UP}>
@@ -1253,9 +1249,7 @@ function SectionCulture({ themes }: { themes: ThemeCulture[] }) {
           className="mt-10 rounded-xl bg-white border-l-4 border-[var(--edu-blue)] p-6"
         >
           <p className="text-[var(--edu-text-primary)] leading-relaxed">
-            Vous arrivez avec votre histoire et votre culture, et la Tunisie vous accueille avec la sienne.
-            Soyez curieux, posez des questions, acceptez les invitations : c'est par le contact humain que se
-            tissent les souvenirs les plus précieux d'un séjour à l'étranger.
+            {t('guide.cultureIntegration.closingMessage')}
           </p>
         </motion.div>
       </div>
@@ -1268,6 +1262,7 @@ function SectionCulture({ themes }: { themes: ThemeCulture[] }) {
 // ===========================================================================
 
 function SectionContact() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { contact } = guideData;
@@ -1276,7 +1271,7 @@ function SectionContact() {
     if (isAuthenticated) {
       window.location.href = `mailto:${contact.email}?subject=Question%20guide%20%C3%A9tudiants%20%C3%A9trangers`;
     } else {
-      toast.info('Connectez-vous pour accéder à l\'assistance personnalisée.');
+      toast.info(t('guide.contact.loginForAssistance'));
       navigate('/login');
     }
   }, [isAuthenticated, navigate, contact.email]);
@@ -1285,9 +1280,9 @@ function SectionContact() {
     <section id="contact" className="py-20 scroll-mt-24">
       <div className="max-w-[1440px] mx-auto px-6">
         <SectionHeader
-          surtitre="Besoin d'aide ?"
-          titre="Une équipe dédiée à votre arrivée"
-          description="Notre cellule étudiants étrangers vous accompagne, du premier email jusqu'à votre installation effective sur le campus."
+          surtitre={t('guide.contactSection.step')}
+          titre={t('guide.contactSection.title')}
+          description={t('guide.contactSection.description')}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10" role="list">
@@ -1354,7 +1349,7 @@ function SectionContact() {
                   <MapPin className="w-6 h-6 text-[var(--edu-warning)]" aria-hidden="true" />
                 </div>
                 <div className="text-sm font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide">
-                  Permanence
+                  {t('guide.contact.permanence')}
                 </div>
                 <div>
                   <div className="text-base font-semibold text-[var(--edu-text-primary)]">
@@ -1383,7 +1378,7 @@ function SectionContact() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-sm font-semibold text-[var(--edu-blue)] uppercase tracking-wide mb-1">
-                Communauté
+                {t('guide.contact.community')}
               </div>
               <h3 className="text-xl font-semibold text-[var(--edu-text-primary)] mb-1">
                 {contact.communaute.plateforme}
@@ -1399,7 +1394,7 @@ function SectionContact() {
               title={`Rejoindre ${contact.communaute.plateforme}`}
             >
               <Button className="bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
-                Rejoindre la communauté
+                {t('guide.contact.joinCommunity')}
                 <ExternalLink className="w-4 h-4" aria-hidden="true" />
               </Button>
             </a>
@@ -1413,7 +1408,7 @@ function SectionContact() {
             size="lg"
             className="bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white px-8"
           >
-            Poser une question
+            {t('guide.contact.askQuestion')}
           </Button>
         </motion.div>
       </div>

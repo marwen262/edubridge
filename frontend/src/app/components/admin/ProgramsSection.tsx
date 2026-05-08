@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import {
   FileText,
@@ -15,36 +16,13 @@ import {
 import { Button } from '../ui/button';
 import { usePrograms } from '@/hooks/usePrograms';
 import { useAllCandidatures } from '@/hooks/useCandidatures';
+import i18n from '@/i18n';
 import type { Programme } from '@/types/api';
-
-const DOMAINE_LABELS: Record<string, string> = {
-  informatique: 'Informatique',
-  genie_civil: 'Génie civil',
-  electrique: 'Électrique',
-  mecanique: 'Mécanique',
-  chimie: 'Chimie',
-  agronomie: 'Agronomie',
-  finance: 'Finance',
-  management: 'Management',
-};
-
-const NIVEAU_LABELS: Record<string, string> = {
-  cycle_preparatoire: 'Cycle préparatoire',
-  licence: 'Licence',
-  master: 'Master',
-  ingenieur: 'Ingénieur',
-};
-
-const MODE_LABELS: Record<string, string> = {
-  cours_du_jour: 'Cours du jour',
-  cours_du_soir: 'Cours du soir',
-  alternance: 'Alternance',
-  formation_continue: 'Formation continue',
-};
 
 const PAGE_SIZE = 10;
 
 export function ProgramsSection() {
+  const { t } = useTranslation();
   const { programs: programmes, loading } = usePrograms();
   const { candidatures } = useAllCandidatures();
 
@@ -84,31 +62,32 @@ export function ProgramsSection() {
   ).length;
 
   const stats = [
-    { label: 'Total', value: programmes.length, color: 'var(--edu-text-primary)' },
-    { label: 'Actifs', value: actifs, color: 'var(--edu-success)' },
-    { label: 'Inactifs', value: programmes.length - actifs, color: 'var(--edu-text-tertiary)' },
-    { label: 'Expirés', value: expires, color: 'var(--edu-warning)' },
+    { labelKey: 'admin.programs.stats.total', value: programmes.length, color: 'var(--edu-text-primary)' },
+    { labelKey: 'admin.programs.stats.active', value: actifs, color: 'var(--edu-success)' },
+    { labelKey: 'admin.programs.stats.inactive', value: programmes.length - actifs, color: 'var(--edu-text-tertiary)' },
+    { labelKey: 'admin.programs.stats.expired', value: expires, color: 'var(--edu-warning)' },
   ];
 
   const isExpired = (p: Programme) =>
     p.date_limite_candidature ? new Date(p.date_limite_candidature).getTime() < now : false;
 
-  // Domaines disponibles dans les données
   const domaines = React.useMemo(() => {
     const set = new Set(programmes.map((p) => p.domaine).filter(Boolean) as string[]);
     return Array.from(set).sort();
   }, [programmes]);
+
+  const niveaux = ['cycle_preparatoire', 'licence', 'master', 'ingenieur'] as const;
 
   return (
     <div>
       {/* Header */}
       <div className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)] px-8 py-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)] mb-1">
-          Administration
+          {t('admin.programs.sectionLabel')}
         </p>
-        <h1 className="text-3xl font-bold text-[var(--edu-text-primary)]">Programmes</h1>
+        <h1 className="text-3xl font-bold text-[var(--edu-text-primary)]">{t('admin.programs.title')}</h1>
         <p className="text-sm text-[var(--edu-text-secondary)] mt-1">
-          Vue d'ensemble de toutes les formations publiées sur la plateforme
+          {t('admin.programs.subtitle')}
         </p>
       </div>
 
@@ -121,11 +100,11 @@ export function ProgramsSection() {
           className="grid grid-cols-2 md:grid-cols-4 gap-4"
         >
           {stats.map((s) => (
-            <div key={s.label} className="bg-white dark:bg-[#1D1D1F] rounded-2xl p-5 border border-[var(--edu-border)]">
+            <div key={s.labelKey} className="bg-white dark:bg-[#1D1D1F] rounded-2xl p-5 border border-[var(--edu-border)]">
               <p className="text-3xl font-bold tracking-tight" style={{ color: s.color }}>
                 {loading ? <span className="inline-block w-10 h-8 bg-[var(--edu-surface)] rounded animate-pulse" /> : s.value}
               </p>
-              <p className="text-xs text-[var(--edu-text-secondary)] mt-1">{s.label}</p>
+              <p className="text-xs text-[var(--edu-text-secondary)] mt-1">{t(s.labelKey)}</p>
             </div>
           ))}
         </motion.div>
@@ -141,7 +120,7 @@ export function ProgramsSection() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--edu-text-tertiary)]" />
             <input
               type="text"
-              placeholder="Rechercher par titre, institut, domaine…"
+              placeholder={t('admin.programs.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--edu-surface)] border border-[var(--edu-border)] text-sm text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--edu-blue)] transition-shadow"
@@ -152,9 +131,9 @@ export function ProgramsSection() {
             onChange={(e) => setDomaineFilter(e.target.value)}
             className="px-3 py-2.5 rounded-xl bg-[var(--edu-surface)] border border-[var(--edu-border)] text-sm text-[var(--edu-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--edu-blue)]"
           >
-            <option value="tous">Tous les domaines</option>
+            <option value="tous">{t('admin.programs.allDomains')}</option>
             {domaines.map((d) => (
-              <option key={d} value={d}>{DOMAINE_LABELS[d] ?? d}</option>
+              <option key={d} value={d}>{t(`admin.programs.domains.${d}`, { defaultValue: d })}</option>
             ))}
           </select>
           <select
@@ -162,11 +141,10 @@ export function ProgramsSection() {
             onChange={(e) => setNiveauFilter(e.target.value)}
             className="px-3 py-2.5 rounded-xl bg-[var(--edu-surface)] border border-[var(--edu-border)] text-sm text-[var(--edu-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--edu-blue)]"
           >
-            <option value="tous">Tous les niveaux</option>
-            <option value="cycle_preparatoire">Cycle préparatoire</option>
-            <option value="licence">Licence</option>
-            <option value="master">Master</option>
-            <option value="ingenieur">Ingénieur</option>
+            <option value="tous">{t('admin.programs.allLevels')}</option>
+            {niveaux.map((n) => (
+              <option key={n} value={n}>{t(`program.levels.${n}`)}</option>
+            ))}
           </select>
         </motion.div>
 
@@ -181,13 +159,13 @@ export function ProgramsSection() {
             <table className="w-full">
               <thead className="bg-[var(--edu-surface)]">
                 <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Programme</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Institut</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Niveau / Mode</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Statut</th>
-                  <th className="text-center px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Candidatures</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Date limite</th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Frais</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.programs.columns.program')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.programs.columns.institut')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.programs.columns.levelMode')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.programs.columns.status')}</th>
+                  <th className="text-center px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.programs.columns.applications')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.programs.columns.deadline')}</th>
+                  <th className="text-right px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.programs.columns.fees')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--edu-divider)]">
@@ -205,7 +183,7 @@ export function ProgramsSection() {
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center">
                       <FileText className="w-8 h-8 mx-auto mb-2 text-[var(--edu-text-tertiary)]" />
-                      <p className="text-sm text-[var(--edu-text-secondary)]">Aucun programme trouvé.</p>
+                      <p className="text-sm text-[var(--edu-text-secondary)]">{t('admin.programs.empty')}</p>
                     </td>
                   </tr>
                 ) : (
@@ -220,7 +198,7 @@ export function ProgramsSection() {
                             <p className="font-medium text-sm text-[var(--edu-text-primary)] truncate max-w-[250px]">{p.titre}</p>
                             {p.domaine && (
                               <span className="text-xs text-[var(--edu-text-tertiary)]">
-                                {DOMAINE_LABELS[p.domaine] ?? p.domaine}
+                                {t(`admin.programs.domains.${p.domaine}`, { defaultValue: p.domaine })}
                               </span>
                             )}
                           </div>
@@ -233,11 +211,11 @@ export function ProgramsSection() {
                         <td className="px-6 py-4">
                           <div className="space-y-0.5">
                             <span className="text-xs font-medium text-[var(--edu-text-primary)]">
-                              {NIVEAU_LABELS[p.niveau ?? ''] ?? p.niveau ?? '—'}
+                              {p.niveau ? t(`program.levels.${p.niveau}`, { defaultValue: p.niveau }) : '—'}
                             </span>
                             {p.mode && (
                               <p className="text-xs text-[var(--edu-text-tertiary)]">
-                                {MODE_LABELS[p.mode] ?? p.mode}
+                                {t(`admin.programs.modes.${p.mode}`, { defaultValue: p.mode })}
                               </p>
                             )}
                           </div>
@@ -245,15 +223,15 @@ export function ProgramsSection() {
                         <td className="px-6 py-4">
                           {expired ? (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--edu-warning)]">
-                              <Clock className="w-3 h-3" /> Expiré
+                              <Clock className="w-3 h-3" /> {t('admin.programs.status.expired')}
                             </span>
                           ) : p.est_actif ? (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--edu-success)]">
-                              <CheckCircle2 className="w-3 h-3" /> Actif
+                              <CheckCircle2 className="w-3 h-3" /> {t('admin.programs.status.active')}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--edu-text-tertiary)]">
-                              <XCircle className="w-3 h-3" /> Inactif
+                              <XCircle className="w-3 h-3" /> {t('admin.programs.status.inactive')}
                             </span>
                           )}
                         </td>
@@ -267,7 +245,7 @@ export function ProgramsSection() {
                           <span className={`text-sm flex items-center gap-1 ${expired ? 'text-[var(--edu-warning)]' : 'text-[var(--edu-text-secondary)]'}`}>
                             <Calendar className="w-3.5 h-3.5" />
                             {p.date_limite_candidature
-                              ? new Date(p.date_limite_candidature).toLocaleDateString('fr-FR')
+                              ? new Date(p.date_limite_candidature).toLocaleDateString(i18n.language)
                               : '—'}
                           </span>
                         </td>
@@ -276,7 +254,7 @@ export function ProgramsSection() {
                             {p.frais_inscription != null ? (
                               <>
                                 <DollarSign className="w-3.5 h-3.5" />
-                                {p.frais_inscription.toLocaleString('fr-FR')} TND
+                                {p.frais_inscription.toLocaleString(i18n.language)} TND
                               </>
                             ) : '—'}
                           </span>
@@ -292,7 +270,7 @@ export function ProgramsSection() {
           {totalPages > 1 && (
             <div className="px-6 py-4 border-t border-[var(--edu-border)] flex items-center justify-between">
               <p className="text-xs text-[var(--edu-text-tertiary)]">
-                {filtered.length} programme{filtered.length !== 1 ? 's' : ''} — page {page}/{totalPages}
+                {t('admin.programs.results', { count: filtered.length })} — {t('common.page')} {page}/{totalPages}
               </p>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="rounded-lg">

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Grid, List, SlidersHorizontal } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -39,6 +40,7 @@ const FIELD_TO_DOMAINE: Record<string, DomaineBackend> = {
 type SortOption = 'relevance' | 'deadline' | 'tuition_asc' | 'tuition_desc';
 
 export function SearchResults() {
+  const { t } = useTranslation();
   const [view, setView] = React.useState<'grid' | 'list'>('list');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedFields, setSelectedFields] = React.useState<string[]>([]);
@@ -177,7 +179,7 @@ export function SearchResults() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--edu-text-tertiary)]" />
               <Input
                 type="text"
-                placeholder="Rechercher des programmes..."
+                placeholder={t('search.placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 rounded-xl h-12"
@@ -190,10 +192,10 @@ export function SearchResults() {
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="px-4 py-2 rounded-xl border border-input bg-background h-12 min-w-[180px]"
             >
-              <option value="relevance">Pertinence</option>
-              <option value="deadline">Date limite</option>
-              <option value="tuition_asc">Frais (croissant)</option>
-              <option value="tuition_desc">Frais (décroissant)</option>
+              <option value="relevance">{t('search.sort.relevance')}</option>
+              <option value="deadline">{t('search.sort.deadline')}</option>
+              <option value="tuition_asc">{t('search.sort.tuitionAsc')}</option>
+              <option value="tuition_desc">{t('search.sort.tuitionDesc')}</option>
             </select>
 
             {/* Bascule grille / liste */}
@@ -203,7 +205,7 @@ export function SearchResults() {
                 className={`p-2 rounded-lg transition-colors ${
                   view === 'list' ? 'bg-[var(--edu-blue)] text-white' : 'text-[var(--edu-text-secondary)]'
                 }`}
-                aria-label="Vue liste"
+                aria-label={t('search.view.list')}
               >
                 <List className="w-5 h-5" />
               </button>
@@ -212,7 +214,7 @@ export function SearchResults() {
                 className={`p-2 rounded-lg transition-colors ${
                   view === 'grid' ? 'bg-[var(--edu-blue)] text-white' : 'text-[var(--edu-text-secondary)]'
                 }`}
-                aria-label="Vue grille"
+                aria-label={t('search.view.grid')}
               >
                 <Grid className="w-5 h-5" />
               </button>
@@ -230,16 +232,16 @@ export function SearchResults() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-semibold text-[var(--edu-text-primary)] flex items-center gap-2">
                   <SlidersHorizontal className="w-5 h-5" />
-                  Filtres
+                  {t('search.filters.title')}
                 </h3>
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
-                  Réinitialiser
+                  {t('search.filters.reset')}
                 </Button>
               </div>
 
               {/* Domaine */}
               <div className="mb-6">
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Domaine</h4>
+                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">{t('search.filters.domain')}</h4>
                 <div className="space-y-3">
                   {fields.map((field) => (
                     <div key={field.name} className="flex items-center gap-2">
@@ -264,7 +266,7 @@ export function SearchResults() {
 
               {/* Niveau */}
               <div className="mb-6">
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Niveau</h4>
+                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">{t('search.filters.level')}</h4>
                 <div className="space-y-3">
                   {niveauxBackend.map((level) => (
                     <div key={level} className="flex items-center gap-2">
@@ -274,7 +276,7 @@ export function SearchResults() {
                         onCheckedChange={() => toggleLevel(level)}
                       />
                       <label htmlFor={`level-${level}`} className="text-sm text-[var(--edu-text-secondary)] cursor-pointer">
-                        {level.replace(/_/g, ' ')}
+                        {t(`program.levels.${level}`, { defaultValue: level.replace(/_/g, ' ') })}
                       </label>
                     </div>
                   ))}
@@ -285,7 +287,7 @@ export function SearchResults() {
 
               {/* Frais d'inscription */}
               <div>
-                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">Frais d'inscription</h4>
+                <h4 className="font-semibold text-sm text-[var(--edu-text-primary)] mb-3">{t('search.filters.tuition')}</h4>
                 <div className="space-y-4">
                   <Slider
                     min={0}
@@ -311,12 +313,12 @@ export function SearchResults() {
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
                   {pagination
-                    ? `${pagination.total} programme${pagination.total !== 1 ? 's' : ''}`
-                    : `${sortedPrograms.length} programme${sortedPrograms.length !== 1 ? 's' : ''} trouvé${sortedPrograms.length !== 1 ? 's' : ''}`}
+                    ? `${pagination.total} ${pagination.total !== 1 ? t('search.results.programs') : t('search.results.program')}`
+                    : `${sortedPrograms.length} ${sortedPrograms.length !== 1 ? t('search.results.programs') : t('search.results.program')} ${sortedPrograms.length !== 1 ? t('search.results.foundPlural') : t('search.results.found')}`}
                 </h2>
                 <p className="text-[var(--edu-text-secondary)]">
                   {selectedFields.length > 0 && (
-                    <span>dans {selectedFields.join(', ')} </span>
+                    <span>{t('search.results.in')} {selectedFields.join(', ')} </span>
                   )}
                 </p>
               </div>
@@ -339,7 +341,7 @@ export function SearchResults() {
                   onClick={refetch}
                   className="px-4 py-2 bg-[var(--edu-blue)] text-white rounded-lg hover:bg-[var(--edu-blue-hover)] transition-colors"
                 >
-                  Réessayer
+                  {t('search.results.retry')}
                 </button>
               </div>
             )}
@@ -347,9 +349,9 @@ export function SearchResults() {
             {/* État vide */}
             {!loading && !error && sortedPrograms.length === 0 && (
               <EmptyState
-                title="Aucun programme trouvé"
-                description="Essayez d'ajuster vos filtres ou votre recherche pour trouver plus de programmes."
-                actionLabel="Réinitialiser les filtres"
+                title={t('search.results.empty')}
+                description={t('search.results.emptyDescription')}
+                actionLabel={t('search.results.resetFilters')}
                 onAction={clearFilters}
               />
             )}
@@ -374,14 +376,12 @@ export function SearchResults() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   totalItems={pagination.total}
-                  itemLabel="programme"
+                  itemLabel={t('search.results.program')}
                   disabled={loading}
                 />
                 {hasClientSideFilter && pagination.totalPages > 1 && (
                   <p className="text-xs text-[var(--edu-text-tertiary)] text-center mt-3 italic">
-                    Note : les filtres « frais » et les sélections multiples sont
-                    appliqués côté client — les pages peuvent contenir moins de
-                    résultats que prévu.
+                    {t('search.results.clientFilterNote')}
                   </p>
                 )}
               </>

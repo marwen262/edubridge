@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { BarChart3, Search, ChevronLeft, ChevronRight, ChevronDown, Phone, MapPin, Globe, IdCard, GraduationCap } from 'lucide-react';
@@ -6,26 +7,27 @@ import { Button } from '../ui/button';
 import { useInstitutCandidatures } from '@/hooks/useCandidatures';
 import { candidatureService } from '@/services/api';
 import { trouverLabelNationalite, estTunisien } from '@/app/data/nationalites';
+import i18n from '@/i18n';
 import type { Candidat, Candidature } from '@/types/api';
 
-const STATUT_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  soumise: { label: 'Soumise', color: 'var(--edu-blue)', bg: 'rgba(0,113,227,0.1)' },
-  en_examen: { label: 'En examen', color: 'var(--edu-warning)', bg: 'rgba(255,159,10,0.1)' },
-  acceptee: { label: 'Acceptée', color: 'var(--edu-success)', bg: 'rgba(52,199,89,0.1)' },
-  refusee: { label: 'Refusée', color: 'var(--edu-danger)', bg: 'rgba(255,59,48,0.1)' },
-  liste_attente: { label: "Liste d'attente", color: '#8B5CF6', bg: 'rgba(139,92,246,0.1)' },
+const STATUT_STYLE: Record<string, { color: string; bg: string }> = {
+  soumise:       { color: 'var(--edu-blue)',    bg: 'rgba(0,113,227,0.1)' },
+  en_examen:     { color: 'var(--edu-warning)', bg: 'rgba(255,159,10,0.1)' },
+  acceptee:      { color: 'var(--edu-success)', bg: 'rgba(52,199,89,0.1)' },
+  refusee:       { color: 'var(--edu-danger)',  bg: 'rgba(255,59,48,0.1)' },
+  liste_attente: { color: '#8B5CF6',            bg: 'rgba(139,92,246,0.1)' },
 };
 const TRANSITIONS: Record<string, string[]> = {
   soumise: ['en_examen', 'acceptee', 'refusee', 'liste_attente'],
   en_examen: ['acceptee', 'refusee', 'liste_attente'],
   liste_attente: ['acceptee', 'refusee'],
 };
-const TR_LABELS: Record<string, string> = { en_examen: 'En examen', acceptee: 'Accepter', refusee: 'Refuser', liste_attente: 'Attente' };
 const TR_COLORS: Record<string, string> = { en_examen: 'var(--edu-warning)', acceptee: 'var(--edu-success)', refusee: 'var(--edu-danger)', liste_attente: '#8B5CF6' };
 
 const PAGE_SIZE = 12;
 
 export function InstitutionCandidaturesSection() {
+  const { t } = useTranslation();
   const { candidatures, loading, refetch } = useInstitutCandidatures();
   const [search, setSearch] = React.useState('');
   const [statutFilter, setStatutFilter] = React.useState<string>('tous');
@@ -53,17 +55,23 @@ export function InstitutionCandidaturesSection() {
 
   const handleStatut = async (id: string, statut: string) => {
     setProcessing(id);
-    try { await candidatureService.changerStatut(id, statut); toast.success('Statut mis à jour'); refetch(); }
-    catch (err: unknown) { const a = err as { response?: { data?: { message?: string } } }; toast.error(a?.response?.data?.message ?? 'Erreur'); }
+    try {
+      await candidatureService.changerStatut(id, statut);
+      toast.success(t('institution.candidatures.toasts.statusUpdated'));
+      refetch();
+    } catch (err: unknown) {
+      const a = err as { response?: { data?: { message?: string } } };
+      toast.error(a?.response?.data?.message ?? t('institution.candidatures.toasts.error'));
+    }
     finally { setProcessing(null); }
   };
 
   return (
     <div>
       <div className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)] px-8 py-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)] mb-1">Établissement</p>
-        <h1 className="text-3xl font-bold text-[var(--edu-text-primary)]">Candidatures</h1>
-        <p className="text-sm text-[var(--edu-text-secondary)] mt-1">Gérez les demandes d'admission</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)] mb-1">{t('institution.candidatures.sectionLabel')}</p>
+        <h1 className="text-3xl font-bold text-[var(--edu-text-primary)]">{t('institution.candidatures.title')}</h1>
+        <p className="text-sm text-[var(--edu-text-secondary)] mt-1">{t('institution.candidatures.subtitle')}</p>
       </div>
       <div className="p-8 space-y-6 max-w-[1600px]">
         {/* Filters */}
@@ -71,14 +79,14 @@ export function InstitutionCandidaturesSection() {
           className="bg-white dark:bg-[#1D1D1F] rounded-2xl border border-[var(--edu-border)] p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--edu-text-tertiary)]" />
-            <input type="text" placeholder="Rechercher par candidat, programme…" value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t('institution.candidatures.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--edu-surface)] border border-[var(--edu-border)] text-sm text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--edu-blue)]" />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {['tous', 'soumise', 'en_examen', 'acceptee', 'refusee', 'liste_attente'].map((s) => (
+            {(['tous', 'soumise', 'en_examen', 'acceptee', 'refusee', 'liste_attente'] as const).map((s) => (
               <button key={s} onClick={() => setStatutFilter(s)}
                 className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${statutFilter === s ? 'bg-[var(--edu-indigo)] text-white' : 'bg-[var(--edu-surface)] text-[var(--edu-text-secondary)] hover:bg-[var(--edu-border)]'}`}>
-                {s === 'tous' ? 'Toutes' : STATUT_CFG[s]?.label ?? s}
+                {t(`status.${s}`)}
               </button>
             ))}
           </div>
@@ -91,22 +99,22 @@ export function InstitutionCandidaturesSection() {
             <table className="w-full">
               <thead className="bg-[var(--edu-surface)]">
                 <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Candidat</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Programme</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Statut</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Score</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Date</th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">Actions</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('institution.candidatures.columns.candidate')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('institution.candidatures.columns.program')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('institution.candidatures.columns.status')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('institution.candidatures.columns.score')}</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('institution.candidatures.columns.date')}</th>
+                  <th className="text-right px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('institution.candidatures.columns.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--edu-divider)]">
                 {loading ? Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i}>{Array.from({ length: 6 }).map((_, j) => <td key={j} className="px-6 py-4"><div className="h-4 bg-[var(--edu-surface)] rounded animate-pulse" /></td>)}</tr>
                 )) : paginated.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center"><BarChart3 className="w-8 h-8 mx-auto mb-2 text-[var(--edu-text-tertiary)]" /><p className="text-sm text-[var(--edu-text-secondary)]">Aucune candidature.</p></td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center"><BarChart3 className="w-8 h-8 mx-auto mb-2 text-[var(--edu-text-tertiary)]" /><p className="text-sm text-[var(--edu-text-secondary)]">{t('institution.candidatures.empty')}</p></td></tr>
                 ) : paginated.map((c) => {
                   const nom = getNom(c);
-                  const st = STATUT_CFG[c.statut] ?? STATUT_CFG.soumise;
+                  const st = STATUT_STYLE[c.statut] ?? STATUT_STYLE.soumise;
                   const transitions = TRANSITIONS[c.statut] ?? [];
                   const isExpanded = expandedId === c.id;
                   return (
@@ -117,7 +125,7 @@ export function InstitutionCandidaturesSection() {
                             onClick={() => toggleExpand(c.id)}
                             className="flex items-center gap-3 text-left w-full"
                             aria-expanded={isExpanded}
-                            aria-label={isExpanded ? 'Masquer le détail candidat' : 'Voir le détail candidat'}
+                            aria-label={isExpanded ? t('institution.candidatures.ariaCollapse') : t('institution.candidatures.ariaExpand')}
                           >
                             <ChevronDown
                               className={`w-4 h-4 text-[var(--edu-text-tertiary)] flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -127,15 +135,21 @@ export function InstitutionCandidaturesSection() {
                           </button>
                         </td>
                         <td className="px-6 py-4 text-sm text-[var(--edu-text-secondary)] truncate max-w-[180px]">{c.programme?.titre ?? '—'}</td>
-                        <td className="px-6 py-4"><span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: st.bg, color: st.color }}>{st.label}</span></td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: st.bg, color: st.color }}>
+                            {t(`status.${c.statut}`)}
+                          </span>
+                        </td>
                         <td className="px-6 py-4"><ScoreBadge score={c.score_diplome} /></td>
-                        <td className="px-6 py-4 text-sm text-[var(--edu-text-secondary)]">{(c.soumise_le ?? c.cree_le) ? new Date((c.soumise_le ?? c.cree_le)!).toLocaleDateString('fr-FR') : '—'}</td>
+                        <td className="px-6 py-4 text-sm text-[var(--edu-text-secondary)]">{(c.soumise_le ?? c.cree_le) ? new Date((c.soumise_le ?? c.cree_le)!).toLocaleDateString(i18n.language) : '—'}</td>
                         <td className="px-6 py-4">
                           {transitions.length > 0 && (
                             <div className="flex items-center justify-end gap-1 flex-wrap">
-                              {transitions.map((t) => (
-                                <button key={t} onClick={() => handleStatut(c.id, t)} disabled={processing === c.id}
-                                  className="text-xs px-2 py-0.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ backgroundColor: TR_COLORS[t] }}>{TR_LABELS[t]}</button>
+                              {transitions.map((tr) => (
+                                <button key={tr} onClick={() => handleStatut(c.id, tr)} disabled={processing === c.id}
+                                  className="text-xs px-2 py-0.5 rounded-full font-semibold text-white disabled:opacity-50" style={{ backgroundColor: TR_COLORS[tr] }}>
+                                  {t(`institution.candidatures.transitions.${tr}`)}
+                                </button>
                               ))}
                             </div>
                           )}
@@ -166,7 +180,9 @@ export function InstitutionCandidaturesSection() {
           </div>
           {totalPages > 1 && (
             <div className="px-6 py-4 border-t border-[var(--edu-border)] flex items-center justify-between">
-              <p className="text-xs text-[var(--edu-text-tertiary)]">{filtered.length} candidature{filtered.length !== 1 ? 's' : ''} — page {page}/{totalPages}</p>
+              <p className="text-xs text-[var(--edu-text-tertiary)]">
+                {filtered.length} {filtered.length !== 1 ? t('institution.candidatures.paginationPlural') : t('institution.candidatures.pagination')} — {t('common.page')} {page}/{totalPages}
+              </p>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="rounded-lg"><ChevronLeft className="w-4 h-4" /></Button>
                 <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="rounded-lg"><ChevronRight className="w-4 h-4" /></Button>
@@ -201,6 +217,7 @@ function ScoreBadge({ score }: { score?: number | null }) {
 // ─────────────────────────────────────────────────────────────
 
 function CandidatIdentitePanel({ candidat }: { candidat: Candidat }) {
+  const { t } = useTranslation();
   const tunisien = estTunisien(candidat.nationalite);
   const adresseFormatee = [
     candidat.adresse?.rue,
@@ -214,17 +231,17 @@ function CandidatIdentitePanel({ candidat }: { candidat: Candidat }) {
 
   const items: Array<{ label: string; value?: string | null; Icon: typeof Phone }> = [
     {
-      label: 'Nationalité',
+      label: t('institution.candidatures.candidatePanel.nationality'),
       value: candidat.nationalite ? trouverLabelNationalite(candidat.nationalite) : null,
       Icon: Globe,
     },
     {
-      label: tunisien ? 'CIN' : 'Passeport',
+      label: tunisien ? t('institution.candidatures.candidatePanel.cin') : t('institution.candidatures.candidatePanel.passport'),
       value: tunisien ? candidat.cin : candidat.numero_passeport,
       Icon: IdCard,
     },
-    { label: 'Téléphone', value: candidat.telephone, Icon: Phone },
-    { label: 'Adresse', value: adresseFormatee || null, Icon: MapPin },
+    { label: t('institution.candidatures.candidatePanel.phone'), value: candidat.telephone, Icon: Phone },
+    { label: t('institution.candidatures.candidatePanel.address'), value: adresseFormatee || null, Icon: MapPin },
   ];
 
   const dernierDiplome = Array.isArray(candidat.parcours_academique)
@@ -246,7 +263,7 @@ function CandidatIdentitePanel({ candidat }: { candidat: Candidat }) {
               {label}
             </p>
             <p className="text-sm text-[var(--edu-text-primary)] truncate">
-              {value || <span className="italic text-[var(--edu-text-tertiary)]">Non renseigné</span>}
+              {value || <span className="italic text-[var(--edu-text-tertiary)]">{t('institution.candidatures.candidatePanel.notFilled')}</span>}
             </p>
           </div>
         </div>
@@ -262,13 +279,13 @@ function CandidatIdentitePanel({ candidat }: { candidat: Candidat }) {
           </div>
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-wider font-semibold text-[var(--edu-text-tertiary)]">
-              Dernier diplôme
+              {t('institution.candidatures.candidatePanel.lastDiploma')}
             </p>
             <p className="text-sm text-[var(--edu-text-primary)]">
               {dernierDiplome.diplome} — {dernierDiplome.etablissement} ({dernierDiplome.annee})
               {dernierDiplome.mention && (
                 <span className="text-xs text-[var(--edu-text-secondary)] ml-2">
-                  Mention : {dernierDiplome.mention}
+                  {t('institution.candidatures.candidatePanel.mention')} {dernierDiplome.mention}
                 </span>
               )}
             </p>
