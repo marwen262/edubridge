@@ -80,6 +80,9 @@ exports.updateUser = async (req, res) => {
     // Champs Utilisateur modifiables
     const updatesUtilisateur = pick(req.body, ['email']);
     if (req.user.role === 'admin' && req.body.est_actif !== undefined) {
+      if (utilisateur.role === 'admin') {
+        return res.status(403).json({ message: 'Impossible de désactiver un compte administrateur.' });
+      }
       updatesUtilisateur.est_actif = req.body.est_actif;
     }
     if (Object.keys(updatesUtilisateur).length > 0) {
@@ -147,6 +150,9 @@ exports.deleteUser = async (req, res) => {
   try {
     const utilisateur = await Utilisateur.findByPk(req.params.id);
     if (!utilisateur) return res.status(404).json({ message: 'Ressource introuvable.' });
+    if (utilisateur.role === 'admin') {
+      return res.status(403).json({ message: 'Impossible de supprimer un compte administrateur.' });
+    }
     await utilisateur.destroy();
     return res.status(200).json({ message: 'Utilisateur supprimé.' });
   } catch (error) {

@@ -169,7 +169,8 @@ exports.getAllCandidatures = async (req, res) => {
       where,
       include: [
         { model: Candidat,  as: 'candidat',  attributes: ['id', 'prenom', 'nom'] },
-        { model: Programme, as: 'programme', attributes: ['id', 'titre', 'institut_id'] },
+        { model: Programme, as: 'programme', attributes: ['id', 'titre', 'institut_id'],
+          include: [{ model: Institut, as: 'institut', attributes: ['id', 'nom', 'sigle'] }] },
       ],
       order: [['cree_le', 'DESC']],
       limit,

@@ -334,7 +334,7 @@ exports.soumettre = async ({ candidature_id, user_id, profil }) => {
     if (docDiplome && docDiplome.url) {
       const cheminFichier = path.resolve(
         __dirname,
-        '../../uploads',
+        '../uploads',
         path.basename(docDiplome.url)
       );
 

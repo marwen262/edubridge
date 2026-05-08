@@ -79,6 +79,11 @@ src/
 │   └── AuthContext.tsx               # AuthProvider + hook useAuth
 ├── components/
 │   └── ProtectedRoute.tsx            # Wrapper route protégée (redirect si non auth ou mauvais rôle)
+├── i18n/
+│   ├── index.ts                      # Init i18next (LanguageDetector + react-i18next, fallback fr)
+│   └── locales/
+│       ├── fr/translation.json       # Traductions françaises (namespace "translation")
+│       └── en/translation.json       # Traductions anglaises (namespace "translation")
 ├── hooks/                            # Hooks de fetch (un par ressource)
 │   ├── usePrograms.ts                # fetch /programmes avec filtres + refetch
 │   ├── useProgramDetail.ts           # fetch /programmes/:id
@@ -158,6 +163,7 @@ Fichiers racine:
 | `types/` | Types TypeScript pour les entités backend et l'auth |
 | `context/` | AuthContext — état global utilisateur + token JWT |
 | `components/` | ProtectedRoute — garde les routes privées |
+| `i18n/` | Init i18next + fichiers de traduction FR/EN (`locales/{fr,en}/translation.json`) |
 | `hooks/` | Fetch hooks (loading/error/refetch par ressource) |
 | `pages/` | Pages complètes du routing (20 routes nommées + wildcard 404) |
 | `app/components/` | Composants réutilisables (business logic + présentation) |
@@ -320,7 +326,7 @@ export const router = createBrowserRouter([
 - **Footer**
   - Links par section (Product, For Candidates, For Institutions)
   - Social media
-  - Language selector placeholder
+  - Sélecteur de langue (branché sur i18n — `i18n.changeLanguage()`)
 
 ---
 
@@ -461,9 +467,10 @@ const [darkMode, setDarkMode] = useState(false);
 
 #### 3. **localStorage Persistence**
 ```tsx
-// auth_token — JWT Bearer
-// auth_user  — objet User JSON
-// darkMode   — toggle dark mode
+// auth_token  — JWT Bearer
+// auth_user   — objet User JSON
+// darkMode    — toggle dark mode
+// i18nextLng  — langue sélectionnée (fr | en), lue au démarrage par LanguageDetector
 
 // Intercepteur 401 : vide localStorage + redirect /login automatique
 ```
@@ -489,6 +496,7 @@ const navigate = useNavigate();
 ✅ Token JWT injecté automatiquement par axios
 ✅ Gestion 401/403 centralisée (intercepteur)
 ✅ Hooks de fetch avec loading/error/refetch
+✅ i18n bilingue FR/EN via `i18next` (persisté dans `localStorage.i18nextLng`)
 ⚠️ Pas de caching (chaque navigation re-fetch)
 
 ---
@@ -640,6 +648,45 @@ toast.error(axiosError.response?.data?.message ?? 'Erreur réseau');
 
 ---
 
+## Internationalisation (i18n)
+
+### Stack
+**i18next 26** + **react-i18next 17** + **i18next-browser-languagedetector 8**
+
+### Configuration (`src/i18n/index.ts`)
+- Importé dans `src/main.tsx` **avant** le render React pour garantir que les traductions sont disponibles dès le premier rendu.
+- Détection de la langue : `localStorage.i18nextLng` → `navigator.language`.
+- Langues supportées : `['fr', 'en']`, fallback `fr`.
+
+### Utilisation dans les composants
+```tsx
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation();
+  return <p>{t('common.loading')}</p>;
+}
+```
+
+### Changer la langue (Footer / Navbar)
+```tsx
+import { useTranslation } from 'react-i18next';
+
+const { i18n } = useTranslation();
+i18n.changeLanguage('en'); // persiste dans localStorage.i18nextLng
+```
+
+### Structure des fichiers de traduction
+```
+src/i18n/locales/
+├── fr/translation.json   # Namespaces : common, status, nav, home, search, program, …
+└── en/translation.json   # Même structure
+```
+
+Les namespaces couvrent toutes les sections UI : `common`, `status` (statuts candidature), `nav`, `home`, `search`, `program`, `institution`, `compare`, `guide`, `auth`, `dashboard`, `admin`, `notifications`.
+
+---
+
 ## Médias & Ressources
 
 ### Images
@@ -755,6 +802,9 @@ const toggleDarkMode = () => {
 | **Motion** | 12.23.24 | Animations (Framer Motion) |
 | **Recharts** | 2.15.2 | Charts (Line, Pie, Bar) |
 | **Sonner** | 2.0.3 | Toast notifications |
+| **i18next** | 26.x | Moteur de traduction FR/EN |
+| **react-i18next** | 17.x | Binding React (`useTranslation`) |
+| **i18next-browser-languagedetector** | 8.x | Détection langue (localStorage → navigator) |
 
 ### Design System Architecture
 
@@ -1099,6 +1149,7 @@ observer.observe(lastElementRef);
 - MultiStepDialog candidature → `candidatureService.create()` + upload Multer via `FormData`.
 - Notifications Navbar : badge `unreadCount` + dropdown + `markAsRead`.
 - `mockData.ts` supprimé — données statiques déplacées dans `staticData.ts` (référentiels UI uniquement).
+- i18n bilingue FR/EN : `i18next` + `react-i18next` + `i18next-browser-languagedetector` ; fichiers `src/i18n/locales/{fr,en}/translation.json` ; tous les composants et pages migrés vers `useTranslation()` ; détection automatique (localStorage → navigator) ; fallback `fr`.
 
 ### ✅ Pagination (complète)
 - **Backend** : renvoie `pagination: { total, page, limit, totalPages }` sur `/programmes`, `/instituts`, `/candidatures` (admin).
@@ -1117,7 +1168,7 @@ observer.observe(lastElementRef);
 - Code splitting manuel (`React.lazy()`) — Vite fait du splitting auto par chunk.
 - Optimisation images (pas de `loading="lazy"`, pas de `srcSet`, pas de WebP/AVIF).
 - Caching côté client (pas de TanStack Query, pas de Zustand) — re-fetch à chaque navigation.
-- i18n (UI strings en anglais, code en français — stratégie i18n non décidée).
+- Étendre les fichiers de traduction i18n au fur et à mesure des nouvelles features (base bilingue FR/EN en place).
 
 ### Points de contact clés
 - **Entry point** : `src/main.tsx` → `src/app/App.tsx`
@@ -1125,4 +1176,5 @@ observer.observe(lastElementRef);
 - **API** : `src/services/api.ts` + `src/types/api.ts`
 - **Hooks** : `src/hooks/` (un fichier par ressource)
 - **Routing** : `src/app/routes.tsx`
+- **i18n** : `src/i18n/index.ts` + `src/i18n/locales/{fr,en}/translation.json` (importé dans `main.tsx` avant le render)
 - **Design system** : `src/styles/` (4 fichiers CSS : `tailwind.css`, `theme.css`, `edubridge.css`, `fonts.css`, importés depuis `index.css`)

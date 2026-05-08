@@ -37,6 +37,7 @@ Le repo contient trois composants indépendants :
 - **react-router 7** (`createBrowserRouter`)
 - **axios 1.15** (client HTTP centralisé `src/services/api.ts`)
 - **motion** (animations), **lucide-react** (icônes), **sonner** (toasts)
+- **i18next 26** + **react-i18next 17** + **i18next-browser-languagedetector 8** (i18n FR/EN, clé `i18nextLng` localStorage, fallback `fr`)
 - **react-hook-form** 7 + **zod 4** + **@hookform/resolvers 5** (formulaires Login/Signup/Paramètres)
 - **AuthContext** (`src/context/AuthContext.tsx`) — JWT + localStorage + intercepteurs
 - **ProtectedRoute** (`src/components/ProtectedRoute.tsx`) — garde routes dashboard
@@ -174,6 +175,11 @@ edubridge/
 │   │   │   └── AuthContext.tsx   # AuthProvider + useAuth (JWT, localStorage)
 │   │   ├── components/
 │   │   │   └── ProtectedRoute.tsx # Redirection si non auth ou mauvais rôle
+│   │   ├── i18n/
+│   │   │   ├── index.ts          # Init i18next (LanguageDetector + react-i18next, fallback fr)
+│   │   │   └── locales/
+│   │   │       ├── fr/translation.json  # Traductions françaises
+│   │   │       └── en/translation.json  # Traductions anglaises
 │   │   ├── hooks/                 # Hooks de fetch (loading/error/refetch)
 │   │   │   ├── usePrograms.ts
 │   │   │   ├── useProgramDetail.ts
@@ -272,8 +278,7 @@ automatiques (candidat + institut) à chaque événement.
   Exemples côté frontend : `useProgrammes`, `useCandidatures`, `useInstituts`,
   `TableauDeBordCandidat`, `BarreDeNavigation`, `CarteProgramme`.
 - **Commentaires, messages de commit, documentation** : **français**
-- **Strings UI utilisateur** : actuellement anglais côté front (cohérence à garder
-  tant qu'une stratégie i18n n'est pas décidée)
+- **Strings UI utilisateur** : bilingue FR/EN via `i18next` — utiliser `useTranslation()` de `react-i18next` et la clé de traduction correspondante dans `src/i18n/locales/{fr,en}/translation.json`. Ne jamais écrire de chaîne UI en dur dans les composants.
 
 ### Backend
 - Controllers : `exports.methodName = async (req, res) => { ... }` — couche
@@ -439,6 +444,10 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - [x] Intégration diploma-verifier : vérification non-bloquante des diplômes
         uploadés lors de la soumission d'une candidature (`services/diplomaVerifierService.js`)
         — score et niveau stockés dans `notes_institut`, warning console si score < 50
+  - [x] i18n bilingue FR/EN : `i18next` + `react-i18next` + `i18next-browser-languagedetector` ;
+        fichiers de traduction `src/i18n/locales/{fr,en}/translation.json` ;
+        détection automatique (localStorage `i18nextLng` → navigator) ; fallback `fr` ;
+        tous les composants et pages migré vers `useTranslation()`
 - **TODOs / Améliorations futures (hors scope MVP)** :
 
   **Backend**
@@ -459,7 +468,7 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - Optimisation images (lazy loading, `srcSet`, WebP/AVIF).
   - Caching côté client (TanStack Query ou Zustand) pour éviter le re-fetch à chaque navigation.
   - Tests RTL + Jest.
-  - i18n (stratégie à décider).
+  - Étendre les fichiers de traduction i18n au fur et à mesure des nouvelles features (base bilingue FR/EN en place).
   - Clarifier le mapping slug → id pour la route `/institution/:slug`.
 
   **Diploma Verifier**

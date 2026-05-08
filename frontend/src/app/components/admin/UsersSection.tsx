@@ -271,10 +271,12 @@ export function UsersSection() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end relative">
+                          {u.role !== 'admin' && (
                           <Button variant="ghost" size="sm" onClick={() => setActionMenu(actionMenu === u.id ? null : u.id)} disabled={processing === u.id}>
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
-                          {actionMenu === u.id && (
+                          )}
+                          {u.role !== 'admin' && actionMenu === u.id && (
                             <div className="absolute right-0 top-full mt-1 z-50 w-48 bg-white dark:bg-[#2D2D2F] rounded-xl shadow-xl border border-[var(--edu-border)] py-1 animate-in fade-in slide-in-from-top-1">
                               <button onClick={() => handleToggleActif(u)}
                                 className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-[var(--edu-surface)] text-[var(--edu-text-primary)]">
