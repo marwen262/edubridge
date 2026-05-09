@@ -515,3 +515,117 @@ def compute_score(
     )
 
     return score, confidence_level
+
+
+# ──────────────────────────────────────────────
+# V7 — Post-processing caps
+# ──────────────────────────────────────────────
+# Appliqués APRÈS compute_score() depuis l'orchestrator. Permet de
+# corriger les faux positifs (templates, documents falsifiés) sans
+# refactorer la logique de scoring V6.
+
+def apply_v7_post_caps(
+    score: float,
+    confidence_level: str,
+    semantic_score: float,
+    critical_fields_score: int,
+    fraud_score: int,
+    is_template_without_identity: bool = False,
+) -> tuple[float, str, list[str]]:
+    """Applique les plafonds V7 au score V6.
+
+    Phase 1 : corrige le problème central des templates qui scoraient
+    60–75 sans contenir d'identité étudiante, et active la pénalité
+    tampering.
+
+    Parameters
+    ----------
+    score : float
+        Score V6 retourné par compute_score().
+    confidence_level : str
+        Niveau de confiance V6.
+    semantic_score : float
+        Score sémantique (0.0–1.0).
+    critical_fields_score : int
+        Score critical_fields (0–100).
+    fraud_score : int
+        Score de fraude/tampering (0–100). 0 si tampering désactivé.
+    is_template_without_identity : bool
+        Indicateur explicite du critical_fields_validator.
+
+    Returns
+    -------
+    (adjusted_score, adjusted_confidence_level, applied_caps)
+        applied_caps : liste des plafonds appliqués (pour logging/diag).
+    """
+    from app.config import (
+        CRITICAL_FIELDS_LOW_CAP,
+        CRITICAL_FIELDS_LOW_THRESHOLD,
+        TAMPERING_HARD_CAP_SCORE,
+        TAMPERING_HARD_CAP_THRESHOLD,
+        TAMPERING_MAX_PENALTY,
+        TAMPERING_PENALTY_FACTOR,
+        TAMPERING_PENALTY_THRESHOLD,
+    )
+
+    applied: list[str] = []
+    adjusted = float(score)
+
+    # ── Cap 1 : critical_fields_score < threshold → cap final ──
+    if critical_fields_score < CRITICAL_FIELDS_LOW_THRESHOLD:
+        if adjusted > CRITICAL_FIELDS_LOW_CAP:
+            logger.info(
+                "V7 critical_fields cap : %.1f → %d (cf_score=%d < %d)",
+                adjusted, CRITICAL_FIELDS_LOW_CAP,
+                critical_fields_score, CRITICAL_FIELDS_LOW_THRESHOLD,
+            )
+            adjusted = float(CRITICAL_FIELDS_LOW_CAP)
+            applied.append("critical_fields_low_cap")
+
+    # ── Cap 2 : template officiel sans identité → plafonnage agressif ──
+    if is_template_without_identity:
+        TEMPLATE_FINAL_CAP = 35.0
+        if adjusted > TEMPLATE_FINAL_CAP:
+            logger.info(
+                "V7 template cap : %.1f → %.1f (template sans identité)",
+                adjusted, TEMPLATE_FINAL_CAP,
+            )
+            adjusted = TEMPLATE_FINAL_CAP
+            applied.append("template_without_identity_cap")
+
+    # ── Cap 3 : fraud_score élevé → hard cap ──
+    if fraud_score > TAMPERING_HARD_CAP_THRESHOLD:
+        if adjusted > TAMPERING_HARD_CAP_SCORE:
+            logger.info(
+                "V7 tampering hard cap : %.1f → %d (fraud=%d > %d)",
+                adjusted, TAMPERING_HARD_CAP_SCORE,
+                fraud_score, TAMPERING_HARD_CAP_THRESHOLD,
+            )
+            adjusted = float(TAMPERING_HARD_CAP_SCORE)
+            applied.append("tampering_hard_cap")
+
+    # ── Cap 4 : fraud_score modéré → pénalité proportionnelle ──
+    elif fraud_score > TAMPERING_PENALTY_THRESHOLD:
+        penalty = min(
+            TAMPERING_MAX_PENALTY,
+            fraud_score * TAMPERING_PENALTY_FACTOR,
+        )
+        if penalty > 0:
+            new_score = adjusted - penalty
+            logger.info(
+                "V7 tampering penalty : %.1f → %.1f (-%.1f, fraud=%d)",
+                adjusted, new_score, penalty, fraud_score,
+            )
+            adjusted = new_score
+            applied.append("tampering_penalty")
+
+    # Clamp et arrondi
+    adjusted = round(_clamp(adjusted), 1)
+
+    # Recalibrer confidence_level si le score a notablement bougé
+    if applied:
+        adjusted_confidence = determine_confidence_level(adjusted, semantic_score)
+    else:
+        adjusted_confidence = confidence_level
+
+    return adjusted, adjusted_confidence, applied

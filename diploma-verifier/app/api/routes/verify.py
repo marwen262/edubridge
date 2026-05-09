@@ -19,11 +19,18 @@ from app.models.response import (
     InfoResponse,
     SupportedCountriesResponse,
     SupportedCountry,
+    VerifyDebugResponse,
     VerifyResponse,
 )
 from app.services.country_detector import COUNTRY_PATTERNS
+from app.services.critical_fields_validator import validate_critical_fields
+from app.services.ocr_service import extract_text
 from app.services.orchestrator import analyze_document
+from app.services.signature_detector import detect_signature
+from app.services.stamp_detector import detect_stamp
+from app.services.text_analyzer import analyze_text
 from app.utils.file_handler import cleanup_temp_file, validate_and_save
+from app.utils.image_converter import convert_file
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/api", tags=["Vérification"])
@@ -75,6 +82,76 @@ async def verify_diploma(
             detail="Erreur interne lors de l'analyse.",
         )
 
+    finally:
+        if temp_path:
+            cleanup_temp_file(temp_path)
+
+
+@router.post("/verify/debug", response_model=VerifyDebugResponse)
+async def verify_diploma_debug(
+    file: UploadFile = File(..., description="Document à analyser (PDF, JPEG ou PNG)"),
+) -> VerifyDebugResponse:
+    """Endpoint de diagnostic V7 — expose l'état interne du pipeline.
+
+    Retourne le texte OCR brut, la source de détection du nom, les scores
+    par champ du critical_fields_validator, et les confiances visuelles.
+
+    ⚠️  Endpoint réservé au diagnostic. Ne pas exposer publiquement.
+    """
+    temp_path: str | None = None
+
+    try:
+        content: bytes = await file.read()
+        filename: str = file.filename or "unknown"
+        logger.info("Debug verify : %s", filename)
+
+        temp_path, mime_type, _ = validate_and_save(filename, content)
+
+        # OCR + signaux visuels (mêmes appels que l'orchestrator)
+        _pil, cv_image = convert_file(temp_path, mime_type)
+        ocr_result = extract_text(cv_image)
+        sig_result = detect_signature(cv_image)
+        stamp_result = detect_stamp(cv_image)
+
+        text_result = analyze_text(
+            ocr_result.full_text, ocr_result.language_detected,
+        )
+        cf_result = validate_critical_fields(
+            raw_text=ocr_result.full_text,
+            analysis_result=text_result,
+            ocr_confidence=ocr_result.ocr_confidence,
+        )
+
+        return VerifyDebugResponse(
+            filename=filename,
+            raw_text=ocr_result.full_text,
+            raw_text_len=len(ocr_result.full_text),
+            ocr_confidence=ocr_result.ocr_confidence,
+            language_detected=ocr_result.language_detected,
+            detected_name=text_result.detected_name,
+            name_source=text_result.name_source,
+            has_person_name=text_result.has_person_name,
+            has_institution=text_result.has_institution,
+            has_degree_keyword=text_result.has_degree_keyword,
+            detected_degree=text_result.detected_degree,
+            has_date=text_result.has_date,
+            structure_count=text_result.structure_count,
+            semantic_score=text_result.semantic_score,
+            diploma_confidence=text_result.diploma_confidence,
+            doc_type=text_result.doc_type,
+            critical_fields_score=cf_result.score,
+            critical_fields_per_field=cf_result.field_scores,
+            is_template_without_identity=cf_result.is_template_without_identity,
+            signature_confidence=sig_result.confidence,
+            stamp_confidence=stamp_result.confidence,
+        )
+
+    except ValueError as e:
+        logger.warning("Debug validation échouée pour %s : %s", file.filename, e)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Debug erreur inattendue : %s", e)
+        raise HTTPException(status_code=500, detail=f"Erreur debug : {e}")
     finally:
         if temp_path:
             cleanup_temp_file(temp_path)

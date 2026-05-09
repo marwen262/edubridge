@@ -29,11 +29,27 @@ import hashlib
 import random
 import time
 
-from app.models.response import VerifyResponse
+from app.config import TAMPERING_ENABLED, TAMPERING_GATE_DIPLOMA_CONFIDENCE
+from app.models.response import (
+    V7Reason,
+    V7Subscores,
+    V7TamperingDetail,
+    VerifyResponse,
+    VerifyResponseV7Detail,
+)
+from app.services.critical_fields_validator import (
+    CriticalFieldsResult,
+    validate_critical_fields,
+)
 from app.services.ocr_service import extract_text, normalize_ocr_text, compute_text_hash
-from app.services.scoring_engine import compute_score, _clamp
+from app.services.scoring_engine import (
+    apply_v7_post_caps,
+    compute_score,
+    _clamp,
+)
 from app.services.signature_detector import detect_signature
 from app.services.stamp_detector import detect_stamp
+from app.services.tampering_detector import TamperingResult, detect_tampering
 from app.services.text_analyzer import analyze_text
 from app.utils.image_converter import convert_file
 from app.utils.logger import log_analysis_result, logger
@@ -167,6 +183,20 @@ async def analyze_document(
         # ── 6. Analyse textuelle sémantique V5 ──
         text_result = analyze_text(raw_text, language)
 
+        # ── 6.5. V7 — Validation des champs critiques ──
+        # Léger : ne refait pas l'extraction, consomme les signaux
+        # déjà produits par analyze_text() + spaCy/regex.
+        cf_result = validate_critical_fields(
+            raw_text=raw_text,
+            analysis_result=text_result,
+            ocr_confidence=ocr_confidence,
+        )
+        logger.info(
+            "V7 critical_fields — score=%d | confidence=%.2f | template=%s",
+            cf_result.score, cf_result.confidence,
+            cf_result.is_template_without_identity,
+        )
+
         # ── 7. Early return si pas un diplôme ET pas de signaux visuels ──
         # V6: seuil textuel abaissé à 0.2 — les diplômes arabes ont
         # souvent une diploma_confidence faible (regex name/inst Latin
@@ -206,6 +236,31 @@ async def analyze_document(
                 visual_signal,
             )
 
+        # ── 7.5. V7 — Détection de falsification (gated) ──
+        # Activée uniquement sur les documents qui ressemblent à un
+        # diplôme (gate diploma_confidence) ET si TAMPERING_ENABLED.
+        # Wrappé dans try/except : en cas d'échec, on dégrade gracieusement
+        # avec fraud_score=0 et on continue le pipeline.
+        tampering_result: TamperingResult | None = None
+        if (
+            TAMPERING_ENABLED
+            and text_result.diploma_confidence >= TAMPERING_GATE_DIPLOMA_CONFIDENCE
+        ):
+            try:
+                tampering_result = detect_tampering(cv_image, file_path)
+                logger.info(
+                    "V7 tampering — score=%.2f | ELA_regions=%d | flags=%d",
+                    tampering_result.tampering_score,
+                    tampering_result.ela_suspicious_regions,
+                    len(tampering_result.flags),
+                )
+            except Exception as exc:
+                logger.warning(
+                    "V7 tampering detection failed (%s) — graceful "
+                    "degradation, fraud_score=0", exc,
+                )
+                tampering_result = None
+
         # ── 8. Construire les données pour le scoring V5 ──
         analysis_data: dict = {
             "has_person_name": 1.0 if text_result.has_person_name else 0.0,
@@ -233,14 +288,52 @@ async def analyze_document(
             keyword_penalty=text_result.keyword_penalty,
         )
 
-        # ── 10. Construire les raisons V5 ──
+        # ── 9.5. V7 — Post-processing caps ──
+        # Plafonne les templates sans identité et applique la pénalité
+        # tampering. Ne touche pas aux diplômes valides (cf_score >= 30,
+        # fraud_score <= 60).
+        fraud_score = (
+            int(round(tampering_result.tampering_score * 100))
+            if tampering_result is not None
+            else 0
+        )
+
+        score, confidence_level, applied_caps = apply_v7_post_caps(
+            score=score,
+            confidence_level=confidence_level,
+            semantic_score=text_result.semantic_score,
+            critical_fields_score=cf_result.score,
+            fraud_score=fraud_score,
+            is_template_without_identity=cf_result.is_template_without_identity,
+        )
+
+        # ── 10. Construire les raisons V5 (+ raisons V7 ajoutées) ──
         reasons = _build_reasons_v5(
             text_result, sig_result, stamp_result,
             ocr_confidence=ocr_confidence,
             score=score,
         )
+        # Injecter les raisons V7 prioritaires (template, tampering)
+        # devant les raisons V5 si elles ne sont pas déjà couvertes.
+        v7_priority_reasons = _collect_v7_priority_reasons(
+            cf_result, tampering_result, applied_caps,
+        )
+        if v7_priority_reasons:
+            reasons = (v7_priority_reasons + reasons)[:_MAX_REASONS]
 
-        # ── 11. Log ──
+        # ── 11. Construire le payload V7 (additif) ──
+        v7_payload = _build_v7_payload(
+            score=score,
+            text_result=text_result,
+            cf_result=cf_result,
+            tampering_result=tampering_result,
+            sig_confidence=sig_result.confidence,
+            stamp_confidence=stamp_result.confidence,
+            ocr_confidence=ocr_confidence,
+            applied_caps=applied_caps,
+        )
+
+        # ── 12. Log ──
         elapsed = int((time.time() - start) * 1000)
         log_analysis_result(
             filename=filename,
@@ -255,6 +348,7 @@ async def analyze_document(
             score=score,
             confidence_level=confidence_level,
             reasons=reasons,
+            v7=v7_payload,
         )
 
     except Exception as e:
@@ -391,3 +485,175 @@ def _build_reasons_v5(
             reasons.append("Document sans caractéristiques officielles visibles")
 
     return reasons[:_MAX_REASONS]
+
+
+# ──────────────────────────────────────────────
+# V7 helpers
+# ──────────────────────────────────────────────
+
+def _map_score_to_risk_level(score: float) -> str:
+    """Mappe le score final V7 vers un risk_level."""
+    if score >= 80:
+        return "trusted"
+    if score >= 60:
+        return "review_recommended"
+    if score >= 30:
+        return "suspicious"
+    return "highly_suspicious"
+
+
+def _compute_visual_authenticity_score(
+    sig_confidence: float,
+    stamp_confidence: float,
+) -> int:
+    """Combine signature + cachet en un score 0–100."""
+    combined = (sig_confidence * 0.5 + stamp_confidence * 0.5) * 100
+    return int(round(min(100, max(0, combined))))
+
+
+def _compute_structure_score(structure_count: int, max_count: int = 3) -> int:
+    """Convertit structure_count (0–3) en score 0–100."""
+    if max_count <= 0:
+        return 0
+    return int(round((structure_count / max_count) * 100))
+
+
+def _collect_v7_priority_reasons(
+    cf_result: CriticalFieldsResult,
+    tampering_result: TamperingResult | None,
+    applied_caps: list[str],
+) -> list[str]:
+    """Ajoute les raisons V7 prioritaires (ordre d'importance).
+
+    Ces raisons doivent apparaître en tête de la liste quand elles
+    s'appliquent — elles expliquent pourquoi un document a été
+    plafonné par les caps V7.
+    """
+    out: list[str] = []
+    if "template_without_identity_cap" in applied_caps:
+        out.append("Template officiel sans identité étudiante")
+    elif "critical_fields_low_cap" in applied_caps:
+        out.append("Champs critiques d'identité incomplets")
+
+    if "tampering_hard_cap" in applied_caps:
+        out.append("Signaux de falsification élevés")
+    elif "tampering_penalty" in applied_caps and tampering_result is not None:
+        # Reprendre une raison concise du module tampering
+        if tampering_result.flags:
+            out.append(tampering_result.flags[0])
+        else:
+            out.append("Anomalies de cohérence visuelle détectées")
+
+    return out
+
+
+def _build_tampering_signals(
+    tampering_result: TamperingResult | None,
+) -> list[dict]:
+    """Convertit les flags du tampering_detector en signaux structurés."""
+    if tampering_result is None:
+        return []
+
+    signals: list[dict] = []
+
+    # ELA suspicious regions
+    if tampering_result.ela_suspicious_regions > 0:
+        severity = (
+            "high" if tampering_result.ela_suspicious_regions > 5
+            else "medium" if tampering_result.ela_suspicious_regions > 2
+            else "low"
+        )
+        signals.append({
+            "type": "ela_anomaly",
+            "severity": severity,
+            "description": (
+                f"{tampering_result.ela_suspicious_regions} régions "
+                "avec niveau d'erreur ELA anormal"
+            ),
+        })
+
+    # Generic flags (bg uniformity, metadata, copy-paste)
+    for flag in tampering_result.flags:
+        # Skip ELA flag déjà inclus ci-dessus
+        if "ELA" in flag and tampering_result.ela_suspicious_regions > 0:
+            continue
+        signals.append({
+            "type": "anomaly",
+            "severity": "medium",
+            "description": flag,
+        })
+
+    return signals
+
+
+def _build_v7_payload(
+    score: float,
+    text_result,
+    cf_result: CriticalFieldsResult,
+    tampering_result: TamperingResult | None,
+    sig_confidence: float,
+    stamp_confidence: float,
+    ocr_confidence: float,
+    applied_caps: list[str],
+) -> VerifyResponseV7Detail:
+    """Construit le payload V7 additif.
+
+    En Phase 1, certains sous-scores sont dérivés des signaux V6 plutôt
+    que calculés indépendamment. La Phase 2 introduit le multi-score
+    engine complet.
+    """
+    fraud_score = (
+        int(round(tampering_result.tampering_score * 100))
+        if tampering_result is not None
+        else 0
+    )
+
+    subscores = V7Subscores(
+        structure_score=_compute_structure_score(text_result.structure_count),
+        semantic_score=int(round(text_result.semantic_score * 100)),
+        critical_fields_score=cf_result.score,
+        visual_authenticity_score=_compute_visual_authenticity_score(
+            sig_confidence, stamp_confidence,
+        ),
+        fraud_score=fraud_score,
+        ocr_confidence_score=int(round(ocr_confidence * 100)),
+    )
+
+    tampering_detail = V7TamperingDetail(
+        ran=tampering_result is not None,
+        fraud_score=fraud_score,
+        signals=_build_tampering_signals(tampering_result),
+    )
+
+    # Reasons attribuées par couche
+    reasons: list[V7Reason] = []
+    for r in cf_result.reasons:
+        impact = "high" if cf_result.score < 40 else "medium"
+        reasons.append(V7Reason(layer="critical_fields", signal=r, impact=impact))
+    if tampering_result is not None:
+        for sig in _build_tampering_signals(tampering_result):
+            reasons.append(V7Reason(
+                layer="tampering",
+                signal=sig["description"],
+                impact=sig["severity"],
+            ))
+    if applied_caps:
+        for cap in applied_caps:
+            reasons.append(V7Reason(
+                layer="scoring",
+                signal=f"Plafond V7 appliqué : {cap}",
+                impact="high",
+            ))
+
+    # Confidence par champ
+    field_confidence = dict(cf_result.field_scores)
+
+    return VerifyResponseV7Detail(
+        document_type=text_result.doc_type,
+        global_trust_score=int(round(score)),
+        risk_level=_map_score_to_risk_level(score),
+        subscores=subscores,
+        field_confidence=field_confidence,
+        tampering=tampering_detail,
+        reasons=reasons,
+    )

@@ -188,6 +188,12 @@ class TextAnalysisResult:
     detected_institution: str | None = None
     detected_name: str | None = None
 
+    # V7 — Source de la détection du nom :
+    # "spacy" | "regex_latin" | "regex_arabic" | "none"
+    # Permet au critical_fields_validator de doser la confiance attribuée :
+    # une détection spaCy NER est plus fiable qu'un match regex Latin.
+    name_source: str = "none"
+
     reasons: list[str] = field(default_factory=list)
 
 
@@ -195,8 +201,13 @@ class TextAnalysisResult:
 # Détection du nom de personne
 # ──────────────────────────────────────────────
 
-def _detect_person_name(text: str, language: str) -> str | None:
-    """Détecte un nom de personne via spaCy puis regex fallback."""
+def _detect_person_name(text: str, language: str) -> tuple[str | None, str]:
+    """Détecte un nom de personne via spaCy puis regex fallback.
+
+    Retourne (nom_détecté, source) où source ∈
+    {"spacy", "regex_latin", "regex_arabic", "none"}.
+    La source permet au validator V7 de doser la confiance attribuée.
+    """
     # 1. spaCy
     try:
         from app.services.ocr_service import _spacy_fr, _spacy_xx
@@ -205,21 +216,21 @@ def _detect_person_name(text: str, language: str) -> str | None:
             doc = nlp(text[:5000])
             persons = [ent.text.strip() for ent in doc.ents if ent.label_ == "PER"]
             if persons:
-                return persons[0]
+                return persons[0], "spacy"
     except Exception:
         pass
 
     # 2. Regex fallback (Latin)
     match = _NAME_PATTERN.search(text)
     if match:
-        return match.group(1).strip()
+        return match.group(1).strip(), "regex_latin"
 
     # 3. V6: Regex fallback (Arabic)
     match = _ARABIC_NAME_PATTERN.search(text)
     if match:
-        return match.group(1).strip()
+        return match.group(1).strip(), "regex_arabic"
 
-    return None
+    return None, "none"
 
 
 # ──────────────────────────────────────────────
@@ -574,12 +585,14 @@ def analyze_text(text: str, language: str = "unknown") -> TextAnalysisResult:
             return result
 
         # ── 1. Nom de personne ──
-        name = _detect_person_name(text, language)
+        name, name_source = _detect_person_name(text, language)
         if name:
             result.has_person_name = True
             result.detected_name = name
+            result.name_source = name_source
             result.semantic_components.name = 1.0
         else:
+            result.name_source = "none"
             result.reasons.append("Nom du titulaire non détecté")
 
         # ── 2. Institution ──
