@@ -78,6 +78,7 @@ const SECTIONS: { id: string }[] = [
   { id: 'documents' },
   { id: 'securite' },
   { id: 'culture' },
+  { id: 'contact' },
 ];
 
 const ICONES_SECURITE: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -194,8 +195,14 @@ function NavigationSticky() {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [actif, setActif] = useState<string>(SECTIONS[0].id);
+  const [peutScrollerGauche, setPeutScrollerGauche] = useState(false);
+  const [peutScrollerDroite, setPeutScrollerDroite] = useState(false);
 
-  // Détection sortie du Hero
+  const navRef = useRef<HTMLElement>(null);
+  // Référence vers chaque pill pour l'auto-scroll du pill actif
+  const pillRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  // Détection de la sortie du Hero du viewport
   useEffect(() => {
     const hero = document.getElementById('hero');
     if (!hero) return;
@@ -207,19 +214,19 @@ function NavigationSticky() {
     return () => observer.disconnect();
   }, []);
 
-  // Section active
+  // Scroll spy : détection de la section courante
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const visibles = entries.filter((e) => e.isIntersecting);
         if (visibles.length === 0) return;
-        // Section la plus haute parmi celles visibles
-        const top = visibles.reduce((acc, cur) =>
+        // Section la plus haute dans la zone d'observation
+        const plusHaute = visibles.reduce((acc, cur) =>
           acc.boundingClientRect.top < cur.boundingClientRect.top ? acc : cur,
         );
-        setActif(top.target.id);
+        setActif(plusHaute.target.id);
       },
-      { rootMargin: '-30% 0px -55% 0px', threshold: 0 },
+      { rootMargin: '-25% 0px -50% 0px', threshold: 0 },
     );
     SECTIONS.forEach(({ id }) => {
       const el = document.getElementById(id);
@@ -228,48 +235,149 @@ function NavigationSticky() {
     return () => observer.disconnect();
   }, []);
 
-  const handleClick = useCallback((e: React.MouseEvent, id: string) => {
-    e.preventDefault();
+  // Fallback bas de page : forcer la dernière section quand l'utilisateur atteint le fond
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY + window.innerHeight >= document.body.scrollHeight - 100) {
+        setActif(SECTIONS[SECTIONS.length - 1].id);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Centrer automatiquement le pill actif dans la barre horizontale
+  useEffect(() => {
+    const pill = pillRefs.current.get(actif);
+    if (pill) {
+      pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [actif]);
+
+  // Recalcul des fades de bord selon la position de scroll horizontal
+  const mettreAJourFades = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    setPeutScrollerGauche(el.scrollLeft > 0);
+    setPeutScrollerDroite(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  }, []);
+
+  // Initialiser les fades au montage et recalculer au resize
+  useEffect(() => {
+    mettreAJourFades();
+    const el = navRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(mettreAJourFades);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mettreAJourFades]);
+
+  // Scroll vers la section, offset 140px pour compenser navbar + barre pills
+  const handleClick = useCallback((id: string) => {
     const el = document.getElementById(id);
     if (el) {
-      const top = el.getBoundingClientRect().top + window.scrollY - 120;
-      window.scrollTo({ top, behavior: 'smooth' });
+      window.scrollTo({ top: el.offsetTop - 140, behavior: 'smooth' });
     }
   }, []);
 
   return (
-    <div
-      className={`sticky top-0 z-40 bg-white border-b border-[var(--edu-divider)] transition-opacity duration-300 ${
-        visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      }`}
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        pointerEvents: visible ? 'auto' : 'none',
+        backgroundColor: 'rgba(255, 255, 255, 0.72)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+      }}
     >
-      <div className="max-w-[1440px] mx-auto px-6">
+      <div className="relative max-w-[1440px] mx-auto">
+        {/* Fade gauche — indique qu'on peut scroller à gauche */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            insetBlock: 0,
+            left: 0,
+            width: 40,
+            zIndex: 2,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to right, rgba(255,255,255,0.72) 0%, transparent 100%)',
+            opacity: peutScrollerGauche ? 1 : 0,
+            transition: 'opacity 0.2s ease',
+          }}
+        />
+        {/* Fade droite — indique qu'on peut scroller à droite */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            insetBlock: 0,
+            right: 0,
+            width: 40,
+            zIndex: 2,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to left, rgba(255,255,255,0.72) 0%, transparent 100%)',
+            opacity: peutScrollerDroite ? 1 : 0,
+            transition: 'opacity 0.2s ease',
+          }}
+        />
+
+        {/* Barre scrollable — scroll horizontal natif, scrollbar masquée */}
         <nav
-          className="flex items-center gap-2 md:gap-1 overflow-x-auto py-3 [&::-webkit-scrollbar]:hidden"
-          style={{ scrollbarWidth: 'none' }}
+          ref={navRef}
+          onScroll={mettreAJourFades}
           aria-label={t('guide.nav.aria')}
+          className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden px-4 py-2.5 gap-1.5 md:px-6 md:py-3 md:gap-2"
+          style={{ scrollbarWidth: 'none' }}
         >
           {SECTIONS.map((section) => {
             const estActif = actif === section.id;
             return (
-              <a
+              <motion.button
                 key={section.id}
-                href={`#${section.id}`}
-                onClick={(e) => handleClick(e, section.id)}
+                ref={(el: HTMLButtonElement | null) => {
+                  if (el) pillRefs.current.set(section.id, el);
+                  else pillRefs.current.delete(section.id);
+                }}
+                onClick={() => handleClick(section.id)}
                 aria-current={estActif ? 'true' : undefined}
-                className={`whitespace-nowrap px-4 py-2 text-sm transition-colors border-b-2 ${
+                animate={{
+                  backgroundColor: estActif ? '#0071E3' : '#F5F5F7',
+                  color: estActif ? '#ffffff' : '#6E6E73',
+                  boxShadow: estActif
+                    ? '0 2px 12px rgba(0, 113, 227, 0.25)'
+                    : '0px 0px 0px rgba(0, 113, 227, 0)',
+                }}
+                whileHover={
                   estActif
-                    ? 'text-[var(--edu-blue)] font-semibold border-[var(--edu-blue)]'
-                    : 'text-[var(--edu-text-secondary)] font-medium border-transparent hover:text-[var(--edu-text-primary)]'
-                }`}
+                    ? { scale: 1.03 }
+                    : { scale: 1.03, backgroundColor: '#EDEDF0' }
+                }
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                style={{
+                  borderRadius: '9999px',
+                  border: '1px solid transparent',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontWeight: estActif ? 600 : 500,
+                  flexShrink: 0,
+                }}
+                className="px-4 py-1.5 text-[13px] md:px-5 md:py-2 md:text-[14px]"
               >
                 {t(`guide.sections.${section.id}`)}
-              </a>
+              </motion.button>
             );
           })}
         </nav>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

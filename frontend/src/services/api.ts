@@ -10,6 +10,7 @@ import type {
   InviterInstitutData,
   TerminerPremierLoginData,
   UpdateUtilisateurData,
+  DemandeAccesFilters,
 } from '@/types/api';
 
 // Instance axios centralisée
@@ -218,6 +219,21 @@ export const utilisateurService = {
 
   delete: (id: string) =>
     api.delete(`/utilisateurs/${id}`),
+};
+
+// --- Service demandes d'accès ---
+export const demandeAccesService = {
+  creer: (data: { nom: string; email: string; telephone: string; presentation: string }) =>
+    api.post('/demandes-acces', data),
+
+  listerToutes: (params?: DemandeAccesFilters) =>
+    api.get('/demandes-acces', { params }),
+
+  approuver: (id: string) =>
+    api.post(`/demandes-acces/${id}/approuver`),
+
+  rejeter: (id: string, notes_admin?: string) =>
+    api.post(`/demandes-acces/${id}/rejeter`, { notes_admin }),
 };
 
 export default api;

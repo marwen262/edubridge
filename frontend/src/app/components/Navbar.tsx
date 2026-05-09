@@ -226,6 +226,13 @@ export function Navbar({ transparent = false }: NavbarProps) {
               </>
             ) : (
               <>
+                <Link
+                  to="/institution/request-access"
+                  className="text-sm text-[var(--edu-text-secondary)] hover:text-[var(--edu-blue)] transition-colors hidden md:block whitespace-nowrap"
+                >
+                  Vous êtes un établissement ?
+                </Link>
+
                 <Link to="/login">
                   <Button variant="ghost" className="text-[15px] font-medium text-[var(--edu-text-primary)]">
                     {t('navbar.login')}

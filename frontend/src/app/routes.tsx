@@ -17,6 +17,7 @@ import { MesDocuments } from './pages/MesDocuments';
 import { Parametres } from './pages/Parametres';
 import { InstitutionDashboard } from './pages/InstitutionDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { DemandeAcces } from './pages/DemandeAcces';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -127,6 +128,10 @@ export const router = createBrowserRouter([
         <AdminDashboard />
       </ProtectedRoute>
     ),
+  },
+  {
+    path: '/institution/request-access',
+    Component: DemandeAcces,
   },
   {
     path: '/dashboard/admin/:section',

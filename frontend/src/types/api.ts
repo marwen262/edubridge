@@ -335,6 +335,27 @@ export interface Utilisateur {
   institut?: Institut;
 }
 
+// --- Demandes d'accès ---
+
+export interface DemandeAcces {
+  id: string;
+  nom: string;
+  email: string;
+  telephone: string;
+  presentation: string;
+  statut: 'en_attente' | 'approuvee' | 'rejetee';
+  notes_admin?: string | null;
+  traite_par?: string | null;
+  traite_le?: string | null;
+  cree_le: string;
+}
+
+export interface DemandeAccesFilters {
+  statut?: string;
+  page?: number;
+  limit?: number;
+}
+
 // --- Erreurs API ---
 
 export interface ApiError {

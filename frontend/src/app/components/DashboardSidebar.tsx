@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/app/components/ui/utils';
+import { demandeAccesService } from '@/services/api';
 import {
   LayoutDashboard,
   FileText,
@@ -49,8 +50,20 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const { t } = useTranslation();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user: authUser } = useAuth();
   const { unreadCount } = useNotifications();
+  const [nbDemandes, setNbDemandes] = React.useState(0);
+
+  React.useEffect(() => {
+    if (authUser?.role !== 'admin') return;
+    demandeAccesService
+      .listerToutes({ statut: 'en_attente', limit: 1 })
+      .then((r) => {
+        const payload = r.data as { pagination?: { total: number } };
+        setNbDemandes(payload.pagination?.total ?? 0);
+      })
+      .catch(() => {});
+  }, [authUser]);
 
   const candidateGroups: NavGroup[] = [
     {
@@ -131,6 +144,12 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
         { label: t('sidebar.admin.programs'), icon: <FileText className="w-5 h-5" />, href: '/dashboard/admin/programmes' },
         { label: t('sidebar.admin.applications'), icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/admin/candidatures' },
         { label: t('sidebar.admin.notifications'), icon: <Bell className="w-5 h-5" />, href: '/dashboard/admin/notifications' },
+        {
+          label: "Demandes d'accès",
+          icon: <Building2 className="w-5 h-5" />,
+          href: '/dashboard/admin/demandes',
+          badge: nbDemandes > 0 ? nbDemandes : undefined,
+        },
         { label: t('sidebar.admin.reports'), icon: <PieChart className="w-5 h-5" />, href: '/dashboard/admin/rapports' },
         { label: t('sidebar.admin.activityLog'), icon: <Activity className="w-5 h-5" />, href: '/dashboard/admin/journal' },
         { label: t('sidebar.admin.systemSettings'), icon: <Sliders className="w-5 h-5" />, href: '/dashboard/admin/parametres' },

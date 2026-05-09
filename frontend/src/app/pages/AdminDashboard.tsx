@@ -7,6 +7,7 @@ import { InstitutesSection } from '../components/admin/InstitutesSection';
 import { ProgramsSection } from '../components/admin/ProgramsSection';
 import { CandidaturesSection } from '../components/admin/CandidaturesSection';
 import { NotificationsSection } from '../components/admin/NotificationsSection';
+import { DemandesSection } from '../components/admin/DemandesSection';
 import { PlaceholderSection } from '../components/admin/PlaceholderSection';
 
 export function AdminDashboard() {
@@ -33,6 +34,9 @@ export function AdminDashboard() {
       break;
     case 'notifications':
       content = <NotificationsSection />;
+      break;
+    case 'demandes':
+      content = <DemandesSection />;
       break;
     case 'rapports':
       content = (

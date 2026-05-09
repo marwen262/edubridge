@@ -753,7 +753,8 @@
       "equivalence": "Diplômes",
       "documents": "Documents",
       "securite": "Sécurité",
-      "culture": "Culture"
+      "culture": "Culture",
+      "contact": "Contact"
     },
     "scholarships": {
       "filter": {
