@@ -55,6 +55,7 @@ export interface InstitutResume {
   image_couverture?: string;
   taux_acceptation?: number;
   nombre_etudiants?: number;
+  accreditations?: string[];
 }
 
 /** Programme complet tel que retourné par /api/programmes */

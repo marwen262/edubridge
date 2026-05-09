@@ -6,6 +6,7 @@ import { Footer } from '../components/Footer';
 import { ProgramCard } from '../components/ProgramCard';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { AccreditationBadge } from '../components/ui/AccreditationBadge';
 import { useInstitut } from '@/hooks/useInstitut';
 import { usePrograms } from '@/hooks/usePrograms';
 import { motion } from 'motion/react';
@@ -221,15 +222,9 @@ export function InstitutionProfile() {
             Accréditations
           </h2>
           {institut.accreditations && institut.accreditations.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {institut.accreditations.map((acc) => (
-                <Badge
-                  key={acc}
-                  variant="secondary"
-                  className="rounded-full px-3 py-1 text-sm font-medium"
-                >
-                  {acc}
-                </Badge>
+                <AccreditationBadge key={acc} name={acc} />
               ))}
             </div>
           ) : (

@@ -10,6 +10,7 @@ import { Footer } from '../components/Footer';
 import { MultiStepDialog } from '../components/MultiStepDialog';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { AccreditationBadge } from '../components/ui/AccreditationBadge';
 import { useProgramDetail } from '@/hooks/useProgramDetail';
 import { useFavoriStatus } from '@/hooks/useFavoriStatus';
 import { useAuth } from '@/context/AuthContext';
@@ -312,6 +313,13 @@ export function ProgramDetail() {
                             <MapPin className="w-4 h-4" /><span>{localisation}</span>
                           </div>
                         )}
+                        {program.institut.accreditations && program.institut.accreditations.length > 0 && (
+                          <div className="flex flex-wrap gap-2.5 mb-6">
+                            {program.institut.accreditations.map((acc) => (
+                              <AccreditationBadge key={acc} name={acc} />
+                            ))}
+                          </div>
+                        )}
                         <Link to={`/institution/${program.institut.id}`}>
                           <Button variant="outline" className="rounded-full">
                             {t('program.viewFullProfile')} <ChevronRight className="w-4 h-4 ml-1" />
@@ -389,6 +397,16 @@ export function ProgramDetail() {
                     )}
                   </div>
                 </div>
+                {program.institut.accreditations && program.institut.accreditations.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {program.institut.accreditations.slice(0, 2).map((acc) => (
+                      <AccreditationBadge key={acc} name={acc} className="scale-90 origin-left" />
+                    ))}
+                    {program.institut.accreditations.length > 2 && (
+                       <span className="text-xs text-[var(--edu-text-secondary)] self-center font-medium">+{program.institut.accreditations.length - 2}</span>
+                    )}
+                  </div>
+                )}
                 <Link to={`/institution/${program.institut.id}`}>
                   <Button variant="outline" className="w-full rounded-full">{t('program.viewProfile')}</Button>
                 </Link>
