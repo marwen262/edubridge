@@ -180,6 +180,65 @@ TAMPERING_GATE_DIPLOMA_CONFIDENCE: float = 0.2
 
 
 # ──────────────────────────────────────────────
+# V7 Phase 2 — Multi-score Engine
+# ──────────────────────────────────────────────
+# Pondération du score de confiance global. La somme doit faire 1.0.
+# critical_fields a le poids le plus élevé (cœur du correctif V7).
+GLOBAL_SCORE_WEIGHTS: dict[str, float] = {
+    "structure":           0.15,
+    "semantic":            0.15,
+    "critical_fields":     0.30,
+    "visual_authenticity": 0.10,
+    "fraud_trust":         0.20,   # = 100 - fraud_score
+    "ocr_confidence":      0.10,
+}
+
+# Ajustement dynamique des poids quand l'OCR est de faible qualité.
+# En dessous de OCR_DYNAMIC_THRESHOLD, on réduit le poids des signaux
+# textuels (semantic, structure) et on augmente le poids du visuel.
+OCR_DYNAMIC_THRESHOLD: int = 50
+OCR_DYNAMIC_SEMANTIC_FACTOR: float = 0.4   # Réduction max du poids sémantique
+OCR_DYNAMIC_STRUCTURE_FACTOR: float = 0.3  # Réduction max du poids structure
+OCR_DYNAMIC_VISUAL_BONUS: float = 0.05     # Bonus max au poids visuel
+
+# Score V7 — bornes finales (max 98 pour ne jamais affirmer 100% certain)
+V7_SCORE_MIN: int = 3
+V7_SCORE_MAX: int = 98
+
+# ── Caps de sécurité préservés depuis V6 ──
+# "no-content" : structure=0 ET sémantique<10 → score plafonné
+V7_NO_CONTENT_STRUCTURE: int = 0
+V7_NO_CONTENT_SEMANTIC: int = 10
+V7_NO_CONTENT_CAP: int = 18
+
+# "hallucination" : structure≤1, pas de degree, pas de date, texte court
+V7_HALLUCINATION_STRUCTURE_MAX: int = 33  # = structure_count <= 1 (33/100)
+V7_HALLUCINATION_TEXT_LEN: int = 50
+V7_HALLUCINATION_CAP: int = 18
+
+# "semantic ceiling" : sémantique<15 ET score>70 → score plafonné à 70
+V7_SEMANTIC_CEILING_THRESHOLD: int = 15
+V7_SEMANTIC_CEILING_CAP: int = 70
+
+# ── Nouveaux caps V7 ──
+# "template" : visuel fort + critical_fields faible → c'est un template
+V7_TEMPLATE_VISUAL_THRESHOLD: int = 70
+V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD: int = 30
+V7_TEMPLATE_CAP: int = 40
+
+# "fraud" : fraud_score très élevé → cap final
+V7_FRAUD_HARD_CAP_THRESHOLD: int = 80
+V7_FRAUD_HARD_CAP_SCORE: int = 35
+
+# "template_without_identity" : flag explicit du critical_fields_validator
+V7_TEMPLATE_FLAG_CAP: int = 35
+
+# Seuil de divergence V6 vs V7 au-delà duquel on log un warning
+# (utilisé pendant la phase de migration shadow).
+V7_DIVERGENCE_LOG_THRESHOLD: float = 8.0
+
+
+# ──────────────────────────────────────────────
 # V7 — Mots-clés de spécialisation (multi-langues)
 # ──────────────────────────────────────────────
 SPECIALIZATION_KEYWORDS: list[str] = [

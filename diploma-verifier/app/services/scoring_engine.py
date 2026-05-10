@@ -518,11 +518,11 @@ def compute_score(
 
 
 # ──────────────────────────────────────────────
-# V7 — Post-processing caps
+# V7 — Post-processing caps (Phase 1 — DEPRECATED)
 # ──────────────────────────────────────────────
-# Appliqués APRÈS compute_score() depuis l'orchestrator. Permet de
-# corriger les faux positifs (templates, documents falsifiés) sans
-# refactorer la logique de scoring V6.
+# Conservé pour compatibilité ascendante uniquement. Phase 2 intègre les
+# caps directement dans compute_global_trust_score(). Ne plus utiliser
+# pour le nouveau code — préférez le pipeline multi-score V7.
 
 def apply_v7_post_caps(
     score: float,
@@ -629,3 +629,453 @@ def apply_v7_post_caps(
         adjusted_confidence = confidence_level
 
     return adjusted, adjusted_confidence, applied
+
+
+# ══════════════════════════════════════════════════════════════════
+# V7 PHASE 2 — Multi-score Engine
+# ══════════════════════════════════════════════════════════════════
+# Architecture explicable et modulaire :
+#   - 6 sous-scores indépendants (structure, semantic, critical_fields,
+#     visual_authenticity, fraud, ocr_confidence)
+#   - Pondération avec ajustement dynamique selon qualité OCR
+#   - Caps de sécurité (V6 préservés + V7 nouveaux)
+#   - Mapping risk_level → confidence_level pour rétrocompat backend
+
+from dataclasses import dataclass, field
+
+from app.config import (
+    GLOBAL_SCORE_WEIGHTS,
+    OCR_DYNAMIC_SEMANTIC_FACTOR,
+    OCR_DYNAMIC_STRUCTURE_FACTOR,
+    OCR_DYNAMIC_THRESHOLD,
+    OCR_DYNAMIC_VISUAL_BONUS,
+    V7_FRAUD_HARD_CAP_SCORE,
+    V7_FRAUD_HARD_CAP_THRESHOLD,
+    V7_HALLUCINATION_CAP,
+    V7_HALLUCINATION_STRUCTURE_MAX,
+    V7_HALLUCINATION_TEXT_LEN,
+    V7_NO_CONTENT_CAP,
+    V7_NO_CONTENT_SEMANTIC,
+    V7_NO_CONTENT_STRUCTURE,
+    V7_SCORE_MAX,
+    V7_SCORE_MIN,
+    V7_SEMANTIC_CEILING_CAP,
+    V7_SEMANTIC_CEILING_THRESHOLD,
+    V7_TEMPLATE_CAP,
+    V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD,
+    V7_TEMPLATE_FLAG_CAP,
+    V7_TEMPLATE_VISUAL_THRESHOLD,
+)
+
+
+# ──────────────────────────────────────────────
+# Dataclasses
+# ──────────────────────────────────────────────
+
+@dataclass
+class SubscoreBundle:
+    """6 sous-scores indépendants (chacun 0–100)."""
+    structure_score: int = 0
+    semantic_score: int = 0
+    critical_fields_score: int = 0
+    visual_authenticity_score: int = 0
+    fraud_score: int = 0           # INVERSE — plus haut = plus suspect
+    ocr_confidence_score: int = 0
+
+
+@dataclass
+class ExplainableReason:
+    """Raison attribuée à une couche d'analyse, avec niveau d'impact."""
+    layer: str       # "structure", "semantic", "critical_fields",
+                     # "visual_authenticity", "tampering", "ocr", "scoring"
+    signal: str      # message lisible
+    impact: str = "medium"  # "high" | "medium" | "low"
+
+
+# ──────────────────────────────────────────────
+# Compute subscores depuis les modules
+# ──────────────────────────────────────────────
+
+def compute_subscores(
+    *,
+    ocr_result,
+    text_result,
+    sig_result,
+    stamp_result,
+    cf_result,
+    tampering_result=None,
+) -> SubscoreBundle:
+    """Produit les 6 sous-scores indépendants à partir des objets de pipeline.
+
+    Tous les paramètres sont des objets typés (OcrResult, TextAnalysisResult,
+    SignatureResult, StampResult, CriticalFieldsResult, TamperingResult |
+    None). Aucune logique d'agrégation ici — chaque sous-score est
+    auto-suffisant.
+
+    Returns
+    -------
+    SubscoreBundle avec chaque champ en 0–100.
+    """
+    # ── Structure : structure_count + bonus phrases/mentions officielles ──
+    # Base : structure_count (0-3) → 0/33/67/100. On garde 70 pour la base
+    # et on ajoute jusqu'à 30 via les bonus, pour pouvoir dépasser le simple
+    # comptage de champs quand le document a une structure officielle riche.
+    structure = (text_result.structure_count / 3.0) * 70.0
+    if getattr(text_result, "has_certification_phrase", False):
+        structure += 15.0
+    if getattr(text_result, "official_mention_found", False):
+        structure += 15.0
+    structure_score = int(round(max(0.0, min(100.0, structure))))
+
+    # ── Semantic : semantic_score + coherence - keyword_penalty ──
+    # semantic_score (0-1) est le signal principal (70%); coherence_score
+    # (0-1) le complète (30%). Le keyword_penalty (0-0.3) est soustrait.
+    semantic_raw = (
+        text_result.semantic_score * 70.0
+        + getattr(text_result, "coherence_score", 0.0) * 30.0
+    )
+    semantic_raw -= getattr(text_result, "keyword_penalty", 0.0) * 100.0
+    semantic_score = int(round(max(0.0, min(100.0, semantic_raw))))
+
+    # ── Critical fields : déjà en 0-100, calculé par le validator ──
+    critical_fields_score = int(cf_result.score)
+
+    # ── Visual authenticity : signature 40% + cachet 60% (cachet plus
+    # important dans les documents officiels tunisiens). ──
+    sig_conf = float(getattr(sig_result, "confidence", 0.0))
+    stamp_conf = float(getattr(stamp_result, "confidence", 0.0))
+    visual = (sig_conf * 0.4 + stamp_conf * 0.6) * 100.0
+    visual_authenticity_score = int(round(max(0.0, min(100.0, visual))))
+
+    # ── Fraud (INVERSE de fraud_trust) : 0 = clean, 100 = très suspect ──
+    if tampering_result is None:
+        fraud_score = 0
+    else:
+        fraud_raw = float(tampering_result.tampering_score) * 100.0
+        fraud_score = int(round(max(0.0, min(100.0, fraud_raw))))
+
+    # ── OCR confidence : ocr_confidence (0-1) → 0-100 ──
+    ocr_conf = float(getattr(ocr_result, "ocr_confidence", 0.0))
+    ocr_confidence_score = int(round(max(0.0, min(100.0, ocr_conf * 100.0))))
+
+    return SubscoreBundle(
+        structure_score=structure_score,
+        semantic_score=semantic_score,
+        critical_fields_score=critical_fields_score,
+        visual_authenticity_score=visual_authenticity_score,
+        fraud_score=fraud_score,
+        ocr_confidence_score=ocr_confidence_score,
+    )
+
+
+# ──────────────────────────────────────────────
+# Pondération dynamique selon qualité OCR
+# ──────────────────────────────────────────────
+
+def _compute_dynamic_weights_v7(
+    subscores: SubscoreBundle,
+) -> dict[str, float]:
+    """Ajuste les poids selon la qualité OCR.
+
+    Quand ocr_confidence_score < OCR_DYNAMIC_THRESHOLD, on réduit les
+    poids des signaux qui dépendent du texte (semantic, structure) et
+    on renforce le poids visuel. Renormalise pour somme = 1.0.
+    """
+    weights = dict(GLOBAL_SCORE_WEIGHTS)
+
+    if subscores.ocr_confidence_score >= OCR_DYNAMIC_THRESHOLD:
+        return weights
+
+    # adjustment ∈ [0, 0.5] quand ocr_confidence_score ∈ [0, 50]
+    adjustment = (OCR_DYNAMIC_THRESHOLD - subscores.ocr_confidence_score) / 100.0
+
+    weights["semantic"] *= (1.0 - adjustment * OCR_DYNAMIC_SEMANTIC_FACTOR)
+    weights["structure"] *= (1.0 - adjustment * OCR_DYNAMIC_STRUCTURE_FACTOR)
+    weights["visual_authenticity"] += adjustment * OCR_DYNAMIC_VISUAL_BONUS
+
+    # Renormaliser à 1.0
+    total = sum(weights.values())
+    if total > 0:
+        weights = {k: v / total for k, v in weights.items()}
+
+    return weights
+
+
+# ──────────────────────────────────────────────
+# Caps de sécurité (V6 préservés + V7 nouveaux)
+# ──────────────────────────────────────────────
+
+def _apply_safety_caps_v7(
+    raw_score: float,
+    subscores: SubscoreBundle,
+    *,
+    raw_text_len: int = 0,
+    has_degree_keyword: bool = False,
+    has_date: bool = False,
+    is_template_without_identity: bool = False,
+) -> tuple[float, list[str]]:
+    """Applique les plafonds. Retourne (score_capped, list_of_caps).
+
+    Caps V6 préservés :
+      - no-content (structure=0 ET sémantique<10 → cap 18)
+      - hallucination (structure≤33 ET pas de degree/date ET texte court → cap 18)
+      - semantic ceiling (sémantique<15 ET score>70 → cap 70)
+
+    Caps V7 nouveaux :
+      - template (visual>70 ET critical_fields<30 → cap 40)
+      - template_flag (drapeau explicit du validator → cap 35)
+      - fraud hard cap (fraud_score>80 → cap 35)
+    """
+    applied: list[str] = []
+    score = float(raw_score)
+
+    # ── Cap 1 : no-content ──
+    if (
+        subscores.structure_score <= V7_NO_CONTENT_STRUCTURE
+        and subscores.semantic_score < V7_NO_CONTENT_SEMANTIC
+    ):
+        if score > V7_NO_CONTENT_CAP:
+            logger.info(
+                "V7 cap no-content : %.1f → %d (struct=%d, sem=%d)",
+                score, V7_NO_CONTENT_CAP,
+                subscores.structure_score, subscores.semantic_score,
+            )
+            score = float(V7_NO_CONTENT_CAP)
+            applied.append("no_content")
+
+    # ── Cap 2 : hallucination ──
+    if (
+        subscores.structure_score <= V7_HALLUCINATION_STRUCTURE_MAX
+        and not has_degree_keyword
+        and not has_date
+        and raw_text_len < V7_HALLUCINATION_TEXT_LEN
+    ):
+        if score > V7_HALLUCINATION_CAP:
+            logger.info(
+                "V7 cap hallucination : %.1f → %d (struct=%d, text_len=%d)",
+                score, V7_HALLUCINATION_CAP,
+                subscores.structure_score, raw_text_len,
+            )
+            score = float(V7_HALLUCINATION_CAP)
+            applied.append("hallucination")
+
+    # ── Cap 3 : semantic ceiling ──
+    if (
+        subscores.semantic_score < V7_SEMANTIC_CEILING_THRESHOLD
+        and score > V7_SEMANTIC_CEILING_CAP
+    ):
+        logger.info(
+            "V7 cap semantic ceiling : %.1f → %d (sem=%d)",
+            score, V7_SEMANTIC_CEILING_CAP, subscores.semantic_score,
+        )
+        score = float(V7_SEMANTIC_CEILING_CAP)
+        applied.append("semantic_ceiling")
+
+    # ── Cap 4 : template (visual fort + critical_fields faible) ──
+    if (
+        subscores.visual_authenticity_score > V7_TEMPLATE_VISUAL_THRESHOLD
+        and subscores.critical_fields_score < V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD
+    ):
+        if score > V7_TEMPLATE_CAP:
+            logger.info(
+                "V7 cap template : %.1f → %d (visual=%d, cf=%d)",
+                score, V7_TEMPLATE_CAP,
+                subscores.visual_authenticity_score,
+                subscores.critical_fields_score,
+            )
+            score = float(V7_TEMPLATE_CAP)
+            applied.append("template")
+
+    # ── Cap 5 : template_flag (drapeau explicit du validator) ──
+    if is_template_without_identity:
+        if score > V7_TEMPLATE_FLAG_CAP:
+            logger.info(
+                "V7 cap template_flag : %.1f → %d "
+                "(critical_fields_validator a flag is_template)",
+                score, V7_TEMPLATE_FLAG_CAP,
+            )
+            score = float(V7_TEMPLATE_FLAG_CAP)
+            applied.append("template_flag")
+
+    # ── Cap 6 : fraud hard cap ──
+    if subscores.fraud_score > V7_FRAUD_HARD_CAP_THRESHOLD:
+        if score > V7_FRAUD_HARD_CAP_SCORE:
+            logger.info(
+                "V7 cap fraud : %.1f → %d (fraud=%d)",
+                score, V7_FRAUD_HARD_CAP_SCORE, subscores.fraud_score,
+            )
+            score = float(V7_FRAUD_HARD_CAP_SCORE)
+            applied.append("fraud_hard_cap")
+
+    return score, applied
+
+
+# ──────────────────────────────────────────────
+# Score global de confiance
+# ──────────────────────────────────────────────
+
+def compute_global_trust_score(
+    subscores: SubscoreBundle,
+    *,
+    raw_text_len: int = 0,
+    has_degree_keyword: bool = False,
+    has_date: bool = False,
+    is_template_without_identity: bool = False,
+) -> tuple[int, list[str], dict[str, float]]:
+    """Calcule le score global de confiance V7 (0–100).
+
+    Pipeline :
+      1. Pondération dynamique selon ocr_confidence_score
+      2. Somme pondérée des sous-scores (avec fraud_trust = 100 - fraud_score)
+      3. Application des caps de sécurité
+      4. Clamp à [V7_SCORE_MIN, V7_SCORE_MAX]
+
+    Returns
+    -------
+    (score: int, applied_caps: list[str], weights_used: dict[str, float])
+    """
+    weights = _compute_dynamic_weights_v7(subscores)
+
+    # fraud_trust est l'inverse de fraud_score : plus de tampering = moins
+    # de confiance. C'est cette valeur qui contribue positivement au total.
+    fraud_trust = 100 - subscores.fraud_score
+
+    values = {
+        "structure":           subscores.structure_score,
+        "semantic":            subscores.semantic_score,
+        "critical_fields":     subscores.critical_fields_score,
+        "visual_authenticity": subscores.visual_authenticity_score,
+        "fraud_trust":         fraud_trust,
+        "ocr_confidence":      subscores.ocr_confidence_score,
+    }
+
+    raw = sum(weights[k] * values[k] for k in weights)
+
+    # Caps de sécurité
+    raw, applied = _apply_safety_caps_v7(
+        raw, subscores,
+        raw_text_len=raw_text_len,
+        has_degree_keyword=has_degree_keyword,
+        has_date=has_date,
+        is_template_without_identity=is_template_without_identity,
+    )
+
+    # Clamp final
+    final = int(round(max(float(V7_SCORE_MIN), min(float(V7_SCORE_MAX), raw))))
+
+    logger.info(
+        "V7 global trust score = %d (raw=%.2f, caps=%s, "
+        "weights=%s, subscores=%s)",
+        final, raw, applied,
+        {k: round(v, 3) for k, v in weights.items()},
+        {
+            "struct": subscores.structure_score,
+            "sem": subscores.semantic_score,
+            "cf": subscores.critical_fields_score,
+            "vis": subscores.visual_authenticity_score,
+            "fraud": subscores.fraud_score,
+            "ocr": subscores.ocr_confidence_score,
+        },
+    )
+
+    return final, applied, weights
+
+
+# ──────────────────────────────────────────────
+# Mapping risk_level / confidence_level
+# ──────────────────────────────────────────────
+
+def compute_risk_level(score: int | float) -> str:
+    """Mappe le score V7 (0–100) en risk_level granulaire.
+
+    Returns: "trusted" | "review_recommended" | "suspicious" | "highly_suspicious"
+    """
+    s = float(score)
+    if s >= 80:
+        return "trusted"
+    if s >= 60:
+        return "review_recommended"
+    if s >= 30:
+        return "suspicious"
+    return "highly_suspicious"
+
+
+_RISK_TO_CONFIDENCE = {
+    "trusted":            "high",
+    "review_recommended": "medium",
+    "suspicious":         "low",
+    "highly_suspicious":  "very_low",
+}
+
+
+def risk_level_to_confidence(risk_level: str) -> str:
+    """Mappe risk_level vers confidence_level (rétrocompat backend).
+
+    Le V6 utilisait 3 niveaux ("low" | "medium" | "high"). V7 ajoute
+    "very_low" pour les documents les plus suspects. Le backend lit ce
+    champ comme une simple chaîne et le stocke dans notes_institut —
+    pas de validation enum côté serveur.
+    """
+    return _RISK_TO_CONFIDENCE.get(risk_level, "low")
+
+
+# ──────────────────────────────────────────────
+# Aggregation des reasons explicables
+# ──────────────────────────────────────────────
+
+def aggregate_explainable_reasons(
+    *,
+    text_result,
+    cf_result,
+    tampering_result=None,
+    applied_caps: list[str] | None = None,
+) -> list[ExplainableReason]:
+    """Construit la liste de raisons explicables, attribuées par couche.
+
+    Ordre : critical_fields > tampering > scoring caps > semantic.
+    Chaque raison porte un impact (high/medium/low) selon la sévérité.
+    """
+    reasons: list[ExplainableReason] = []
+
+    # ── Critical fields ──
+    cf_impact = "high" if cf_result.score < 40 else "medium"
+    for r in (cf_result.reasons or []):
+        reasons.append(ExplainableReason(
+            layer="critical_fields", signal=r, impact=cf_impact,
+        ))
+
+    # ── Tampering ──
+    if tampering_result is not None:
+        for flag in (tampering_result.flags or []):
+            severity = (
+                "high" if tampering_result.tampering_score > 0.7
+                else "medium" if tampering_result.tampering_score > 0.35
+                else "low"
+            )
+            reasons.append(ExplainableReason(
+                layer="tampering", signal=flag, impact=severity,
+            ))
+
+    # ── Scoring caps ──
+    for cap in (applied_caps or []):
+        reasons.append(ExplainableReason(
+            layer="scoring",
+            signal=f"Plafond V7 appliqué : {cap}",
+            impact="high",
+        ))
+
+    # ── Semantic / structure (si signaux faibles) ──
+    if getattr(text_result, "coherence_score", 1.0) < 0.3:
+        reasons.append(ExplainableReason(
+            layer="semantic",
+            signal="Cohérence sémantique faible",
+            impact="medium",
+        ))
+    if getattr(text_result, "keyword_penalty", 0.0) > 0.0:
+        reasons.append(ExplainableReason(
+            layer="semantic",
+            signal="Densité de mots-clés anormale (keyword stuffing)",
+            impact="medium",
+        ))
+
+    return reasons

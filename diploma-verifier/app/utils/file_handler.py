@@ -4,6 +4,7 @@ sauvegarde temporaire et nettoyage.
 """
 
 import os
+import sys
 import tempfile
 import uuid
 
@@ -11,6 +12,18 @@ import magic
 
 from app.config import ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES, MAX_FILE_SIZE
 from app.utils.logger import logger
+
+
+def _resolve_tempdir() -> str:
+    """Résout un répertoire temporaire utilisable.
+
+    Sur Linux (containers Docker), force /tmp pour éviter qu'un cache de
+    tempfile.gettempdir() seedé tôt avec un path Windows ne fasse écrire
+    dans un répertoire qui n'existe pas dans le container.
+    """
+    if sys.platform.startswith("linux"):
+        return "/tmp"
+    return tempfile.gettempdir()
 
 
 def validate_mime_type(file_content: bytes) -> str:
@@ -69,7 +82,7 @@ def save_temp_file(content: bytes, extension: str) -> str:
     Retourne le chemin absolu du fichier temporaire.
     """
     unique_name: str = f"diploma_{uuid.uuid4().hex}{extension}"
-    temp_path: str = os.path.join(tempfile.gettempdir(), unique_name)
+    temp_path: str = os.path.join(_resolve_tempdir(), unique_name)
 
     with open(temp_path, "wb") as f:
         f.write(content)

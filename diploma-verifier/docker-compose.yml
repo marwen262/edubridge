@@ -9,4 +9,8 @@ services:
       - ./logs:/app/logs
     environment:
       - ENV=production
+      - TMPDIR=/tmp
+      - TEMP=/tmp
+      - TMP=/tmp
+      - MAGIC=/usr/share/misc/magic.mgc
     restart: unless-stopped
