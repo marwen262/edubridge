@@ -12,8 +12,6 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { demandeAccesService } from '@/services/api';
 import { motion } from 'motion/react';
-import logoEduBridge from '@/assets/logo/logoedubridge.png';
-
 const schema = z.object({
   nom: z
     .string()
@@ -63,14 +61,6 @@ export function DemandeAcces() {
 
       <div className="min-h-[calc(100vh-73px)] dotted-bg flex items-center justify-center p-6">
         <div className="w-full max-w-lg">
-
-          <Link to="/" className="flex items-center justify-center mb-8">
-            <img
-              src={logoEduBridge}
-              alt="EduBridge"
-              className="h-14 w-auto dark:bg-white dark:rounded-xl dark:px-3 dark:py-1.5"
-            />
-          </Link>
 
           {success ? (
             <motion.div

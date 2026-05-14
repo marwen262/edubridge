@@ -145,7 +145,8 @@ exports.approuver = async (req, res) => {
       id: uuidv4(),
       utilisateur_id: utilisateur.id,
       nom: demande.nom,
-      contact: { telephone: demande.telephone },
+      description: demande.presentation,
+      contact: { telephone: demande.telephone, email: demande.email },
       est_verifie: false,
       validation_status: 'invited',
     }, { transaction: t });

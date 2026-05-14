@@ -6,7 +6,16 @@ import {
   Building2, Search, CheckCircle, ShieldOff, ShieldAlert, Clock,
   Globe, Mail, MoreHorizontal, ChevronLeft, ChevronRight,
   RefreshCw, XCircle, Plus, X, Loader2, Send, Trash2,
+  Phone, MapPin, Award, FileText, Eye,
 } from 'lucide-react';
+import { API_URL } from '@/config';
+
+const BASE_URL = API_URL.replace(/\/api\/?$/, '');
+function buildAssetSrc(path?: string | null): string | null {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${BASE_URL}${path}`;
+}
 import { Button } from '../ui/button';
 import { useInstituts } from '@/hooks/useInstituts';
 import { institutService } from '@/services/api';
@@ -199,6 +208,209 @@ function InviterDialog({ open, onClose, onSuccess }: { open: boolean; onClose: (
   );
 }
 
+/* ─── Dialog détails institut ──────────────────────────────── */
+function DetailDialog({
+  institut, onClose, onApprouver, onDemanderCorrection, onRefuser, processing,
+}: {
+  institut: Institut | null;
+  onClose: () => void;
+  onApprouver: (id: string) => void;
+  onDemanderCorrection: (id: string) => void;
+  onRefuser: (id: string) => void;
+  processing: boolean;
+}) {
+  if (!institut) return null;
+  const status = (institut.validation_status ?? 'invited') as ValidationStatus;
+  const stCfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.invited;
+  const logoSrc = buildAssetSrc(institut.logo);
+  const coverSrc = buildAssetSrc(institut.image_couverture);
+  const adresseLignes = [
+    institut.adresse?.rue,
+    [institut.adresse?.code_postal, institut.adresse?.ville].filter(Boolean).join(' '),
+    institut.adresse?.gouvernorat,
+    institut.adresse?.pays,
+  ].filter(Boolean);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-[#1D1D1F] rounded-2xl shadow-2xl border border-[var(--edu-border)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+
+        {/* Cover ou bandeau coloré */}
+        {coverSrc ? (
+          <div className="h-32 w-full bg-cover bg-center" style={{ backgroundImage: `url(${coverSrc})` }} />
+        ) : (
+          <div className="h-20 w-full bg-gradient-to-br from-[var(--edu-indigo)] to-[var(--edu-blue)]" />
+        )}
+
+        {/* Header */}
+        <div className="px-6 pt-4 pb-4 border-b border-[var(--edu-border)] flex items-start gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-white dark:bg-[#2D2D2F] border border-[var(--edu-border)] flex items-center justify-center -mt-12 shadow-md overflow-hidden shrink-0">
+            {logoSrc ? (
+              <img src={logoSrc} alt={institut.nom ?? ''} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl font-bold text-[var(--edu-indigo)]">
+                {(institut.sigle ?? institut.nom ?? 'I').charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-bold text-[var(--edu-text-primary)] truncate">
+              {institut.nom ?? <span className="italic text-[var(--edu-text-tertiary)]">Sans nom</span>}
+              {institut.sigle && <span className="text-[var(--edu-text-tertiary)] font-normal ml-2">({institut.sigle})</span>}
+            </h2>
+            <span className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: stCfg.bg, color: stCfg.color }}>
+              {status}
+            </span>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-[var(--edu-surface)] transition-colors shrink-0">
+            <X className="w-5 h-5 text-[var(--edu-text-tertiary)]" />
+          </button>
+        </div>
+
+        {/* Body scrollable */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+          {/* Description */}
+          <section>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--edu-text-tertiary)] mb-2 flex items-center gap-1">
+              <FileText className="w-3 h-3" /> Description
+            </p>
+            {institut.description ? (
+              <p className="text-sm text-[var(--edu-text-primary)] leading-relaxed whitespace-pre-line">{institut.description}</p>
+            ) : (
+              <p className="text-sm italic text-[var(--edu-text-tertiary)]">Aucune description fournie.</p>
+            )}
+          </section>
+
+          {/* Contact */}
+          <section>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--edu-text-tertiary)] mb-2">Contact</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              {institut.contact?.email && (
+                <div className="flex items-center gap-2 text-[var(--edu-text-secondary)]">
+                  <Mail className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{institut.contact.email}</span>
+                </div>
+              )}
+              {institut.contact?.telephone && (
+                <div className="flex items-center gap-2 text-[var(--edu-text-secondary)]">
+                  <Phone className="w-3.5 h-3.5 shrink-0" /><span>{institut.contact.telephone}</span>
+                </div>
+              )}
+              {institut.site_web && (
+                <div className="flex items-center gap-2 text-[var(--edu-text-secondary)] sm:col-span-2">
+                  <Globe className="w-3.5 h-3.5 shrink-0" />
+                  <a href={institut.site_web} target="_blank" rel="noopener noreferrer" className="text-[var(--edu-blue)] hover:underline truncate">
+                    {institut.site_web}
+                  </a>
+                </div>
+              )}
+              {!institut.contact?.email && !institut.contact?.telephone && !institut.site_web && (
+                <p className="text-sm italic text-[var(--edu-text-tertiary)] sm:col-span-2">Aucune information de contact.</p>
+              )}
+            </div>
+          </section>
+
+          {/* Adresse */}
+          <section>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--edu-text-tertiary)] mb-2 flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> Adresse
+            </p>
+            {adresseLignes.length > 0 ? (
+              <p className="text-sm text-[var(--edu-text-secondary)] leading-relaxed">
+                {adresseLignes.map((ligne, i) => <span key={i} className="block">{ligne}</span>)}
+              </p>
+            ) : (
+              <p className="text-sm italic text-[var(--edu-text-tertiary)]">Aucune adresse renseignée.</p>
+            )}
+          </section>
+
+          {/* Accréditations */}
+          <section>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--edu-text-tertiary)] mb-2 flex items-center gap-1">
+              <Award className="w-3 h-3" /> Accréditations
+            </p>
+            {institut.accreditations && institut.accreditations.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {institut.accreditations.map((a, i) => (
+                  <span key={i} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--edu-surface)] text-[var(--edu-text-primary)]">
+                    {a}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm italic text-[var(--edu-text-tertiary)]">Aucune accréditation déclarée.</p>
+            )}
+          </section>
+
+          {/* Programmes publiés */}
+          <section>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--edu-text-tertiary)] mb-2">
+              Programmes publiés ({institut.programmes?.length ?? 0})
+            </p>
+            {institut.programmes && institut.programmes.length > 0 ? (
+              <ul className="space-y-1.5">
+                {institut.programmes.map((p) => (
+                  <li key={p.id} className="text-sm flex items-center gap-2 text-[var(--edu-text-secondary)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--edu-blue)]" />
+                    <span className="text-[var(--edu-text-primary)]">{p.titre}</span>
+                    {p.niveau && <span className="text-xs text-[var(--edu-text-tertiary)]">— {p.niveau}</span>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm italic text-[var(--edu-text-tertiary)]">Aucun programme publié pour le moment.</p>
+            )}
+          </section>
+
+          {/* Motif rejet précédent */}
+          {institut.suspension_reason && (
+            <section className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-xl p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-700 dark:text-amber-300 mb-1">
+                Dernier motif de rejet / suspension
+              </p>
+              <p className="text-sm text-amber-900 dark:text-amber-100 leading-relaxed">{institut.suspension_reason}</p>
+            </section>
+          )}
+        </div>
+
+        {/* Footer actions — uniquement pour les profils en attente de validation */}
+        {status === 'pending_admin_review' && (
+          <div className="px-6 py-4 border-t border-[var(--edu-border)] flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 bg-[var(--edu-surface)]">
+            <Button
+              variant="outline"
+              onClick={() => onRefuser(institut.id)}
+              disabled={processing}
+              className="rounded-xl border-[var(--edu-danger)] text-[var(--edu-danger)] hover:bg-[var(--edu-danger)]/10"
+            >
+              <ShieldOff className="w-4 h-4 mr-2" /> Refuser définitivement
+            </Button>
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => onDemanderCorrection(institut.id)}
+                disabled={processing}
+                className="rounded-xl"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" /> Demander une correction
+              </Button>
+              <Button
+                onClick={() => onApprouver(institut.id)}
+                disabled={processing}
+                className="rounded-xl text-white"
+                style={{ backgroundColor: 'var(--edu-success)' }}
+              >
+                {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                Approuver
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Section principale ───────────────────────────────────── */
 export function InstitutesSection() {
   const { t } = useTranslation();
@@ -214,6 +426,7 @@ export function InstitutesSection() {
   const [motifDialog, setMotifDialog] = React.useState<{ type: 'suspendre' | 'rejeter'; id: string } | null>(null);
   const [showInviter, setShowInviter] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<Institut | null>(null);
+  const [detailTarget, setDetailTarget] = React.useState<Institut | null>(null);
 
   const filtered = React.useMemo(() => {
     let list = instituts;
@@ -240,7 +453,7 @@ export function InstitutesSection() {
     setProcessing(id);
     try { await institutService.approuver(id); toast.success(t('admin.instituts.toasts.approved')); refetch(); }
     catch (err: unknown) { const a = err as { response?: { data?: { message?: string } } }; toast.error(a?.response?.data?.message ?? t('admin.instituts.toasts.error')); }
-    finally { setProcessing(null); setActionMenu(null); }
+    finally { setProcessing(null); setActionMenu(null); setDetailTarget(null); }
   };
 
   const handleMotifConfirm = async (motif: string) => {
@@ -254,7 +467,7 @@ export function InstitutesSection() {
     } catch (err: unknown) {
       const a = err as { response?: { data?: { message?: string } } };
       toast.error(a?.response?.data?.message ?? t('admin.instituts.toasts.error'));
-    } finally { setProcessing(null); setActionMenu(null); setMotifDialog(null); }
+    } finally { setProcessing(null); setActionMenu(null); setMotifDialog(null); setDetailTarget(null); }
   };
 
   const handleReactiver = async (id: string) => {
@@ -369,7 +582,11 @@ export function InstitutesSection() {
                   const stLabel = t(`admin.instStatus.${stKey}`, { defaultValue: stKey });
                   const actions = getActions(inst);
                   return (
-                    <tr key={inst.id} className="hover:bg-[var(--edu-surface)] transition-colors">
+                    <tr
+                      key={inst.id}
+                      onClick={() => setDetailTarget(inst)}
+                      className="hover:bg-[var(--edu-surface)] transition-colors cursor-pointer"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--edu-indigo)] to-[var(--edu-blue)] flex items-center justify-center text-white text-sm font-bold shrink-0">
@@ -392,7 +609,7 @@ export function InstitutesSection() {
                       </td>
                       <td className="px-6 py-4"><span className="text-sm font-semibold text-[var(--edu-text-primary)]">{inst.programmes?.length ?? 0}</span></td>
                       <td className="px-6 py-4"><span className="text-sm text-[var(--edu-text-secondary)]">{inst.cree_le ? new Date(inst.cree_le).toLocaleDateString(i18n.language) : '—'}</span></td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end relative">
                           {actions.length > 0 && (
                             <>
@@ -451,6 +668,15 @@ export function InstitutesSection() {
         nom={deleteTarget?.nom ?? deleteTarget?.utilisateur?.email ?? t('admin.instituts.noName')}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <DetailDialog
+        institut={detailTarget}
+        onClose={() => setDetailTarget(null)}
+        onApprouver={handleApprouver}
+        onDemanderCorrection={(id) => setMotifDialog({ type: 'rejeter', id })}
+        onRefuser={(id) => setMotifDialog({ type: 'suspendre', id })}
+        processing={processing === detailTarget?.id}
       />
     </div>
   );

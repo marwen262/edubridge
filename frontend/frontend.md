@@ -40,7 +40,7 @@ Interface Vite (HMR en dev)
     ↓
 App.tsx (AuthProvider + RouterProvider)
     ↓
-routes.tsx (20 routes nommées + wildcard 404, dont plusieurs protégées par rôle)
+routes.tsx (22 routes nommées + wildcard 404, dont plusieurs protégées par rôle)
     ↓
 ProtectedRoute (vérification JWT + rôle)
     ↓
@@ -71,9 +71,9 @@ src/
 ├── vite-env.d.ts                     # Types Vite
 ├── config.ts                         # Constante VITE_API_URL
 ├── services/
-│   └── api.ts                        # Client axios centralisé + tous les services
+│   └── api.ts                        # Client axios centralisé + tous les services (9 services)
 ├── types/
-│   ├── api.ts                        # Types TS pour les entités backend (RegisterData, filtres, etc.)
+│   ├── api.ts                        # Types TS pour les entités backend (RegisterData, filtres, PreInscription, etc.)
 │   └── auth.ts                       # Types User et AuthContextType
 ├── context/
 │   └── AuthContext.tsx               # AuthProvider + hook useAuth
@@ -97,15 +97,15 @@ src/
 │   └── useComparaison.ts             # localStorage compare list (max 3 programmes)
 ├── app/
 │   ├── App.tsx                       # AuthProvider > RouterProvider > Toaster
-│   ├── routes.tsx                    # 20 routes nommées + wildcard 404 (plusieurs routes dashboard protégées par rôle)
+│   ├── routes.tsx                    # 23 routes nommées + wildcard 404 (RootLayout + ScrollRestoration, routes dashboard protégées par rôle)
 │   ├── pages/                        # Pages de niveau routing
 │   │   ├── Home.tsx                  # Landing page
 │   │   ├── SearchResults.tsx         # Recherche & filtrage
 │   │   ├── Institutions.tsx          # Listing public des instituts
-│   │   ├── ProgramDetail.tsx         # Détail d'un programme
-│   │   ├── InstitutionProfile.tsx    # Profil d'institution (route `/institution/:slug`)
+│   │   ├── ProgramDetail.tsx         # Détail d'un programme (AccreditationBadge)
+│   │   ├── InstitutionProfile.tsx    # Profil d'institution (route `/institution/:slug`, AccreditationBadge)
 │   │   ├── Compare.tsx               # Comparaison de programmes
-│   │   ├── Guide.tsx                 # Page guide utilisateur
+│   │   ├── Guide.tsx                 # Page guide utilisateur (étapes candidature, FAQ)
 │   │   ├── Login.tsx                 # Login réel (useAuth + RHF + zod) + dialog "Forgot password?"
 │   │   ├── Signup.tsx                # Inscription réelle (useAuth + RHF + zod)
 │   │   ├── FirstLogin.tsx            # Activation premier login institut (token email — invitation admin)
@@ -116,7 +116,9 @@ src/
 │   │   ├── MesDocuments.tsx          # Historique des documents uploadés
 │   │   ├── Parametres.tsx            # Modification du profil complet du candidat
 │   │   ├── InstitutionDashboard.tsx  # Dashboard institution (+ variante `/dashboard/institution/:section`)
-│   │   └── AdminDashboard.tsx        # Dashboard admin (+ variante `/dashboard/admin/:section`)
+│   │   ├── AdminDashboard.tsx        # Dashboard admin (+ variante `/dashboard/admin/:section`)
+│   │   ├── DemandeAcces.tsx          # Formulaire demande d'accès institut (route `/institution/request-access`, public)
+│   │   └── PreInscription.tsx        # Formulaire pré-inscription post-acceptation (route `/dashboard/preinscription/:candidatureId`, candidat)
 │   ├── components/                   # Composants réutilisables
 │   │   ├── Navbar.tsx                # Barre de navigation sticky (useAuth + dropdown notifications)
 │   │   ├── Footer.tsx                # Footer global
@@ -132,8 +134,10 @@ src/
 │   │   ├── SkeletonCard.tsx          # Skeleton loading
 │   │   ├── EmptyState.tsx            # État vide
 │   │   ├── forms/                    # Composants de formulaires (NationaliteSelect, IndicatifTelephone, AdresseFields)
-│   │   ├── admin/                    # Sections AdminDashboard (Overview, Users, Institutes, Programs, Candidatures, Notifications)
+│   │   ├── admin/                    # Sections AdminDashboard (Overview, Users, Institutes, Programs, Candidatures, Notifications, Demandes)
+│   │   │   └── InstitutesSection.tsx   # + DetailDialog (vue complète), filtre `search` (nom ou sigle)
 │   │   ├── institution/              # Sections InstitutionDashboard + CreateProgramDialog
+│   │   │   └── InstitutionCandidaturesSection.tsx  # CandidatureDetailPanel (identité + parcours + lettre + docs)
 │   │   ├── figma/
 │   │   │   └── ImageWithFallback.tsx # Image avec fallback
 │   │   └── ui/                       # Design system (Radix UI — NE PAS ÉDITER)
@@ -159,17 +163,17 @@ Fichiers racine:
 
 | Dossier | Responsabilité |
 |---------|-----------------|
-| `services/` | Client HTTP axios + tous les services API (auth, programmes, instituts, candidatures, favoris, notifications, utilisateurs) |
+| `services/` | Client HTTP axios + tous les services API (auth, programmes, instituts, candidatures, favoris, notifications, utilisateurs, demandeAcces, preInscription) |
 | `types/` | Types TypeScript pour les entités backend et l'auth |
 | `context/` | AuthContext — état global utilisateur + token JWT |
 | `components/` | ProtectedRoute — garde les routes privées |
 | `i18n/` | Init i18next + fichiers de traduction FR/EN (`locales/{fr,en}/translation.json`) |
 | `hooks/` | Fetch hooks (loading/error/refetch par ressource) |
-| `pages/` | Pages complètes du routing (20 routes nommées + wildcard 404) |
+| `pages/` | Pages complètes du routing (23 routes nommées + wildcard 404) |
 | `app/components/` | Composants réutilisables (business logic + présentation) |
 | `app/components/forms/` | Composants spécifiques aux formulaires (Nationalité, Téléphone, etc.) |
 | `app/components/ui/` | Design system primitif (Radix UI wrappé — NE PAS ÉDITER) |
-| `app/components/admin/` | Sections du dashboard admin (Overview, Users, Institutes, Programs, Candidatures, Notifications) |
+| `app/components/admin/` | Sections du dashboard admin (Overview, Users, Institutes, Programs, Candidatures, Notifications, Demandes) |
 | `app/components/institution/` | Sections du dashboard institut + `CreateProgramDialog` |
 | `app/data/` | `staticData.ts` — référentiels UI statiques (filtres, libellés). Plus de mock métier. |
 | `styles/` | CSS global, tokens de design, thème |
@@ -182,28 +186,35 @@ Fichiers racine:
 
 ```tsx
 export const router = createBrowserRouter([
-  { path: '/',                    Component: Home },
-  { path: '/search',              Component: SearchResults },
-  { path: '/institutions',        Component: Institutions },
-  { path: '/program/:id',         Component: ProgramDetail },
-  { path: '/institution/:slug',   Component: InstitutionProfile },
-  { path: '/compare',             Component: Compare },
-  { path: '/guide',               Component: Guide },
-  { path: '/login',               Component: Login },
-  { path: '/signup',              Component: Signup },
-  { path: '/first-login',         Component: FirstLogin },
-  { path: '/reset-password',      Component: ResetPassword },
-  // Dashboards protégés par rôle
-  { path: '/dashboard/candidate',    element: <ProtectedRoute requiredRole="candidat"><CandidateDashboard /></ProtectedRoute> },
-  { path: '/dashboard/candidatures', element: <ProtectedRoute requiredRole="candidat"><MesCandidatures /></ProtectedRoute> },
-  { path: '/dashboard/favoris',      element: <ProtectedRoute requiredRole="candidat"><MesFavoris /></ProtectedRoute> },
-  { path: '/dashboard/documents',    element: <ProtectedRoute requiredRole="candidat"><MesDocuments /></ProtectedRoute> },
-  { path: '/dashboard/parametres',   element: <ProtectedRoute requiredRole="candidat"><Parametres /></ProtectedRoute> },
-  { path: '/dashboard/institution',  element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
-  { path: '/dashboard/institution/:section', element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
-  { path: '/dashboard/admin',        element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
-  { path: '/dashboard/admin/:section',       element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
-  { path: '*', Component: () => /* JSX 404 inline */ },
+  {
+    Component: RootLayout,  // ScrollRestoration global
+    children: [
+      { path: '/',                           Component: Home },
+      { path: '/search',                     Component: SearchResults },
+      { path: '/institutions',               Component: Institutions },
+      { path: '/program/:id',                Component: ProgramDetail },
+      { path: '/institution/:slug',          Component: InstitutionProfile },
+      { path: '/institution/request-access', Component: DemandeAcces },  // public
+      { path: '/compare',                    Component: Compare },
+      { path: '/guide',                      Component: Guide },
+      { path: '/login',                      Component: Login },
+      { path: '/signup',                     Component: Signup },
+      { path: '/first-login',                Component: FirstLogin },
+      { path: '/reset-password',             Component: ResetPassword },
+      // Dashboards protégés par rôle
+      { path: '/dashboard/candidate',    element: <ProtectedRoute requiredRole="candidat"><CandidateDashboard /></ProtectedRoute> },
+      { path: '/dashboard/candidatures', element: <ProtectedRoute requiredRole="candidat"><MesCandidatures /></ProtectedRoute> },
+      { path: '/dashboard/favoris',      element: <ProtectedRoute requiredRole="candidat"><MesFavoris /></ProtectedRoute> },
+      { path: '/dashboard/documents',    element: <ProtectedRoute requiredRole="candidat"><MesDocuments /></ProtectedRoute> },
+      { path: '/dashboard/parametres',   element: <ProtectedRoute requiredRole="candidat"><Parametres /></ProtectedRoute> },
+      { path: '/dashboard/preinscription/:candidatureId', element: <ProtectedRoute requiredRole="candidat"><PreInscription /></ProtectedRoute> },
+      { path: '/dashboard/institution',  element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
+      { path: '/dashboard/institution/:section', element: <ProtectedRoute requiredRole="institut"><InstitutionDashboard /></ProtectedRoute> },
+      { path: '/dashboard/admin',        element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
+      { path: '/dashboard/admin/:section',       element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute> },
+      { path: '*', Component: () => /* JSX 404 inline */ },
+    ],
+  },
 ]);
 ```
 
@@ -310,6 +321,23 @@ export const router = createBrowserRouter([
 - Charts: registrations, role distribution
 - Institutional analytics
 - Interface modernisée et unifiée avec le branding officiel EduBridge
+- Section `Demandes` : liste des demandes d'accès instituts (en_attente/approuvee/rejetee),
+  actions Approuver / Rejeter → `demandeAccesService.approuver/rejeter`
+
+#### 12. **DemandeAcces** (`/institution/request-access`)
+- Formulaire public (nom établissement, email, téléphone, présentation)
+- Validation côté client (zod) + messages d'erreur serveur
+- Soumission → `demandeAccesService.creer()` → POST `/api/demandes-acces`
+- Toast succès + confirmation (suivi sous 48h)
+- Accessible sans authentification
+
+#### 13. **PreInscription** (`/dashboard/preinscription/:candidatureId`)
+- Formulaire de pré-inscription pour les candidatures acceptées (ProtectedRoute candidat)
+- Récupère la pré-inscription existante via `preInscriptionService.getMine(candidatureId)` au montage
+- Champs : adresse, ville, pays, code postal, téléphone, date de naissance, nationalité, pièce d'identité, photo identité (upload)
+- Soumission → `preInscriptionService.creerOuCompleter(FormData)` → POST `/api/preinscriptions`
+- Téléchargement PDF attestation via `preInscriptionService.downloadPdf(id)` → GET `/api/preinscriptions/:id/pdf`
+- Accessible depuis le bouton « Pré-inscription » dans `CandidateDashboard` (candidatures acceptées)
 
 ### Navigation Globale
 - **Navbar** (sticky, z-50)
@@ -391,8 +419,11 @@ Wrappés Radix UI avec Tailwind CSS
 - `IndicatifTelephone.tsx` - Champ téléphone gérant automatiquement l'indicatif en fonction de la nationalité, et préservant les modifications manuelles.
 - `AdresseFields.tsx` - Groupe de champs pour gérer une entité Adresse (rue, ville, code_postal, etc.).
 
-**Media:**
+**Media & Badges:**
 - `ImageWithFallback.tsx` - Image avec fallback
+- `AccreditationBadge.tsx` (`ui/`) - Badge d'accréditation avec logo SVG/PNG depuis
+  `public/logos/accreditations/` (ABET, AMBA, CTI, EQUIS, HCERES, AACSB, EURACE, default) —
+  utilisé dans `InstitutionProfile` et `ProgramDetail`
 
 ### Patterns de Réutilisation
 
@@ -553,6 +584,7 @@ L'alias Sequelize est `as: 'institut'` (minuscule) → la clé imbriquée est `p
 | `favoriService` | `getMine`, `toggle`, `remove` | `/api/favoris/*` |
 | `notificationService` | `getMine`, `markAsRead` | `/api/notifications/*` |
 | `utilisateurService` | `getAll`, `getById`, `update`, `delete` | `/api/utilisateurs/*` |
+| `preInscriptionService` | `creerOuCompleter`, `getMine`, `downloadPdf` | `/api/preinscriptions/*` |
 
 ### Hooks de fetch (`src/hooks/`)
 
@@ -1139,10 +1171,10 @@ observer.observe(lastElementRef);
 
 ### ✅ Implémenté
 - Client axios centralisé (`src/services/api.ts`) avec intercepteurs JWT (request) et redirection 401/403 (response).
-- 7 services API (`authService`, `programmeService`, `institutService`, `candidatureService`, `favoriService`, `notificationService`, `utilisateurService`).
+- 9 services API (`authService`, `programmeService`, `institutService`, `candidatureService`, `favoriService`, `notificationService`, `utilisateurService`, `demandeAccesService`, `preInscriptionService`).
 - 10 hooks de fetch (`src/hooks/`) avec `loading` / `error` / `refetch` et annulation par flag `cancelled`.
-- 5 routes dashboard protégées par `ProtectedRoute` + rôle (candidat / institut / admin).
-- 16 routes nommées + wildcard 404 dans `src/app/routes.tsx`.
+- 6 routes dashboard protégées par `ProtectedRoute` + rôle (candidat / institut / admin), dont `/dashboard/preinscription/:candidatureId`.
+- 23 routes nommées + wildcard 404 dans `src/app/routes.tsx` (RootLayout avec `ScrollRestoration`).
 - AuthContext (`user`, `token`, `isAuthenticated`, `loading`, `login`, `logout`, `register`, `updateUser`) — JWT persisté en `localStorage` (`auth_token`, `auth_user`).
 - Formulaires Login / Signup / FirstLogin migrés vers `react-hook-form` + `zod`.
 - Reset password : page `/reset-password`, dialog « Forgot password? » dans `Login.tsx`, 3 endpoints back `/api/auth/mot-de-passe/{oublie,valider-token,reinitialiser}`.
@@ -1150,6 +1182,12 @@ observer.observe(lastElementRef);
 - Notifications Navbar : badge `unreadCount` + dropdown + `markAsRead`.
 - `mockData.ts` supprimé — données statiques déplacées dans `staticData.ts` (référentiels UI uniquement).
 - i18n bilingue FR/EN : `i18next` + `react-i18next` + `i18next-browser-languagedetector` ; fichiers `src/i18n/locales/{fr,en}/translation.json` ; tous les composants et pages migrés vers `useTranslation()` ; détection automatique (localStorage → navigator) ; fallback `fr`.
+- Pré-inscription post-acceptation : page `PreInscription.tsx`, `preInscriptionService`, types `PreInscription`/`PreInscriptionFormData`.
+- `InstitutesSection` : `DetailDialog` (logo, description, contact, adresse, accréditations, programmes), filtre `?search=`.
+- `InstitutionCandidaturesSection` : `CandidatureDetailPanel` — affiche identité, parcours académique, lettre de motivation, documents avec liens de téléchargement.
+- `DemandesSection` : clic sur la ligne ouvre le dialog de détail.
+- `Compare.tsx` : `parseJsonbArray` pour normaliser les champs JSONB qui peuvent arriver en tableau ou en string JSON.
+- `CandidatDashboard` : bouton « Pré-inscription » sur les candidatures acceptées.
 
 ### ✅ Pagination (complète)
 - **Backend** : renvoie `pagination: { total, page, limit, totalPages }` sur `/programmes`, `/instituts`, `/candidatures` (admin).

@@ -4,6 +4,7 @@ const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sequelize, Utilisateur, Candidat, Institut } = require('../models');
 const { sendInstitutInviteEmail, sendPasswordResetEmail } = require('../services/emailService');
+const notificationService = require('../services/notificationService');
 
 const signToken = (utilisateur) =>
   jwt.sign(
@@ -190,13 +191,15 @@ exports.validerTokenPremierLogin = async (req, res) => {
 
     const institut = await Institut.findOne({
       where: { utilisateur_id: utilisateur.id },
-      attributes: ['nom'],
+      attributes: ['nom', 'description', 'contact'],
     });
 
     return res.status(200).json({
       valide: true,
       email: utilisateur.email,
       nom: institut?.nom || null,
+      telephone: institut?.contact?.telephone || null,
+      description: institut?.description || null,
     });
   } catch (error) {
     console.error(error);
@@ -271,6 +274,23 @@ exports.terminerPremierLogin = async (req, res) => {
     });
 
     const jwtToken = signToken(result.utilisateur);
+
+    // Notifier les admins qu'un institut est prêt à être validé (hors transaction)
+    try {
+      const admins = await Utilisateur.findAll({ where: { role: 'admin', est_actif: true } });
+      await Promise.all(admins.map((admin) =>
+        notificationService.creerNotification({
+          utilisateur_id: admin.id,
+          type: 'systeme',
+          titre: 'Institut prêt à valider',
+          contenu: `${result.institut.nom} a complété son profil et attend votre validation.`,
+          ref_id: result.institut.id,
+          ref_type: 'Institut',
+        })
+      ));
+    } catch (notifErr) {
+      console.error('[terminerPremierLogin] Notification admin échouée:', notifErr.message);
+    }
 
     return res.status(200).json({
       message: 'Compte activé avec succès. Votre profil est en attente de validation par l\'administrateur.',

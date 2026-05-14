@@ -8,7 +8,9 @@ import { ProgramsSection } from '../components/admin/ProgramsSection';
 import { CandidaturesSection } from '../components/admin/CandidaturesSection';
 import { NotificationsSection } from '../components/admin/NotificationsSection';
 import { DemandesSection } from '../components/admin/DemandesSection';
+import { ParametresSystemeSection } from '../components/admin/ParametresSystemeSection';
 import { PlaceholderSection } from '../components/admin/PlaceholderSection';
+import { RapportsSection } from '../components/admin/RapportsSection';
 
 export function AdminDashboard() {
   const { section } = useParams<{ section?: string }>();
@@ -39,13 +41,7 @@ export function AdminDashboard() {
       content = <DemandesSection />;
       break;
     case 'rapports':
-      content = (
-        <PlaceholderSection
-          title="Rapports"
-          subtitle="Analyses détaillées et exports de données"
-          description="Cette section regroupera les rapports périodiques, exports CSV et indicateurs avancés. Disponible prochainement."
-        />
-      );
+      content = <RapportsSection />;
       break;
     case 'journal':
       content = (
@@ -57,13 +53,7 @@ export function AdminDashboard() {
       );
       break;
     case 'parametres':
-      content = (
-        <PlaceholderSection
-          title="Paramètres système"
-          subtitle="Configuration globale de la plateforme"
-          description="Gestion des rôles, politiques de mot de passe, intégrations externes et autres réglages avancés. Disponible prochainement."
-        />
-      );
+      content = <ParametresSystemeSection />;
       break;
     default:
       content = <OverviewSection nomAdmin={nomAdmin} />;

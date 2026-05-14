@@ -3,6 +3,11 @@ import { CheckCircle, MapPin, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import type { Institut } from '@/types/api';
 import { motion } from 'motion/react';
+import { ACCREDITATIONS_DISPONIBLES } from './ui/AccreditationBadge';
+
+const logoMap = Object.fromEntries(ACCREDITATIONS_DISPONIBLES.map(a => [a.code, a.logo]));
+const labelMap = Object.fromEntries(ACCREDITATIONS_DISPONIBLES.map(a => [a.code, a.label]));
+const DEFAULT_LOGO = '/logos/accreditations/default.svg';
 
 function getInitials(nom: string): string {
   return nom
@@ -23,7 +28,7 @@ export function InstitutCard({ institut }: { institut: Institut }) {
     .filter(Boolean)
     .join(', ');
   const progCount    = institut.programmes?.length;
-  const firstAccred  = institut.accreditations?.[0];
+  const accreditations = institut.accreditations ?? [];
 
   return (
     <motion.div
@@ -56,7 +61,7 @@ export function InstitutCard({ institut }: { institut: Institut }) {
               <img
                 src={institut.logo}
                 alt={institut.nom}
-                className="w-[60px] h-[60px] rounded-xl object-cover border-2 border-white shadow-md"
+                className="w-[60px] h-[60px] rounded-xl object-contain bg-white p-1 border-2 border-white shadow-md"
                 onError={() => setLogoError(true)}
               />
             ) : (
@@ -96,8 +101,8 @@ export function InstitutCard({ institut }: { institut: Institut }) {
             )}
           </div>
 
-          {/* 3 mini stat cards */}
-          <div className="flex gap-2 mb-4">
+          {/* 2 mini stat cards */}
+          <div className="flex gap-2 mb-3">
             {progCount != null && (
               <div
                 className="flex-1 flex flex-col items-center rounded-xl py-2 px-1"
@@ -124,23 +129,28 @@ export function InstitutCard({ institut }: { institut: Institut }) {
                 </span>
               </div>
             )}
-            {firstAccred && (
-              <div
-                className="flex-1 flex flex-col items-center rounded-xl py-2 px-1 overflow-hidden"
-                style={{ background: 'var(--edu-surface)' }}
-              >
-                <span
-                  className="font-bold text-[var(--edu-blue)] leading-tight truncate w-full text-center"
-                  style={{ fontSize: '1.1rem' }}
-                >
-                  {firstAccred}
-                </span>
-                <span className="text-[var(--edu-text-secondary)] mt-0.5" style={{ fontSize: '0.65rem' }}>
-                  Accréd.
-                </span>
-              </div>
-            )}
           </div>
+
+          {/* Logos accréditations */}
+          {accreditations.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {accreditations.map((a) => (
+                <div
+                  key={a}
+                  title={labelMap[a] ?? a}
+                  className="flex items-center justify-center rounded-lg border border-[var(--edu-border)] bg-white dark:bg-[#1D1D1F] shadow-sm px-2 py-1"
+                  style={{ height: 32 }}
+                >
+                  <img
+                    src={logoMap[a] ?? DEFAULT_LOGO}
+                    alt={a}
+                    className="h-5 w-auto max-w-[60px] object-contain"
+                    onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_LOGO; }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Description 2 lignes */}
           {institut.description && (

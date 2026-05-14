@@ -2,15 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import {
-  Building2, Globe, Phone, Mail, MapPin, Award, Pencil, X, Check, Plus, Loader2, Camera,
+  Building2, Globe, Phone, Mail, MapPin, Award, Pencil, X, Check, Loader2, Camera, Users, TrendingUp,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { ACCREDITATIONS_DISPONIBLES } from '../ui/AccreditationBadge';
 import { useAuth } from '@/context/AuthContext';
 import { institutService } from '@/services/api';
 import { API_URL } from '@/config';
-import type { Institut, Adresse, Contact, CreateInstitutData } from '@/types/api';
+import type { Institut, Adresse, Contact } from '@/types/api';
 
 // Base URL pour afficher les assets uploadés (ex: /uploads/logo.jpg → http://localhost:5000/uploads/logo.jpg)
 const BASE_URL = API_URL.replace(/\/api\/?$/, '');
@@ -29,6 +30,9 @@ interface Draft {
   contact: Contact;
   adresse: Adresse;
   accreditations: string[];
+  // Stocké en string pour permettre champ vide ; converti en number à la sauvegarde
+  nombre_etudiants: string;
+  taux_acceptation: string;
 }
 
 function buildDraft(i: Institut | null): Draft {
@@ -38,8 +42,10 @@ function buildDraft(i: Institut | null): Draft {
     description: i?.description ?? '',
     site_web: i?.site_web ?? '',
     contact: { telephone: i?.contact?.telephone ?? '', email: i?.contact?.email ?? '', fax: i?.contact?.fax ?? '' },
-    adresse: { rue: i?.adresse?.rue ?? '', ville: i?.adresse?.ville ?? '', gouvernorat: i?.adresse?.gouvernorat ?? '', code_postal: i?.adresse?.code_postal ?? '', pays: i?.adresse?.pays ?? '' },
+    adresse: { rue: i?.adresse?.rue ?? '', ville: i?.adresse?.ville ?? '', gouvernorat: i?.adresse?.gouvernorat ?? '', code_postal: i?.adresse?.code_postal ?? '', pays: i?.adresse?.pays ?? '', lien_maps: i?.adresse?.lien_maps ?? '' },
     accreditations: i?.accreditations ? [...i.accreditations] : [],
+    nombre_etudiants: i?.nombre_etudiants != null ? String(i.nombre_etudiants) : '',
+    taux_acceptation: i?.taux_acceptation != null ? String(i.taux_acceptation) : '',
   };
 }
 
@@ -50,7 +56,6 @@ export function InstitutionProfilSection() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<Draft>(() => buildDraft(null));
-  const [newAccred, setNewAccred] = useState('');
 
   // Fichiers image en attente d'upload
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -116,6 +121,15 @@ export function InstitutionProfilSection() {
       formData.append('contact', JSON.stringify(draft.contact));
       formData.append('adresse', JSON.stringify(draft.adresse));
       formData.append('accreditations', JSON.stringify(draft.accreditations));
+      // Stats numériques optionnelles : n'envoyer que si valeur saisie et valide
+      const nbEtud = draft.nombre_etudiants.trim();
+      if (nbEtud !== '' && !Number.isNaN(Number(nbEtud))) {
+        formData.append('nombre_etudiants', String(Math.max(0, Math.floor(Number(nbEtud)))));
+      }
+      const txAcc = draft.taux_acceptation.trim();
+      if (txAcc !== '' && !Number.isNaN(Number(txAcc))) {
+        formData.append('taux_acceptation', String(Math.min(100, Math.max(0, Number(txAcc)))));
+      }
       if (logoFile) formData.append('logo', logoFile);
       if (coverFile) formData.append('image_couverture', coverFile);
 
@@ -358,6 +372,18 @@ export function InstitutionProfilSection() {
                     <Label>Pays</Label>
                     <input value={draft.adresse.pays ?? ''} onChange={(e) => setDraft((d) => ({ ...d, adresse: { ...d.adresse, pays: e.target.value } }))} placeholder="Tunisie" className={inputCls} />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Lien Google Maps</Label>
+                    <input
+                      value={draft.adresse.lien_maps ?? ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, adresse: { ...d.adresse, lien_maps: e.target.value } }))}
+                      placeholder="https://maps.app.goo.gl/..."
+                      className={inputCls}
+                    />
+                    <p className="text-xs text-[var(--edu-text-tertiary)]">
+                      Copiez le lien depuis Google Maps → Partager → Copier le lien
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="px-6 py-4">
@@ -377,52 +403,125 @@ export function InstitutionProfilSection() {
               )}
             </section>
 
+            {/* ── Statistiques ─────────────────────────────────────────── */}
+            <section className="glass-card rounded-2xl overflow-hidden">
+              <div className="px-6 py-5 border-b border-[var(--edu-divider)]">
+                <h2 className="text-base font-semibold text-[var(--edu-text-primary)]">Statistiques</h2>
+                <p className="text-xs text-[var(--edu-text-secondary)] mt-0.5">
+                  Chiffres affichés publiquement sur votre profil. Les deux champs sont optionnels.
+                </p>
+              </div>
+              {isEditing ? (
+                <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nombre_etudiants">Nombre d'étudiants</Label>
+                    <Input
+                      id="nombre_etudiants"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={draft.nombre_etudiants}
+                      onChange={(e) => setDraft((d) => ({ ...d, nombre_etudiants: e.target.value }))}
+                      placeholder="Ex : 3500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="taux_acceptation">Taux d'acceptation (%)</Label>
+                    <Input
+                      id="taux_acceptation"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={draft.taux_acceptation}
+                      onChange={(e) => setDraft((d) => ({ ...d, taux_acceptation: e.target.value }))}
+                      placeholder="Ex : 65"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="divide-y divide-[var(--edu-divider)]">
+                  <InfoRow
+                    Icon={Users}
+                    label="Nombre d'étudiants"
+                    value={institut?.nombre_etudiants != null ? institut.nombre_etudiants.toLocaleString('fr-FR') : null}
+                  />
+                  <InfoRow
+                    Icon={TrendingUp}
+                    label="Taux d'acceptation"
+                    value={institut?.taux_acceptation != null ? `${Math.round(institut.taux_acceptation)} %` : null}
+                  />
+                </div>
+              )}
+            </section>
+
             {/* ── Accréditations ───────────────────────────────────────── */}
             <section className="glass-card rounded-2xl overflow-hidden">
               <div className="px-6 py-5 border-b border-[var(--edu-divider)]">
                 <h2 className="text-base font-semibold text-[var(--edu-text-primary)]">Accréditations</h2>
-                <p className="text-xs text-[var(--edu-text-secondary)] mt-0.5">Certifications et labels de qualité</p>
+                <p className="text-xs text-[var(--edu-text-secondary)] mt-0.5">
+                  Certifications et labels de qualité (optionnel)
+                </p>
               </div>
               {isEditing ? (
                 <div className="px-6 py-5 space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    {draft.accreditations.map((a, i) => (
-                      <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--edu-blue)]/10 text-[var(--edu-blue)] border border-[var(--edu-blue)]/20">
-                        {a}
-                        <button type="button" onClick={() => setDraft((d) => ({ ...d, accreditations: d.accreditations.filter((_, j) => j !== i) }))} className="hover:opacity-70">
-                          <X className="w-3 h-3" />
+                  <p className="text-xs text-[var(--edu-text-secondary)]">
+                    Cochez les accréditations officielles obtenues par votre établissement. La sélection est facultative.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {ACCREDITATIONS_DISPONIBLES.map((acc) => {
+                      const isSelected = draft.accreditations.includes(acc.code);
+                      return (
+                        <button
+                          type="button"
+                          key={acc.code}
+                          onClick={() => {
+                            setDraft((d) => ({
+                              ...d,
+                              accreditations: isSelected
+                                ? d.accreditations.filter((a) => a !== acc.code)
+                                : [...d.accreditations, acc.code],
+                            }));
+                          }}
+                          aria-pressed={isSelected}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left ${
+                            isSelected
+                              ? 'border-[var(--edu-blue)] bg-[var(--edu-blue)]/5 shadow-sm'
+                              : 'border-[var(--edu-border)] hover:border-[var(--edu-blue)]/40 hover:bg-[var(--edu-surface)]'
+                          }`}
+                        >
+                          <img
+                            src={acc.logo}
+                            alt={acc.code}
+                            className="h-7 w-auto flex-shrink-0 object-contain"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-[var(--edu-text-primary)] truncate">{acc.code}</p>
+                            <p className="text-xs text-[var(--edu-text-secondary)] truncate">{acc.shortLabel}</p>
+                          </div>
+                          <div
+                            className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                              isSelected
+                                ? 'bg-[var(--edu-blue)] border-[var(--edu-blue)]'
+                                : 'border-[var(--edu-border)]'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                          </div>
                         </button>
-                      </span>
-                    ))}
+                      );
+                    })}
                   </div>
-                  <div className="flex gap-2">
-                    <Input
-                      value={newAccred}
-                      onChange={(e) => setNewAccred(e.target.value)}
-                      placeholder="Ex : CTI, ABET, ENAEE"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && newAccred.trim()) {
-                          e.preventDefault();
-                          setDraft((d) => ({ ...d, accreditations: [...d.accreditations, newAccred.trim()] }));
-                          setNewAccred('');
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={!newAccred.trim()}
-                      onClick={() => {
-                        if (newAccred.trim()) {
-                          setDraft((d) => ({ ...d, accreditations: [...d.accreditations, newAccred.trim()] }));
-                          setNewAccred('');
-                        }
-                      }}
+                  <p className="text-xs text-[var(--edu-text-tertiary)] italic pt-2 border-t border-[var(--edu-divider)]">
+                    Vous disposez d'une autre accréditation officielle ?{' '}
+                    <a
+                      href="mailto:admin@edubridge.tn?subject=Ajout%20d'une%20nouvelle%20accr%C3%A9ditation"
+                      className="text-[var(--edu-blue)] hover:underline not-italic font-medium"
                     >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
+                      Contactez EduBridge
+                    </a>{' '}
+                    pour la faire ajouter à la liste.
+                  </p>
                 </div>
               ) : (
                 <div className="px-6 py-4">

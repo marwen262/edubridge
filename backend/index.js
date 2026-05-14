@@ -34,6 +34,7 @@ app.use('/api/candidatures', require('./routes/candidatureRoutes'));
 app.use('/api/favoris',         require('./routes/favoriRoutes'));
 app.use('/api/notifications',   require('./routes/notificationRoutes'));
 app.use('/api/demandes-acces',  require('./routes/demandeAccesRoutes'));
+app.use('/api/preinscriptions', require('./routes/preInscriptionRoutes'));
 
 // ── Route de santé ────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', app: 'EduBridge' }));

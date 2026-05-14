@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   FileText, Clock, CheckCircle, FileEdit, Search,
-  UserCircle, Upload, Bell, ChevronRight, Inbox, Pencil,
+  UserCircle, Upload, Bell, ChevronRight, Inbox, Pencil, ClipboardList,
 } from 'lucide-react';
 import { DashboardSidebar } from '../components/DashboardSidebar';
 import { StatCard } from '../components/StatCard';
@@ -235,6 +235,16 @@ export function CandidateDashboard() {
                                 <Pencil className="w-3 h-3" />
                                 {getActionLabel(c.statut)}
                               </Button>
+                            ) : c.statut === 'acceptee' ? (
+                              <Link to={`/dashboard/preinscription/${c.id}`}>
+                                <Button
+                                  size="sm"
+                                  className="text-xs flex items-center gap-1 bg-[var(--edu-success)] hover:opacity-90 text-white"
+                                >
+                                  <ClipboardList className="w-3 h-3" />
+                                  {t('preInscription.action')}
+                                </Button>
+                              </Link>
                             ) : (
                               <Link to={`/program/${c.programme_id}`}>
                                 <Button

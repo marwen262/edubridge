@@ -1,5 +1,14 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Outlet, ScrollRestoration } from 'react-router';
 import { Home } from './pages/Home';
+
+function RootLayout() {
+  return (
+    <>
+      <ScrollRestoration />
+      <Outlet />
+    </>
+  );
+}
 import { SearchResults } from './pages/SearchResults';
 import { Institutions } from './pages/Institutions';
 import { ProgramDetail } from './pages/ProgramDetail';
@@ -18,9 +27,13 @@ import { Parametres } from './pages/Parametres';
 import { InstitutionDashboard } from './pages/InstitutionDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { DemandeAcces } from './pages/DemandeAcces';
+import { PreInscription } from './pages/PreInscription';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
+  {
+    Component: RootLayout,
+    children: [
   {
     path: '/',
     Component: Home,
@@ -134,6 +147,14 @@ export const router = createBrowserRouter([
     Component: DemandeAcces,
   },
   {
+    path: '/dashboard/preinscription/:candidatureId',
+    element: (
+      <ProtectedRoute requiredRole="candidat">
+        <PreInscription />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: '/dashboard/admin/:section',
     element: (
       <ProtectedRoute requiredRole="admin">
@@ -151,5 +172,7 @@ export const router = createBrowserRouter([
         </div>
       </div>
     ),
+  },
+  ],
   },
 ]);

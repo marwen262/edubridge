@@ -35,8 +35,12 @@ export function Home() {
     const fetchCounts = async () => {
       const results = await Promise.all(
         domaines.map(d =>
-          programmeService.getAll({ domaine: d.key })
-            .then(r => ({ key: d.key, count: (r.data.programmes ?? []).length }))
+          programmeService.getAll({ domaine: d.key, limit: 1 })
+            .then(r => {
+              const payload = r.data as { programmes?: unknown[]; pagination?: { total: number } };
+              const count = payload.pagination?.total ?? (payload.programmes ?? []).length;
+              return { key: d.key, count };
+            })
             .catch(() => ({ key: d.key, count: 0 }))
         )
       );
@@ -47,11 +51,15 @@ export function Home() {
     fetchCounts();
   }, []);
 
+  const totalEtudiants = instituts.reduce((sum, i) => sum + ((i as Institut).nombre_etudiants ?? 0), 0);
+  const domainesCouverts = new Set(programs.map(p => p.domaine).filter(Boolean)).size;
+  const fmt = (n: number) => n.toLocaleString('fr-FR');
+
   const stats = [
-    { value: '5 000+',  labelKey: 'home.stats.programs' },
-    { value: '800+',    labelKey: 'home.stats.institutions' },
-    { value: '150+',    labelKey: 'home.stats.fields' },
-    { value: '50 000+', labelKey: 'home.stats.students' },
+    { value: programs.length > 0 ? fmt(programs.length) : '…', labelKey: 'home.stats.programs' },
+    { value: instituts.length > 0 ? fmt(instituts.length) : '…', labelKey: 'home.stats.institutions' },
+    { value: domainesCouverts > 0 ? String(domainesCouverts) : '…', labelKey: 'home.stats.fields' },
+    { value: totalEtudiants > 0 ? fmt(totalEtudiants) : '…', labelKey: 'home.stats.students' },
   ];
 
   const aboutCards = [
@@ -147,7 +155,7 @@ export function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {domaines.map((domaine, i) => (
               <motion.div key={domaine.key} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05, duration: 0.3 }}>
-                <Link to="/search">
+                <Link to={`/search?domaine=${domaine.key}`}>
                   <div className="glass-card rounded-2xl p-6 hover-lift cursor-pointer text-center">
                     <h3 className="font-semibold text-[var(--edu-text-primary)] mb-2">{domaine.label}</h3>
                     <p className="text-sm text-[var(--edu-text-secondary)]">{counts[domaine.key] ?? '...'} {t('home.fields.programs')}</p>
@@ -202,7 +210,7 @@ export function Home() {
               <h2 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-2">{t('home.topInstitutions.title')}</h2>
               <p className="text-[var(--edu-text-secondary)] text-lg">{t('home.topInstitutions.subtitle')}</p>
             </div>
-            <Link to="/search">
+            <Link to="/institutions">
               <Button variant="ghost" className="text-[var(--edu-blue)]">
                 {t('home.topInstitutions.seeAll')}
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -213,7 +221,10 @@ export function Home() {
             <p className="text-center text-[var(--edu-text-secondary)] py-8">{t('home.topInstitutions.loading')}</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {instituts.slice(0, 3).map((institution) => (
+              {[...instituts]
+                .sort((a, b) => (b.note ?? 0) - (a.note ?? 0))
+                .slice(0, 3)
+                .map((institution) => (
                 <InstitutCard key={institution.id} institut={institution} />
               ))}
             </div>
@@ -238,6 +249,60 @@ export function Home() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Institution CTA */}
+      <section className="py-16 bg-white dark:bg-[#1D1D1F]">
+        <div className="max-w-[1440px] mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="rounded-3xl border border-[var(--edu-border)] bg-[var(--edu-surface)] px-10 py-10 flex flex-col lg:flex-row items-center justify-between gap-8"
+          >
+            {/* Left */}
+            <div className="flex items-start gap-5 max-w-lg">
+              <div className="shrink-0 w-11 h-11 rounded-2xl bg-[var(--edu-blue)]/10 flex items-center justify-center">
+                <span className="text-xl">🏫</span>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-[var(--edu-blue)] mb-1">
+                  {t('home.institutionCta.eyebrow')}
+                </p>
+                <h2 className="text-xl font-bold text-[var(--edu-text-primary)] mb-1">
+                  {t('home.institutionCta.title')}
+                </h2>
+                <p className="text-sm text-[var(--edu-text-secondary)]">
+                  {t('home.institutionCta.subtitle')}
+                </p>
+              </div>
+            </div>
+
+            {/* Features */}
+            <div className="hidden lg:flex items-center gap-6">
+              {(['feature1', 'feature2', 'feature3'] as const).map((key) => (
+                <div key={key} className="flex items-center gap-2 text-sm text-[var(--edu-text-secondary)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--edu-blue)] shrink-0" />
+                  {t(`home.institutionCta.${key}`)}
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 shrink-0">
+              <Link to="/login">
+                <Button variant="ghost" className="text-[15px] font-medium text-[var(--edu-text-secondary)]">
+                  {t('home.institutionCta.login')}
+                </Button>
+              </Link>
+              <Link to="/institution/request-access">
+                <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white font-medium px-6 text-[15px]">
+                  {t('home.institutionCta.cta')}
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Search, Grid, List, SlidersHorizontal } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
@@ -35,19 +36,32 @@ const FIELD_TO_DOMAINE: Record<string, DomaineBackend> = {
   'Finance':           'finance',
   'Management':        'management',
 };
+const DOMAINE_TO_FIELD: Record<string, string> = Object.fromEntries(
+  Object.entries(FIELD_TO_DOMAINE).map(([label, key]) => [key, label])
+);
 
 // Options de tri disponibles
 type SortOption = 'relevance' | 'deadline' | 'tuition_asc' | 'tuition_desc';
 
 export function SearchResults() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [view, setView] = React.useState<'grid' | 'list'>('list');
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [selectedFields, setSelectedFields] = React.useState<string[]>([]);
+  const [selectedFields, setSelectedFields] = React.useState<string[]>(() => {
+    const d = searchParams.get('domaine');
+    return d && DOMAINE_TO_FIELD[d] ? [DOMAINE_TO_FIELD[d]] : [];
+  });
   const [selectedLevels, setSelectedLevels] = React.useState<string[]>([]);
   const [tuitionRange, setTuitionRange] = React.useState([0, 100000]);
   const [sortBy, setSortBy] = React.useState<SortOption>('relevance');
   const [page, setPage] = React.useState(1);
+
+  useEffect(() => {
+    const d = searchParams.get('domaine');
+    setSelectedFields(d && DOMAINE_TO_FIELD[d] ? [DOMAINE_TO_FIELD[d]] : []);
+    setPage(1);
+  }, [searchParams]);
 
   // --- Construction des filtres à envoyer au backend ---
   // Règle : toujours undefined (jamais string vide) pour les filtres non actifs.

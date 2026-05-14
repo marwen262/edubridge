@@ -88,8 +88,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/signup" className="text-[#86868B] hover:text-white text-sm transition-colors">
-                  {t('footer.institutions.requestInvitation')}
+                <Link to="/institution/request-access" className="text-[#86868B] hover:text-white text-sm transition-colors">
+                  {t('footer.institutions.areYouInstitution')}
                 </Link>
               </li>
             </ul>

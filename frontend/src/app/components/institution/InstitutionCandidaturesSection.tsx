@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import { BarChart3, Search, ChevronLeft, ChevronRight, ChevronDown, Phone, MapPin, Globe, IdCard, GraduationCap } from 'lucide-react';
+import { BarChart3, Search, ChevronLeft, ChevronRight, ChevronDown, Phone, MapPin, Globe, IdCard, GraduationCap, Calendar, User, BookOpen, FileText, Download, File } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useInstitutCandidatures } from '@/hooks/useCandidatures';
 import { candidatureService } from '@/services/api';
 import { trouverLabelNationalite, estTunisien } from '@/app/data/nationalites';
+import { API_URL } from '@/config';
 import i18n from '@/i18n';
 import type { Candidat, Candidature } from '@/types/api';
 
@@ -156,7 +157,7 @@ export function InstitutionCandidaturesSection() {
                         </td>
                       </tr>
                       <AnimatePresence>
-                        {isExpanded && c.candidat && (
+                        {isExpanded && (
                           <tr key={`${c.id}-detail`} className="bg-[var(--edu-surface)]/40">
                             <td colSpan={6} className="px-6 py-0">
                               <motion.div
@@ -166,7 +167,7 @@ export function InstitutionCandidaturesSection() {
                                 transition={{ duration: 0.2 }}
                                 className="overflow-hidden"
                               >
-                                <CandidatIdentitePanel candidat={c.candidat} />
+                                <CandidatureDetailPanel candidature={c} />
                               </motion.div>
                             </td>
                           </tr>
@@ -211,87 +212,189 @@ function ScoreBadge({ score }: { score?: number | null }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Panneau identité candidat (sous-ligne expandable)
-// Source de vérité : le profil Candidat — l'identité ne vit JAMAIS dans
-// candidature.documents_soumis (refactor identité, cf. backend.md).
+// Panneau détail candidature (sous-ligne expandable)
+// Affiche : identité, profil académique, lettre de motivation, documents soumis.
 // ─────────────────────────────────────────────────────────────
 
-function CandidatIdentitePanel({ candidat }: { candidat: Candidat }) {
+const BASE_URL = API_URL.replace(/\/api\/?$/, '');
+
+function InfoField({ label, value, Icon, color = 'var(--edu-blue)' }: {
+  label: string;
+  value?: string | null;
+  Icon: React.ElementType;
+  color?: string;
+}) {
   const { t } = useTranslation();
-  const tunisien = estTunisien(candidat.nationalite);
-  const adresseFormatee = [
+  return (
+    <div className="flex items-start gap-3 min-w-0">
+      <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${color}18` }}>
+        <Icon className="w-3.5 h-3.5" style={{ color }} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] uppercase tracking-wider font-semibold text-[var(--edu-text-tertiary)]">{label}</p>
+        <p className="text-sm text-[var(--edu-text-primary)] break-words">
+          {value || <span className="italic text-[var(--edu-text-tertiary)]">{t('institution.candidatures.candidatePanel.notFilled')}</span>}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--edu-text-tertiary)] mb-3 mt-1">{children}</p>
+  );
+}
+
+function CandidatureDetailPanel({ candidature }: { candidature: Candidature }) {
+  const { t } = useTranslation();
+  const candidat: Candidat | undefined = candidature.candidat;
+
+  const adresseFormatee = candidat ? [
     candidat.adresse?.rue,
     candidat.adresse?.code_postal,
     candidat.adresse?.ville,
     candidat.adresse?.gouvernorat,
     candidat.adresse?.pays,
-  ]
-    .filter(Boolean)
-    .join(', ');
+  ].filter(Boolean).join(', ') : '';
 
-  const items: Array<{ label: string; value?: string | null; Icon: typeof Phone }> = [
-    {
-      label: t('institution.candidatures.candidatePanel.nationality'),
-      value: candidat.nationalite ? trouverLabelNationalite(candidat.nationalite) : null,
-      Icon: Globe,
-    },
-    {
-      label: tunisien ? t('institution.candidatures.candidatePanel.cin') : t('institution.candidatures.candidatePanel.passport'),
-      value: tunisien ? candidat.cin : candidat.numero_passeport,
-      Icon: IdCard,
-    },
-    { label: t('institution.candidatures.candidatePanel.phone'), value: candidat.telephone, Icon: Phone },
-    { label: t('institution.candidatures.candidatePanel.address'), value: adresseFormatee || null, Icon: MapPin },
-  ];
+  const tunisien = estTunisien(candidat?.nationalite);
 
-  const dernierDiplome = Array.isArray(candidat.parcours_academique)
-    ? candidat.parcours_academique[0]
+  const genreLabel = candidat?.genre === 'homme'
+    ? t('institution.candidatures.candidatePanel.genreHomme')
+    : candidat?.genre === 'femme'
+      ? t('institution.candidatures.candidatePanel.genreFemme')
+      : null;
+
+  const dateNaissanceFormatee = candidat?.date_naissance
+    ? new Date(candidat.date_naissance).toLocaleDateString(i18n.language)
     : null;
 
-  return (
-    <div className="py-5 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-      {items.map(({ label, value, Icon }) => (
-        <div key={label} className="flex items-start gap-3 min-w-0">
-          <div
-            className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: 'var(--edu-blue)15' }}
-          >
-            <Icon className="w-3.5 h-3.5" style={{ color: 'var(--edu-blue)' }} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-[var(--edu-text-tertiary)]">
-              {label}
-            </p>
-            <p className="text-sm text-[var(--edu-text-primary)] truncate">
-              {value || <span className="italic text-[var(--edu-text-tertiary)]">{t('institution.candidatures.candidatePanel.notFilled')}</span>}
-            </p>
-          </div>
-        </div>
-      ))}
+  const parcours = Array.isArray(candidat?.parcours_academique) ? candidat!.parcours_academique : [];
+  const documents = Array.isArray(candidature.documents_soumis) ? candidature.documents_soumis : [];
 
-      {dernierDiplome && (
-        <div className="md:col-span-2 flex items-start gap-3 pt-2 border-t border-[var(--edu-divider)]">
-          <div
-            className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
-            style={{ backgroundColor: 'var(--edu-success)15' }}
-          >
-            <GraduationCap className="w-3.5 h-3.5" style={{ color: 'var(--edu-success)' }} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-[var(--edu-text-tertiary)]">
-              {t('institution.candidatures.candidatePanel.lastDiploma')}
-            </p>
-            <p className="text-sm text-[var(--edu-text-primary)]">
-              {dernierDiplome.diplome} — {dernierDiplome.etablissement} ({dernierDiplome.annee})
-              {dernierDiplome.mention && (
-                <span className="text-xs text-[var(--edu-text-secondary)] ml-2">
-                  {t('institution.candidatures.candidatePanel.mention')} {dernierDiplome.mention}
-                </span>
-              )}
-            </p>
-          </div>
+  return (
+    <div className="py-5 space-y-5">
+
+      {/* Identité & Contact */}
+      <div>
+        <SectionTitle>{t('institution.candidatures.candidatePanel.sectionIdentite')}</SectionTitle>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+          <InfoField
+            label={t('institution.candidatures.candidatePanel.nationality')}
+            value={candidat?.nationalite ? trouverLabelNationalite(candidat.nationalite) : null}
+            Icon={Globe}
+          />
+          <InfoField
+            label={tunisien ? t('institution.candidatures.candidatePanel.cin') : t('institution.candidatures.candidatePanel.passport')}
+            value={tunisien ? candidat?.cin : candidat?.numero_passeport}
+            Icon={IdCard}
+          />
+          <InfoField label={t('institution.candidatures.candidatePanel.phone')} value={candidat?.telephone} Icon={Phone} />
+          <InfoField label={t('institution.candidatures.candidatePanel.dateNaissance')} value={dateNaissanceFormatee} Icon={Calendar} />
+          <InfoField label={t('institution.candidatures.candidatePanel.genre')} value={genreLabel} Icon={User} />
+          <InfoField label={t('institution.candidatures.candidatePanel.address')} value={adresseFormatee || null} Icon={MapPin} />
         </div>
-      )}
+      </div>
+
+      {/* Profil académique */}
+      <div className="border-t border-[var(--edu-divider)] pt-4">
+        <SectionTitle>{t('institution.candidatures.candidatePanel.sectionProfil')}</SectionTitle>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3 mb-4">
+          <InfoField label={t('institution.candidatures.candidatePanel.niveauActuel')} value={candidat?.niveau_actuel ?? null} Icon={BookOpen} color="var(--edu-indigo)" />
+          <InfoField label={t('institution.candidatures.candidatePanel.typeBac')} value={candidat?.type_bac ?? null} Icon={GraduationCap} color="var(--edu-indigo)" />
+          <InfoField
+            label={t('institution.candidatures.candidatePanel.moyenneBac')}
+            value={candidat?.moyenne_bac != null ? String(candidat.moyenne_bac) : null}
+            Icon={BookOpen}
+            color="var(--edu-indigo)"
+          />
+          <InfoField
+            label={t('institution.candidatures.candidatePanel.anneeBac')}
+            value={candidat?.annee_bac != null ? String(candidat.annee_bac) : null}
+            Icon={Calendar}
+            color="var(--edu-indigo)"
+          />
+        </div>
+
+        {parcours.length > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-[var(--edu-text-tertiary)] mb-2">
+              {t('institution.candidatures.candidatePanel.parcoursTitle')}
+            </p>
+            <div className="space-y-2">
+              {parcours.map((p, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'var(--edu-success)18' }}>
+                    <GraduationCap className="w-3.5 h-3.5" style={{ color: 'var(--edu-success)' }} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-[var(--edu-text-primary)]">
+                      {p.diplome} — {p.etablissement} ({p.annee})
+                      {p.mention && (
+                        <span className="text-xs text-[var(--edu-text-secondary)] ml-2">
+                          {t('institution.candidatures.candidatePanel.mention')} {p.mention}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Lettre de motivation */}
+      <div className="border-t border-[var(--edu-divider)] pt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <FileText className="w-4 h-4" style={{ color: 'var(--edu-blue)' }} />
+          <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--edu-text-tertiary)]">
+            {t('institution.candidatures.candidatePanel.motivationTitle')}
+          </p>
+        </div>
+        {candidature.lettre_motivation ? (
+          <p className="text-sm text-[var(--edu-text-primary)] whitespace-pre-wrap leading-relaxed bg-[var(--edu-surface)] rounded-xl p-4 border border-[var(--edu-border)]">
+            {candidature.lettre_motivation}
+          </p>
+        ) : (
+          <p className="text-sm italic text-[var(--edu-text-tertiary)]">
+            {t('institution.candidatures.candidatePanel.motivationEmpty')}
+          </p>
+        )}
+      </div>
+
+      {/* Documents soumis */}
+      <div className="border-t border-[var(--edu-divider)] pt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Download className="w-4 h-4" style={{ color: 'var(--edu-blue)' }} />
+          <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--edu-text-tertiary)]">
+            {t('institution.candidatures.candidatePanel.documentsTitle')}
+          </p>
+        </div>
+        {documents.length === 0 ? (
+          <p className="text-sm italic text-[var(--edu-text-tertiary)]">
+            {t('institution.candidatures.candidatePanel.documentsEmpty')}
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {documents.map((doc, i) => (
+              <a
+                key={doc.media_id ?? i}
+                href={`${BASE_URL}${doc.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--edu-border)] bg-[var(--edu-surface)] hover:border-[var(--edu-blue)] hover:bg-[var(--edu-blue)]/5 transition-colors group"
+              >
+                <File className="w-4 h-4 flex-shrink-0 text-[var(--edu-text-tertiary)] group-hover:text-[var(--edu-blue)]" />
+                <span className="text-sm text-[var(--edu-text-primary)] truncate flex-1">{doc.nom}</span>
+                <Download className="w-3.5 h-3.5 flex-shrink-0 text-[var(--edu-text-tertiary)] group-hover:text-[var(--edu-blue)]" />
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

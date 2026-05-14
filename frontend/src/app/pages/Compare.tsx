@@ -11,6 +11,15 @@ import { motion } from 'motion/react';
 import { useComparaison } from '@/hooks/useComparaison';
 import i18n from '@/i18n';
 
+// Normalise un champ JSONB qui peut arriver soit comme tableau, soit comme string JSON (anciens seeds)
+const parseJsonbArray = (v: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(v)) return v as Record<string, unknown>[];
+  if (typeof v === 'string') {
+    try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
+  }
+  return [];
+};
+
 export function Compare() {
   const { t } = useTranslation();
   const [programmes, setProgrammes] = React.useState<Programme[]>([]);
@@ -270,27 +279,30 @@ export function Compare() {
                         <td className="sticky left-0 bg-[var(--edu-surface)]/50 px-6 py-4 font-semibold text-[var(--edu-text-primary)]">
                           {t('compare.rows.requiredDocuments')}
                         </td>
-                        {programmes.map((p) => (
-                          <td key={p.id} className="px-6 py-4">
-                            {p.documents_requis && p.documents_requis.length > 0 ? (
-                              <ul className="space-y-1 text-sm text-[var(--edu-text-secondary)]">
-                                {p.documents_requis.slice(0, 3).map((doc, i) => (
-                                  <li key={i} className="line-clamp-1">
-                                    •&nbsp;{doc.nom}
-                                    {doc.obligatoire ? ' *' : ''}
-                                  </li>
-                                ))}
-                                {p.documents_requis.length > 3 && (
-                                  <li className="text-[var(--edu-blue)]">
-                                    {t('compare.rows.moreDocuments', { count: p.documents_requis.length - 3 })}
-                                  </li>
-                                )}
-                              </ul>
-                            ) : (
-                              <span className="text-[var(--edu-text-tertiary)] text-sm">—</span>
-                            )}
-                          </td>
-                        ))}
+                        {programmes.map((p) => {
+                          const docs = parseJsonbArray(p.documents_requis);
+                          return (
+                            <td key={p.id} className="px-6 py-4">
+                              {docs.length > 0 ? (
+                                <ul className="space-y-1 text-sm text-[var(--edu-text-secondary)]">
+                                  {docs.slice(0, 3).map((doc, i) => (
+                                    <li key={i} className="line-clamp-1">
+                                      •&nbsp;{String(doc.nom)}
+                                      {doc.obligatoire ? ' *' : ''}
+                                    </li>
+                                  ))}
+                                  {docs.length > 3 && (
+                                    <li className="text-[var(--edu-blue)]">
+                                      {t('compare.rows.moreDocuments', { count: docs.length - 3 })}
+                                    </li>
+                                  )}
+                                </ul>
+                              ) : (
+                                <span className="text-[var(--edu-text-tertiary)] text-sm">—</span>
+                              )}
+                            </td>
+                          );
+                        })}
                         {programmes.length < 3 && <td className="px-6 py-4" />}
                       </tr>
 
@@ -299,25 +311,30 @@ export function Compare() {
                         <td className="sticky left-0 bg-inherit px-6 py-4 font-semibold text-[var(--edu-text-primary)]">
                           {t('compare.rows.prerequisites')}
                         </td>
-                        {programmes.map((p) => (
-                          <td key={p.id} className="px-6 py-4 text-sm text-[var(--edu-text-secondary)]">
-                            {p.prerequis ? (
-                              <div className="space-y-1">
-                                {p.prerequis.moyenne_min != null && (
-                                  <p>{t('compare.rows.minAverage', { value: p.prerequis.moyenne_min })}</p>
-                                )}
-                                {p.prerequis.types_bac && p.prerequis.types_bac.length > 0 && (
-                                  <p>{t('compare.rows.bacTypes', { types: p.prerequis.types_bac.join(', ') })}</p>
-                                )}
-                                {p.prerequis.matieres && p.prerequis.matieres.length > 0 && (
-                                  <p>{t('compare.rows.subjects', { subjects: p.prerequis.matieres.join(', ') })}</p>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-[var(--edu-text-tertiary)]">—</span>
-                            )}
-                          </td>
-                        ))}
+                        {programmes.map((p) => {
+                          const prereq = typeof p.prerequis === 'string'
+                            ? (() => { try { return JSON.parse(p.prerequis); } catch { return null; } })()
+                            : p.prerequis;
+                          return (
+                            <td key={p.id} className="px-6 py-4 text-sm text-[var(--edu-text-secondary)]">
+                              {prereq ? (
+                                <div className="space-y-1">
+                                  {prereq.moyenne_min != null && (
+                                    <p>{t('compare.rows.minAverage', { value: prereq.moyenne_min })}</p>
+                                  )}
+                                  {Array.isArray(prereq.types_bac) && prereq.types_bac.length > 0 && (
+                                    <p>{t('compare.rows.bacTypes', { types: prereq.types_bac.join(', ') })}</p>
+                                  )}
+                                  {Array.isArray(prereq.matieres) && prereq.matieres.length > 0 && (
+                                    <p>{t('compare.rows.subjects', { subjects: prereq.matieres.join(', ') })}</p>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-[var(--edu-text-tertiary)]">—</span>
+                              )}
+                            </td>
+                          );
+                        })}
                         {programmes.length < 3 && <td className="px-6 py-4" />}
                       </tr>
                     </tbody>

@@ -1,14 +1,7 @@
 'use strict';
 const { Model, DataTypes } = require('sequelize');
 module.exports = (sequelize) => {
-  class DemandeAcces extends Model {
-    static associate(models) {
-      DemandeAcces.belongsTo(models.Utilisateur, {
-        foreignKey: 'traite_par',
-        as: 'admin',
-      });
-    }
-  }
+  class DemandeAcces extends Model {}
   DemandeAcces.init({
     id:           { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
     nom:          { type: DataTypes.STRING(255), allowNull: false },

@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/app/components/ui/utils';
-import { demandeAccesService } from '@/services/api';
+import { demandeAccesService, institutService } from '@/services/api';
+import type { Institut } from '@/types/api';
 import {
   LayoutDashboard,
   FileText,
@@ -14,7 +15,6 @@ import {
   Settings,
   MessageSquare,
   Bell,
-  Activity,
   PieChart,
   Sliders,
   Building2,
@@ -53,6 +53,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const { logout, user: authUser } = useAuth();
   const { unreadCount } = useNotifications();
   const [nbDemandes, setNbDemandes] = React.useState(0);
+  const [nbInstitutsEnAttente, setNbInstitutsEnAttente] = React.useState(0);
 
   React.useEffect(() => {
     if (authUser?.role !== 'admin') return;
@@ -61,6 +62,16 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
       .then((r) => {
         const payload = r.data as { pagination?: { total: number } };
         setNbDemandes(payload.pagination?.total ?? 0);
+      })
+      .catch(() => {});
+    institutService
+      .listerEnAttente()
+      .then((r) => {
+        const payload = r.data as { instituts?: Institut[] };
+        const enAttente = (payload.instituts ?? []).filter(
+          (i) => i.validation_status === 'pending_admin_review'
+        );
+        setNbInstitutsEnAttente(enAttente.length);
       })
       .catch(() => {});
   }, [authUser]);
@@ -140,7 +151,12 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
       items: [
         { label: t('sidebar.admin.dashboard'), icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/admin' },
         { label: t('sidebar.admin.users'), icon: <Users className="w-5 h-5" />, href: '/dashboard/admin/utilisateurs' },
-        { label: t('sidebar.admin.institutions'), icon: <Building2 className="w-5 h-5" />, href: '/dashboard/admin/instituts' },
+        {
+          label: t('sidebar.admin.institutions'),
+          icon: <Building2 className="w-5 h-5" />,
+          href: '/dashboard/admin/instituts',
+          badge: nbInstitutsEnAttente > 0 ? nbInstitutsEnAttente : undefined,
+        },
         { label: t('sidebar.admin.programs'), icon: <FileText className="w-5 h-5" />, href: '/dashboard/admin/programmes' },
         { label: t('sidebar.admin.applications'), icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/admin/candidatures' },
         { label: t('sidebar.admin.notifications'), icon: <Bell className="w-5 h-5" />, href: '/dashboard/admin/notifications' },
@@ -151,7 +167,6 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
           badge: nbDemandes > 0 ? nbDemandes : undefined,
         },
         { label: t('sidebar.admin.reports'), icon: <PieChart className="w-5 h-5" />, href: '/dashboard/admin/rapports' },
-        { label: t('sidebar.admin.activityLog'), icon: <Activity className="w-5 h-5" />, href: '/dashboard/admin/journal' },
         { label: t('sidebar.admin.systemSettings'), icon: <Sliders className="w-5 h-5" />, href: '/dashboard/admin/parametres' },
       ],
     },

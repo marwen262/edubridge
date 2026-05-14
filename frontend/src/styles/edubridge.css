@@ -155,3 +155,28 @@
 .pulse-ring {
   animation: pulse-ring 2s infinite;
 }
+
+/* Marquee infini — défile horizontalement en boucle, pause au hover du conteneur */
+@keyframes edu-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.edu-marquee-track {
+  animation: edu-marquee 35s linear infinite;
+  width: max-content;
+}
+
+.edu-marquee-container:hover .edu-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edu-marquee-track {
+    animation: none;
+  }
+}

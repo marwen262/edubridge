@@ -52,7 +52,7 @@ export function InstitutionCard({ institution }: InstitutionCardProps) {
               <img
                 src={institution.logo}
                 alt={institution.nom}
-                className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                className="w-16 h-16 rounded-xl object-contain bg-white p-1 flex-shrink-0"
                 onError={() => setLogoError(true)}
               />
             ) : (

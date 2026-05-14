@@ -60,11 +60,13 @@ EduBridge est un **backend monolithique** (Node.js/Express) qui facilite la mise
     ┌──────────────────────────────────┐
     │     CONTROLLERS (Controllers/)    │
     │  • authController                │
-    │  • utilisateurController                │
+    │  • utilisateurController         │
     │  • candidatureController         │
-    │  • programmeController             │
-    │  • institutController           │
-    │  • favoriController            │
+    │  • programmeController           │
+    │  • institutController            │
+    │  • favoriController              │
+    │  • notificationController        │
+    │  • demandeAccesController        │
     └──────────────┬───────────────────┘
                    │
                    ▼
@@ -79,8 +81,8 @@ EduBridge est un **backend monolithique** (Node.js/Express) qui facilite la mise
     │     MODELS (ORM - Sequelize)     │        │  DIPLOMA VERIFIER (Python)  │
     │  • Utilisateur ├─────┐           │        │  (Microservice externe via  │
     │  • Candidat    │     ├─► Roles   │<───────┤   REST API POST /api/verify)│
-    │  • Institut    ├─────┘           │        │  • Déterministe (V5/V6)     │
-    │  • Programme                     │        │  • Fallback longueur texte  │
+    │  • Institut    ├─────┘           │        │  • Déterministe V7          │
+    │  • Programme                     │        │  • Multi-score (6 scores)   │
     │  • Candidature                   │        └─────────────────────────────┘
     │  • Notification                  │
     │  • Media                         │
@@ -90,7 +92,7 @@ EduBridge est un **backend monolithique** (Node.js/Express) qui facilite la mise
                    ▼
     ┌──────────────────────────────────┐
     │    PostgreSQL Database           │
-    │    (8 tables relationnelles)     │
+    │    (9 tables relationnelles)     │
     └──────────────────────────────────┘
 ```
 
@@ -141,7 +143,7 @@ backend/
 │   ├── config.js              # Configuration Sequelize pour migrations
 │   └── database.js            # Connexion Sequelize/PostgreSQL
 │
-├── models/                    # Modèles de données (8 entités MVP)
+├── models/                    # Modèles de données (10 entités MVP)
 │   ├── index.js               # Chargement et associations
 │   ├── Utilisateur.js         # Compte d'authentification (candid, institut, admin)
 │   ├── Candidat.js            # Profil étudiant (1:1 avec Utilisateur)
@@ -150,16 +152,20 @@ backend/
 │   ├── Candidature.js         # Dossier de candidature (N:N candidats ↔ programmes)
 │   ├── Notification.js        # Message applicatif
 │   ├── Media.js               # Fichier uploadé (polymorphique)
-│   └── Favori.js              # Lien candidat ↔ programme (N:N)
+│   ├── Favori.js              # Lien candidat ↔ programme (N:N)
+│   ├── DemandeAcces.js        # Demande accès institut (en_attente|approuvee|rejetee)
+│   └── PreInscription.js      # Formulaire pré-inscription (1:1 Candidature, candidat après acceptation)
 │
 ├── controllers/               # Endpoints HTTP (couche mince)
-│   ├── authController.js          # /register, /login, /me, premier-login (institut), mot-de-passe/oublie + valider-token + reinitialiser
+│   ├── authController.js          # /register, /login, /me, premier-login (institut), mot-de-passe/oublie + valider-token + reinitialiser ; notifie admins à terminerPremierLogin
 │   ├── utilisateurController.js   # CRUD Utilisateur + profils Candidat/Institut
 │   ├── candidatureController.js   # Workflow candidatures (brouillon, soumis, statut) + pagination admin
 │   ├── programmeController.js     # CRUD Programmes + pagination GET /
-│   ├── institutController.js      # CRUD Instituts + workflow validation admin + pagination GET /
+│   ├── institutController.js      # CRUD Instituts + workflow validation admin + pagination GET / + filtre ?search= (nom|sigle) + notifications (rejeter/resoumettre/suspendre)
 │   ├── favoriController.js        # Toggle/GET favoris
-│   └── notificationController.js  # mine, count non-lues, lire, lire-tout
+│   ├── notificationController.js  # mine, count non-lues, lire, lire-tout
+│   ├── demandeAccesController.js  # creer (public), listerToutes, approuver (recopie description+contact.email), rejeter (admin)
+│   └── preInscriptionController.js # creerOuCompleter (candidat), obtenirMine, telechargerPdf
 │
 ├── routes/                    # Montage des routes (factory pattern)
 │   ├── authRoutes.js          # /api/auth
@@ -168,7 +174,9 @@ backend/
 │   ├── programmeRoutes.js     # /api/programmes
 │   ├── institutRoutes.js      # /api/instituts
 │   ├── favoriRoutes.js        # /api/favoris
-│   └── notificationRoutes.js  # /api/notifications
+│   ├── notificationRoutes.js  # /api/notifications
+│   ├── demandeAccesRoutes.js  # /api/demandes-acces
+│   └── preInscriptionRoutes.js # /api/preinscriptions
 │
 ├── middleware/                # Middlewares Express
 │   ├── authMiddleware.js      # Vérification JWT + résolution profil
@@ -182,14 +190,17 @@ backend/
 ├── services/                  # Logique métier (épaisse)
 │   ├── candidatureWorkflow.js # Moteur de workflow complet (transitions, validations)
 │   ├── emailService.js        # SMTP Nodemailer : invitation institut + reset password
-│   └── notificationService.js # Création de notifications automatiques
+│   ├── notificationService.js # Création de notifications automatiques
+│   └── preInscriptionService.js # creerOuCompleter, obtenirParCandidature, genererPdf (PDF attestation)
 │
 ├── migrations/                # Migrations Sequelize (schéma BD)
 │   ├── 20260420120000-creation-tables-edubridge.js                    # 8 tables MVP
 │   ├── 20260421000000-add-identite-candidat.js                        # CIN/Passeport candidat (§12)
 │   ├── 20260422000000-add-champs-manquants-programmes-instituts.js    # Champs additionnels Programme/Institut
 │   ├── 20260430000000-workflow-institut.js                            # Workflow institut SaaS (invitation email + first login)
-│   └── 20260501000000-reset-password-token.js                         # Colonnes reset_password_token + expires_at sur utilisateurs
+│   ├── 20260501000000-reset-password-token.js                         # Colonnes reset_password_token + expires_at sur utilisateurs
+│   ├── 20260502000000-create-demandes-acces.js                        # Table demandes_acces + index statut
+│   └── 20260503000000-create-pre-inscriptions.js                      # Table pre_inscriptions (1:1 Candidature)
 │
 ├── seeders/                   # Seeders (données de démonstration)
 │   ├── 20260001000000-admin.js          # 1 admin
@@ -279,7 +290,7 @@ backend/
 **Rôle :** Gestion des écoles d'ingénieurs, profils publics, listings
 
 **Endpoints :**
-- `GET /api/instituts` — Listing publique (filtres : nom, vérifié)
+- `GET /api/instituts` — Listing publique (filtres : `nom`, `search` (nom|sigle), `est_verifie`, `admin_view`)
 - `GET /api/instituts/:id` — Détail avec programmes
 - `POST /api/instituts` — Créer (admin)
 - `PUT /api/instituts/:id` — Modifier (admin ou institut propriétaire)
@@ -288,7 +299,8 @@ backend/
 **Responsabilités :**
 - Profils écoles (nom, sigle, description, logo, accréditations)
 - Support JSONB (adresse, contact)
-- Recherche case-insensitive sur nom
+- Recherche case-insensitive sur nom (`?nom=`) ou sigle+nom combiné (`?search=`)
+- Notifications systèmes : rejet (motif → institut), re-soumission (→ admins), suspension (motif → institut)
 
 **Données clés :**
 - Statut `est_verifie` (pour filtres frontend)
@@ -496,6 +508,67 @@ Notifications stockées en BD + loggées console.
 
 ---
 
+### 3.9 Module demandes d'accès (DemandeAcces)
+
+**Rôle :** Workflow d'auto-inscription des instituts — remplace la création manuelle admin
+
+**Endpoints :**
+- `POST /api/demandes-acces` — Soumettre une demande (public, sans auth)
+- `GET /api/demandes-acces` — Lister toutes les demandes (admin, paginé, filtre statut)
+- `POST /api/demandes-acces/:id/approuver` — Approuver (admin) : crée Utilisateur + Institut + envoie invitation email
+- `POST /api/demandes-acces/:id/rejeter` — Rejeter (admin, notes_admin optionnelles)
+
+**Statuts ENUM :** `en_attente` → `approuvee` | `rejetee`
+
+**Responsabilités :**
+- Anti-doublon email (vérifie DemandeAcces + Utilisateur existants)
+- Validation : nom, email (regex), téléphone, présentation (20–500 chars)
+- Approbation en transaction ACID : Utilisateur (role=institut, mot_de_passe=null) + Institut (`description` recopié depuis `presentation`, `contact.email` recopié depuis `email` demande) + DemandeAcces.statut
+- Envoi email invitation (`emailService.sendInstitutInviteEmail`) post-commit
+- Notification automatique aux admins actifs à chaque nouvelle demande
+
+---
+
+### 3.10 Module pré-inscriptions (PreInscription)
+
+**Rôle :** Formulaire de pré-inscription à compléter par le candidat après acceptation de sa candidature
+
+**Endpoints :**
+- `POST /api/preinscriptions` — Créer ou compléter (candidat, `auth` + `restrictTo('candidat')`)
+  - Corps multipart/form-data : champs texte + `photo_identite` (upload Multer)
+  - Idempotent : si une pré-inscription existe pour `candidature_id`, elle est mise à jour
+- `GET /api/preinscriptions/mine/:candidatureId` — Récupérer la pré-inscription du candidat connecté (retourne `null` si pas encore créée — état normal, pas de 404)
+- `GET /api/preinscriptions/:id/pdf` — Télécharger l'attestation de pré-inscription en PDF (candidat propriétaire)
+
+**Modèle `PreInscription` :**
+
+| Champ | Type | Description |
+|---|---|---|
+| `id` | UUID PK | |
+| `candidature_id` | UUID FK unique | 1:1 avec Candidature |
+| `candidat_id` | UUID FK | |
+| `institut_id` | UUID FK | |
+| `programme_id` | UUID FK | |
+| `adresse_complete` | STRING(500) | |
+| `ville` | STRING(100) | |
+| `pays` | STRING(100) | |
+| `code_postal` | STRING(20) | |
+| `telephone` | STRING(30) | |
+| `date_naissance` | DATEONLY | |
+| `nationalite` | STRING(100) | |
+| `type_piece_identite` | STRING(50) | `'cin'` ou `'passeport'` |
+| `numero_piece_identite` | STRING(50) | |
+| `photo_identite_url` | STRING(500) | Chemin relatif `/uploads/…` |
+| `statut` | ENUM | `en_attente` / `completee` |
+| `completee_le` | DATE | Horodatage de complétion |
+
+**Service `preInscriptionService.js` :**
+- `creerOuCompleter(candidature_id, candidat_id, donnees)` — vérifie que la candidature est acceptée et appartient au candidat ; crée ou met à jour la pré-inscription ; passe `statut='completee'` si champs minimaux remplis
+- `obtenirParCandidature(candidature_id, candidat_id)` — retourne `null` si inexistante
+- `genererPdf(id, candidat_id)` — génère un PDF attestation (Buffer) avec données pré-inscription
+
+---
+
 ## 4. Base de données
 
 ### 4.1 Vue d'ensemble
@@ -506,7 +579,7 @@ Notifications stockées en BD + loggées console.
 **Timestamp :** UTC (CURRENT_TIMESTAMP)  
 **UUID :** v4 (gestion native PostgreSQL)
 
-**Nombre de tables :** 8 (MVP complet)
+**Nombre de tables :** 10 (MVP complet + pré-inscriptions)
 
 ### 4.2 Schéma relationnel
 
@@ -953,6 +1026,8 @@ Toutes les réponses wrappent la ressource dans une clé nommée au singulier :
 | `GET /api/utilisateurs/:id` | `{ utilisateur: {...} }` |
 | `GET /api/favoris/mine` | `{ favoris: [...] }` |
 | `GET /api/notifications/mine` | `{ notifications: [...] }` |
+| `POST /api/preinscriptions` | `{ preInscription: {...} }` |
+| `GET /api/preinscriptions/mine/:candidatureId` | `{ preInscription: {...} }` (ou `{ preInscription: null }`) |
 
 L'association Sequelize Institut dans Programme est déclarée `as: 'institut'`
 (minuscule) — la clé dans le JSON est donc `programme.institut` et non `programme.Institut`.
@@ -1729,11 +1804,21 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 - Messages d'erreur clairs
 - Filtres de recherche standards
 
-✅ **Microservice Diploma-Verifier (V5 Upgrade)**
-- Architecture de vérification OCR modulaire et robuste (sans IA générative)
-- Sélection de texte optimale (plus long ou plus sémantique)
-- Analyse de cohérence et pénalités de densité
+✅ **Microservice Diploma-Verifier (V7)**
+- Pipeline multi-score (6 sous-scores) : structure, semantic, critical_fields, signature, stamp, official_mention
+- `critical_fields_validator` V7 Phase 1 + `scoring_engine` V7 Phase 2 avec plafonds anti-hallucination
 - Totalement découplé (REST stateless)
+
+✅ **Pré-inscriptions post-acceptation**
+- Modèle `PreInscription` (1:1 Candidature), migration `20260503`
+- Service `preInscriptionService.js` : creer/compléter, consulter, générer PDF attestation
+- Route `/api/preinscriptions` (candidat authentifié uniquement)
+
+✅ **Notifications systèmes enrichies**
+- `terminerPremierLogin` notifie les admins actifs
+- `rejeterInstitut` notifie l'institut (motif)
+- `resoumettre` notifie les admins
+- `suspendreInstitut` notifie l'institut (motif)
 
 ---
 

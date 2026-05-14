@@ -252,6 +252,51 @@
       }
     }
   },
+  "institutionProfile": {
+    "notFound": "Institution not found",
+    "backHome": "Back to home",
+    "verified": "Verified",
+    "stats": {
+      "rating": "Rating",
+      "programs_one": "Program",
+      "programs_other": "Programs",
+      "students": "Students",
+      "accepted": "Acceptance",
+      "accreditationsLabel": "Accreditations"
+    },
+    "cta": {
+      "visitWebsite": "Visit website",
+      "contact": "Contact"
+    },
+    "about": "About",
+    "domains": {
+      "title": "Fields covered",
+      "description": "Specialisations taught in the programs offered."
+    },
+    "whyChoose": {
+      "title": "Why choose this institution",
+      "accreditations_one": "Recognised accreditation: {{list}}",
+      "accreditations_other": "Recognised accreditations: {{list}}",
+      "studentsFormed": "{{value}} students trained each year",
+      "programsOffered_one": "{{count}} academic program offered",
+      "programsOffered_other": "{{count}} academic programs offered",
+      "verifiedByTeam": "Institution verified and validated by the EduBridge team"
+    },
+    "quickInfo": {
+      "title": "Quick info",
+      "address": "Address",
+      "email": "Email",
+      "phone": "Phone",
+      "website": "Website",
+      "languages": "Teaching languages"
+    },
+    "programsList": {
+      "title_one": "{{count}} program available",
+      "title_other": "{{count}} programs available",
+      "titleFallback": "Programs",
+      "empty": "No program available at the moment."
+    }
+  },
   "institution": {
     "dashboard": {
       "label": "Dashboard",
@@ -350,7 +395,23 @@
         "address": "Address",
         "lastDiploma": "Last diploma",
         "mention": "Mention:",
-        "notFilled": "Not provided"
+        "notFilled": "Not provided",
+        "dateNaissance": "Date of birth",
+        "genre": "Gender",
+        "genreHomme": "Male",
+        "genreFemme": "Female",
+        "niveauActuel": "Current level",
+        "typeBac": "Baccalaureate type",
+        "moyenneBac": "Bac average",
+        "anneeBac": "Bac year",
+        "parcoursTitle": "Academic background",
+        "motivationTitle": "Cover letter",
+        "motivationEmpty": "No cover letter provided",
+        "documentsTitle": "Submitted documents",
+        "documentsEmpty": "No documents submitted",
+        "download": "Download",
+        "sectionIdentite": "Identity & Contact",
+        "sectionProfil": "Academic profile"
       },
       "pagination": "application",
       "paginationPlural": "applications",
@@ -419,6 +480,36 @@
         "subtitle": "Statistics and exports",
         "description": "Periodic reports, CSV exports and performance indicators for your institution. Coming soon."
       }
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Statistics and exports for your institution",
+      "exportPdf": "Export PDF",
+      "exportCandidatures": "Export applications",
+      "pdfSuccess": "PDF generated successfully.",
+      "pdfError": "Error generating PDF.",
+      "kpis": {
+        "programs": "Published programs",
+        "total": "Total applications",
+        "pending": "Pending",
+        "accepted": "Accepted",
+        "rejected": "Rejected",
+        "rate": "Acceptance rate"
+      },
+      "charts": {
+        "monthlyChart": "Applications per month",
+        "statusChart": "Distribution by status",
+        "topPrograms": "Top programs"
+      },
+      "table": {
+        "title": "Performance by program",
+        "name": "Program",
+        "total": "Total",
+        "accepted": "Accepted",
+        "rejected": "Rejected",
+        "pending": "Pending",
+        "rate": "Rate"
+      }
     }
   },
   "navbar": {
@@ -453,7 +544,7 @@
     "institutions": {
       "title": "Institutions",
       "login": "Institution login",
-      "requestInvitation": "Request an invitation"
+      "areYouInstitution": "Are you an institution?"
     },
     "company": {
       "title": "Company",
@@ -471,7 +562,7 @@
   "home": {
     "hero": {
       "title": "Find your path to\nthe ideal institution",
-      "subtitle": "Discover programs, compare institutions and manage your applications — all in one place."
+      "subtitle": "Discover programs, compare institutions and manage your applications all in one place."
     },
     "stats": {
       "programs": "Programs",
@@ -482,7 +573,7 @@
     "about": {
       "title": "About EduBridge",
       "subtitle": "A platform designed to simplify access to higher education in Tunisia",
-      "description1": "EduBridge is a Tunisian digital platform dedicated to connecting candidates with private higher education institutions in Tunisia. It covers all programs: preparatory cycles, bachelor's degrees, engineering cycles and master's degrees — in fields as varied as computer science, civil engineering, electrical, mechanical and many others.",
+      "description1": "EduBridge is a Tunisian digital platform dedicated to connecting candidates with private higher education institutions in Tunisia. It covers all programs: preparatory cycles, bachelor's degrees, engineering cycles and master's degrees in fields as varied as computer science, civil engineering, electrical, mechanical and many others.",
       "description2": "Candidates can explore available programs, compare institutions and submit their applications online. Institutions have a dedicated space to manage admissions and communicate directly with candidates.",
       "mission": {
         "icon": "🎯",
@@ -516,6 +607,16 @@
       "subtitle": "Leading engineering schools and universities",
       "seeAll": "See all",
       "loading": "Loading…"
+    },
+    "institutionCta": {
+      "eyebrow": "For institutions",
+      "title": "Do you represent an institution?",
+      "subtitle": "Join EduBridge, publish your programs and manage applications from a dedicated workspace.",
+      "feature1": "Visibility to thousands of candidates",
+      "feature2": "Centralized application management",
+      "feature3": "Full institution dashboard",
+      "cta": "Request access",
+      "login": "Already registered? Log in"
     },
     "howItWorks": {
       "title": "How it works",
@@ -1264,6 +1365,37 @@
       "emptyAll": "The platform is up to date.",
       "pagination_one": "{{count}} notification",
       "pagination_other": "{{count}} notifications"
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Detailed analytics and data exports",
+      "exportPdf": "Export PDF",
+      "exportCandidatures": "Export applications",
+      "exportInstituts": "Export institutions",
+      "pdfSuccess": "PDF generated successfully.",
+      "pdfError": "Error generating PDF.",
+      "kpis": {
+        "candidats": "Candidates",
+        "approvedInstituts": "Approved institutions",
+        "activePrograms": "Active programs",
+        "totalCandidatures": "Total applications",
+        "accepted": "Accepted",
+        "acceptanceRate": "Acceptance rate"
+      },
+      "charts": {
+        "candidaturesByDomain": "Applications by domain",
+        "programsByLevel": "Programs by level",
+        "acceptanceByDomain": "Acceptance rate by domain",
+        "topPrograms": "Top programs by applications"
+      },
+      "table": {
+        "title": "Summary by institution",
+        "name": "Institution",
+        "programs": "Programs",
+        "candidatures": "Applications",
+        "accepted": "Accepted",
+        "rate": "Rate"
+      }
     }
   },
   "programDialog": {
@@ -1323,6 +1455,71 @@
       "createError": "Error creating program.",
       "updated": "Program updated.",
       "updateError": "Error updating program."
+    }
+  },
+  "preInscription": {
+    "title": "Pre-registration",
+    "subtitle": "Complete your administrative information to finalize your application",
+    "action": "Pre-register",
+    "actionTooltip": "Complete administrative pre-registration",
+    "notFound": "Application not found.",
+    "notAccepted": "Pre-registration is only available for accepted applications.",
+    "status": {
+      "en_attente": "In progress",
+      "completee": "Completed"
+    },
+    "completed": {
+      "title": "Pre-registration completed",
+      "description": "Your pre-registration was completed on {{date}}. You can download your attestation below.",
+      "downloadPdf": "Download PDF attestation",
+      "downloading": "Downloading…"
+    },
+    "sections": {
+      "address": "Address",
+      "identity": "Identity",
+      "photo": "ID photo (optional)"
+    },
+    "fields": {
+      "adresse_complete": "Full address",
+      "ville": "City",
+      "pays": "Country",
+      "code_postal": "Postal code",
+      "telephone": "Phone",
+      "date_naissance": "Date of birth",
+      "nationalite": "Nationality",
+      "type_piece_identite": "ID type",
+      "numero_piece_identite": "ID number",
+      "photo_identite": "ID photo"
+    },
+    "pieceIdentite": {
+      "cin": "National ID card (CIN)",
+      "passeport": "Passport"
+    },
+    "photo": {
+      "upload": "Click to choose a photo",
+      "change": "Change photo",
+      "remove": "Remove",
+      "hint": "JPG or PNG — 5 MB max. Not required."
+    },
+    "submit": "Save",
+    "submitting": "Saving…",
+    "toasts": {
+      "saved": "Information saved.",
+      "savedAndCompleted": "Pre-registration completed!",
+      "error": "Error saving information.",
+      "photoTooLarge": "Photo must not exceed 5 MB.",
+      "pdfError": "Error downloading the PDF."
+    },
+    "validation": {
+      "addressRequired": "Address required",
+      "cityRequired": "City required",
+      "countryRequired": "Country required",
+      "postalRequired": "Postal code required",
+      "phoneRequired": "Phone required",
+      "birthDateRequired": "Date of birth required",
+      "nationalityRequired": "Nationality required",
+      "pieceTypeRequired": "ID type required",
+      "pieceNumRequired": "ID number required"
     }
   }
 }

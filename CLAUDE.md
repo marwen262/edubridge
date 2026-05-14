@@ -45,11 +45,12 @@ Le repo contient trois composants indépendants :
 
 ### Diploma Verifier (`diploma-verifier/`)
 - **Python 3.11** + **FastAPI** (la fonction d'analyse est `async` mais le pipeline interne est synchrone — pas de `await` sur les modules internes)
-- Pipeline déterministe d'analyse heuristique (V5/V6 Upgrade) — pas de machine learning entraîné, robuste au bruit OCR
+- Pipeline déterministe d'analyse heuristique **V7** (multi-score) — pas de machine learning entraîné, robuste au bruit OCR
 - **Tesseract OCR** (5 passes parallélisées via `ThreadPoolExecutor` : ara, fra, eng, ara+fra, fra+eng) + **spaCy** NER pré-entraîné (modèles `fr_core_news_sm`, `xx_ent_wiki_sm`)
 - **OpenCV** / **scikit-image** / **NumPy** : auto-rotation, signature_detector (contours), stamp_detector (Hough circles, downsample 1200px)
 - `text_analyzer` : classification de document (`classify_document`), cohérence sémantique (`check_coherence`), pénalité de densité de mots-clés (`keyword_density_penalty`), sélection du meilleur texte basé sur score sémantique ou longueur (fallback) — multilingue (fra, eng, ara, spa, deu)
-- `scoring_engine` : pondération `TEXT_WEIGHTS` + plafonds heuristiques (no-content, hallucination, safety ceiling 10 chars)
+- `critical_fields_validator` (V7 Phase 1) : validation des champs critiques d'un diplôme (nom, prénom, date, institution, spécialisation) — score 0–100 par champ, agrégé pondéré via `CRITICAL_FIELDS_WEIGHTS` ; résout les faux positifs templates officiels sans identité étudiante
+- `scoring_engine` (V7 Phase 2) : moteur multi-score — 6 sous-scores indépendants (structure, semantic, critical_fields, signature, stamp, official_mention) + plafonds heuristiques (no-content, hallucination, safety ceiling 10 chars, `V7_FRAUD_HARD_CAP`)
 - **PyMuPDF** + **python-magic** : utilisés pour l'import PDF (`utils/image_converter`)
 - Conteneurisé (Dockerfile + docker-compose), exposé sur port 8000
 - **Stateless** : aucune base de données, pas d'authentification, pas de rate limiting
@@ -113,7 +114,9 @@ edubridge/
 │   │   ├── programmeController.js
 │   │   ├── institutController.js
 │   │   ├── favoriController.js
-│   │   └── notificationController.js
+│   │   ├── notificationController.js
+│   │   ├── demandeAccesController.js  # Demandes d'accès instituts (public + admin)
+│   │   └── preInscriptionController.js  # Pré-inscription post-acceptation (candidat)
 │   ├── docs/
 │   │   └── WORKFLOW_CANDIDATURE.md   # Guide de test du workflow (exemples curl)
 │   ├── middleware/
@@ -128,8 +131,10 @@ edubridge/
 │   │   ├── 20260421000000-add-identite-candidat.js
 │   │   ├── 20260422000000-add-champs-manquants-programmes-instituts.js
 │   │   ├── 20260430000000-workflow-institut.js  # invitation email + first login
-│   │   └── 20260501000000-reset-password-token.js  # reset_password_token + expires_at
-│   ├── models/                   # 8 modèles Sequelize MVP (schéma FR)
+│   │   ├── 20260501000000-reset-password-token.js  # reset_password_token + expires_at
+│   │   ├── 20260502000000-create-demandes-acces.js  # table demandes_acces (workflow auto-inscription)
+│   │   └── 20260503000000-create-pre-inscriptions.js  # table pre_inscriptions (formulaire post-acceptation)
+│   ├── models/                   # 10 modèles Sequelize MVP (schéma FR)
 │   │   ├── index.js              # Charge tous les modèles + associations
 │   │   ├── Utilisateur.js        # Compte auth (candidat|institut|admin)
 │   │   ├── Candidat.js           # Profil étudiant (1:1 Utilisateur)
@@ -138,7 +143,9 @@ edubridge/
 │   │   ├── Candidature.js        # Dossier (N:N candidat ↔ programme)
 │   │   ├── Notification.js
 │   │   ├── Media.js              # Fichier uploadé (polymorphique)
-│   │   └── Favori.js             # Junction candidat ↔ programme
+│   │   ├── Favori.js             # Junction candidat ↔ programme
+│   │   ├── DemandeAcces.js       # Demande d'accès instituts (statut: en_attente|approuvee|rejetee)
+│   │   └── PreInscription.js     # Formulaire pré-inscription (1:1 Candidature, déclenché après acceptation)
 │   ├── routes/                   # Mount sous /api/<resource>
 │   ├── scripts/
 │   │   ├── reset-schema.js       # DROP SCHEMA public CASCADE + CREATE (destructif)
@@ -154,7 +161,8 @@ edubridge/
 │   ├── services/                 # Logique métier (découplée des controllers)
 │   │   ├── candidatureWorkflow.js    # Moteur de workflow : transitions, validations, horodatage
 │   │   ├── emailService.js           # SMTP Nodemailer : invitation institut + reset password
-│   │   └── notificationService.js    # Notifications automatiques (table + console)
+│   │   ├── notificationService.js    # Notifications automatiques (table + console)
+│   │   └── preInscriptionService.js  # Pré-inscription : creerOuCompleter, obtenirParCandidature, genererPdf
 │   ├── uploads/                  # Fichiers uploadés (servi sur /uploads)
 │   └── index.js                  # Point d'entrée Express
 │
@@ -167,7 +175,7 @@ edubridge/
 │   │   ├── main.tsx              # Bootstrap React + import global CSS
 │   │   ├── config.ts             # Constante VITE_API_URL
 │   │   ├── services/
-│   │   │   └── api.ts            # Client axios + 7 services (auth, programmes, instituts…)
+│   │   │   └── api.ts            # Client axios + 9 services (auth, programmes, instituts, candidatures, favoris, notifications, utilisateurs, demandeAcces, preInscription)
 │   │   ├── types/
 │   │   │   ├── api.ts            # Types TS entités backend (RegisterData, filtres…)
 │   │   │   └── auth.ts           # User, AuthContextType
@@ -193,14 +201,14 @@ edubridge/
 │   │   │   └── useComparaison.ts   # localStorage compare list (max 3 programmes)
 │   │   ├── app/
 │   │   │   ├── App.tsx           # AuthProvider > RouterProvider > Toaster
-│   │   │   ├── routes.tsx        # 20 routes (plusieurs routes dashboard protégées par ProtectedRoute)
-│   │   │   ├── pages/            # Pages de haut niveau (1 fichier / route, inclut Parametres, MesDocuments)
+│   │   │   ├── routes.tsx        # 23 routes (plusieurs routes dashboard protégées par ProtectedRoute, RootLayout avec ScrollRestoration)
+│   │   │   ├── pages/            # Pages de haut niveau (1 fichier / route, inclut Parametres, MesDocuments, DemandeAcces, PreInscription)
 │   │   │   ├── components/       # Composants applicatifs (Navbar, MultiStepDialog, …)
 │   │   │   │   ├── forms/        # Composants de formulaires (NationaliteSelect, IndicatifTelephone...)
 │   │   │   │   ├── NotificationDropdown.tsx  # Badge unreadCount + dropdown Navbar
-│   │   │   │   ├── admin/        # Sections du dashboard admin (Overview, Users, Programs…)
+│   │   │   │   ├── admin/        # Sections du dashboard admin (Overview, Users, Programs, Candidatures, Notifications, Demandes)
 │   │   │   │   ├── institution/  # Sections du dashboard institut + CreateProgramDialog
-│   │   │   │   ├── ui/           # Composants shadcn/ui (NE PAS ÉDITER)
+│   │   │   │   ├── ui/           # Composants shadcn/ui (NE PAS ÉDITER) + AccreditationBadge.tsx (custom)
 │   │   │   │   └── figma/        # Helpers Figma Make (NE PAS ÉDITER)
 │   │   │   └── data/staticData.ts # Données statiques (référentiels UI, plus aucun mock métier)
 │   │   └── styles/
@@ -240,6 +248,8 @@ Routes montées dans `backend/index.js`, toutes préfixées `/api/` :
 | `/api/candidatures` | `candidatureRoutes.js` | Workflow candidatures (cœur métier) |
 | `/api/favoris` | `favoriRoutes.js` | Favoris candidat |
 | `/api/notifications` | `notificationRoutes.js` | Notifications (mine, count, lire, lire-tout) |
+| `/api/demandes-acces` | `demandeAccesRoutes.js` | Demandes d'accès instituts (POST public ; GET/approuver/rejeter admin) |
+| `/api/preinscriptions` | `preInscriptionRoutes.js` | Pré-inscription post-acceptation (candidat) : créer/compléter, consulter, télécharger PDF |
 | `/api/health` | (inline) | Ping de santé |
 
 **Rate limiting** (`middleware/rateLimiter.js`) : limiteur global appliqué à tout
@@ -394,7 +404,7 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   refactor, branchement front/back, modification de schéma BDD).
 - **Setup BDD depuis zéro** (dev) :
   1. `npm run db:create` (si la base n'existe pas)
-  2. `npm run db:reset` (drop schéma + recrée + applique les 4 migrations)
+  2. `npm run db:reset` (drop schéma + recrée + applique les 7 migrations)
   3. `npm run seed` (applique les 7 seeders : 1 admin, 3 instituts,
      11 programmes, 3 candidats, 6 candidatures, 5 favoris, 6 notifs).
      Mot de passe commun : `Password123!`
@@ -448,6 +458,45 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
         fichiers de traduction `src/i18n/locales/{fr,en}/translation.json` ;
         détection automatique (localStorage `i18nextLng` → navigator) ; fallback `fr` ;
         tous les composants et pages migré vers `useTranslation()`
+- **Nouvelles features (mai 2026)** :
+  - [x] Demandes d'accès instituts (`/institution/request-access`) : formulaire public
+        → backend `POST /api/demandes-acces` → notification admin automatique ;
+        admin approuve (crée compte + envoie invitation) ou rejette via `DemandesSection`
+        dans le dashboard admin ; model `DemandeAcces`, migration `20260502`
+  - [x] Badges accréditations : composant `AccreditationBadge.tsx` + logos SVG/PNG
+        dans `public/logos/accreditations/` (ABET, AMBA, CTI, EQUIS, HCERES, AACSB,
+        EURACE, default) — utilisés dans `InstitutionProfile`, `ProgramDetail`, `AccreditationBadge`
+  - [x] Diploma Verifier V7 :
+        - Phase 1 — `critical_fields_validator.py` : validation champs critiques diplôme
+          (nom/prénom, date, institution, spécialisation) → score agrégé pondéré, résout
+          faux positifs templates officiels sans identité étudiante
+        - Phase 2 — moteur multi-score `scoring_engine.py` : 6 sous-scores indépendants,
+          plafonds V7 (`V7_FRAUD_HARD_CAP`, `critical_fields_low_cap`, tampering penalty)
+  - [x] Pré-inscriptions post-acceptation :
+        - Backend : modèle `PreInscription` (1:1 Candidature), migration `20260503`,
+          route `/api/preinscriptions`, service `preInscriptionService.js`
+          (creerOuCompleter, obtenirParCandidature, genererPdf) ;
+          upload photo d'identité via Multer ; génération PDF attestation
+        - Frontend : page `PreInscription.tsx` (route protégée candidat
+          `/dashboard/preinscription/:candidatureId`) ; bouton « Pré-inscription »
+          dans `CandidateDashboard` sur les candidatures acceptées ;
+          `preInscriptionService` dans `api.ts` + types `PreInscription`/`PreInscriptionFormData`
+  - [x] Améliorations UX admin/institution :
+        - `InstitutesSection` : `DetailDialog` (vue complète logo, description, contact,
+          adresse, accréditations, programmes) + filtre `?search=` (nom OU sigle)
+        - `DemandesSection` : clic sur la ligne ouvre le détail (stopPropagation sur les actions)
+        - `InstitutionCandidaturesSection` : `CandidatureDetailPanel` (remplace
+          `CandidatIdentitePanel`) — affiche identité complète, parcours académique,
+          lettre de motivation, documents soumis avec liens de téléchargement
+  - [x] Notifications systèmes enrichies (backend) :
+        - `terminerPremierLogin` notifie les admins qu'un institut attend validation
+        - `rejeterInstitut` notifie l'institut avec le motif de rejet
+        - `resoumettre` notifie les admins du profil corrigé
+        - `suspendreInstitut` notifie l'institut avec le motif de suspension
+  - [x] `institutController` : filtre `?search=` (Op.iLike sur nom + sigle) ;
+        `approuver` recopie `description` + `contact.email` depuis la demande d'accès
+  - [x] `routes.tsx` : `RootLayout` avec `ScrollRestoration` (react-router 7)
+        enveloppant toutes les routes
 - **TODOs / Améliorations futures (hors scope MVP)** :
 
   **Backend**
@@ -475,7 +524,8 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - Intégrer `tampering_detector`, `diploma_classifier`, `country_detector` au pipeline orchestrator (modules présents mais non câblés).
   - Authentification + rate limiting (API publique actuellement).
   - Monitoring (Prometheus / métriques exportées) et tracing.
-  - Suivre la divergence Tesseract 5.4 (Windows local) vs 5.5 (Docker) — atténuée par les plafonds anti-hallucination dans `scoring_engine.py:478` (cf. `microservices.md`).
+  - Calibrer les nouveaux seuils V7 (`CRITICAL_FIELDS_LOW_THRESHOLD`, poids multi-score) sur corpus réel.
+  - Suivre la divergence Tesseract 5.4 (Windows local) vs 5.5 (Docker) — atténuée par les plafonds anti-hallucination dans `scoring_engine.py` (cf. `microservices.md`).
 - **Priorité immédiate** : stabilisation, corrections de bugs.
 - Commits descriptifs en **français**, format court style :
   `feat(auth): ajouter endpoint /me` ou `fix(front): corriger navigation sidebar`.

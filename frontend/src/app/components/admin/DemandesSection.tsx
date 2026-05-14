@@ -206,7 +206,11 @@ export function DemandesSection() {
               </thead>
               <tbody className="divide-y divide-[var(--edu-divider)]">
                 {demandes.map((d) => (
-                  <tr key={d.id} className="hover:bg-[var(--edu-surface)] transition-colors">
+                  <tr
+                    key={d.id}
+                    onClick={() => setDetailDialog({ open: true, demande: d })}
+                    className="hover:bg-[var(--edu-surface)] transition-colors cursor-pointer"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-[var(--edu-blue)]/10 flex items-center justify-center flex-shrink-0">
@@ -216,12 +220,9 @@ export function DemandesSection() {
                           <p className="text-sm font-medium text-[var(--edu-text-primary)] truncate max-w-[200px]">
                             {d.nom}
                           </p>
-                          <button
-                            onClick={() => setDetailDialog({ open: true, demande: d })}
-                            className="text-xs text-[var(--edu-blue)] hover:underline text-left truncate max-w-[200px] block"
-                          >
+                          <p className="text-xs text-[var(--edu-text-secondary)] truncate max-w-[200px]">
                             {d.presentation.slice(0, 60)}…
-                          </button>
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -245,7 +246,7 @@ export function DemandesSection() {
                     <td className="px-6 py-4">
                       <BadgeStatut statut={d.statut} />
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       {d.statut === 'en_attente' && (
                         <div className="inline-flex items-center gap-2">
                           <Button

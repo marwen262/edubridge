@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router';
 import {
   Heart, Share2, MapPin, Clock, Globe, Calendar,
-  ChevronRight, Star, Check, Link2,
+  ChevronRight, Star, Check, Link2, ExternalLink,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Navbar } from '../components/Navbar';
@@ -91,7 +91,24 @@ export function ProgramDetail() {
   const deadlineDate = program.date_limite_candidature ? new Date(program.date_limite_candidature) : null;
   const daysLeft = deadlineDate ? Math.ceil((deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
   const localisation = [program.institut?.adresse?.ville, program.institut?.adresse?.pays].filter(Boolean).join(', ');
-  const docs = Array.isArray(program?.documents_requis) ? program.documents_requis : [];
+  const institutMapsUrl = (() => {
+    if (program.institut?.adresse?.lien_maps) return program.institut.adresse.lien_maps;
+    const parts = [
+      program.institut?.adresse?.rue,
+      program.institut?.adresse?.ville,
+      program.institut?.adresse?.gouvernorat,
+      program.institut?.adresse?.pays,
+    ].filter(Boolean);
+    return parts.length > 0
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(', '))}`
+      : null;
+  })();
+  const docs = (() => {
+    const v = program?.documents_requis;
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; } }
+    return [];
+  })();
 
   const tabs = [
     { value: 'overview', label: t('program.tabs.overview') },
@@ -148,7 +165,7 @@ export function ProgramDetail() {
             <div className="flex items-start justify-between gap-8">
               <div className="flex items-start gap-6 flex-1">
                 {program.institut?.logo && (
-                  <img src={program.institut.logo} alt={program.institut.nom} className="w-20 h-20 rounded-2xl object-cover glass-card" />
+                  <img src={program.institut.logo} alt={program.institut.nom} className="w-20 h-20 rounded-2xl object-contain bg-white p-1.5 shadow-md" />
                 )}
                 <div className="flex-1">
                   <h1 className="text-4xl font-bold text-white mb-2">{program.titre}</h1>
@@ -157,7 +174,14 @@ export function ProgramDetail() {
                     {localisation && (
                       <>
                         <span>•</span>
-                        <div className="flex items-center gap-1"><MapPin className="w-4 h-4" /><span>{localisation}</span></div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          {institutMapsUrl ? (
+                            <a href={institutMapsUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                              {localisation}
+                            </a>
+                          ) : <span>{localisation}</span>}
+                        </div>
                       </>
                     )}
                     {program.institut?.note != null && (
@@ -170,6 +194,14 @@ export function ProgramDetail() {
                       </>
                     )}
                   </div>
+                  {/* Badges d'accréditations — variant hero (verre dépoli) pour fond image sombre */}
+                  {program.institut?.accreditations && program.institut.accreditations.length > 0 && (
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      {program.institut.accreditations.map((acc) => (
+                        <AccreditationBadge key={acc} name={acc} variant="hero" />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -304,13 +336,18 @@ export function ProgramDetail() {
                   {program.institut ? (
                     <div className="flex items-start gap-6">
                       {program.institut.logo && (
-                        <img src={program.institut.logo} alt={program.institut.nom} className="w-20 h-20 rounded-2xl object-cover" />
+                        <img src={program.institut.logo} alt={program.institut.nom} className="w-20 h-20 rounded-2xl object-contain bg-white p-1.5 shadow-md" />
                       )}
                       <div className="flex-1">
                         <h2 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">{program.institut.nom}</h2>
                         {localisation && (
                           <div className="flex items-center gap-2 text-[var(--edu-text-secondary)] mb-4">
-                            <MapPin className="w-4 h-4" /><span>{localisation}</span>
+                            <MapPin className="w-4 h-4 flex-shrink-0" />
+                            {institutMapsUrl ? (
+                              <a href={institutMapsUrl} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--edu-blue)] transition-colors inline-flex items-center gap-1">
+                                {localisation}<ExternalLink className="w-3 h-3 opacity-60" />
+                              </a>
+                            ) : <span>{localisation}</span>}
                           </div>
                         )}
                         {program.institut.accreditations && program.institut.accreditations.length > 0 && (
@@ -388,7 +425,7 @@ export function ProgramDetail() {
                 <h3 className="font-semibold text-[var(--edu-text-primary)] mb-4">{t('program.tabs.institution')}</h3>
                 <div className="flex items-center gap-3 mb-4">
                   {program.institut.logo && (
-                    <img src={program.institut.logo} alt={program.institut.nom} className="w-12 h-12 rounded-lg object-cover" />
+                    <img src={program.institut.logo} alt={program.institut.nom} className="w-12 h-12 rounded-lg object-contain bg-white p-1 shadow-sm" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-[var(--edu-text-primary)] line-clamp-1">{program.institut.nom}</p>

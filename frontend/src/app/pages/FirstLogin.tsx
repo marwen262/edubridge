@@ -42,7 +42,13 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 type TokenState =
   | { status: 'loading' }
-  | { status: 'valid'; email: string; nom: string | null }
+  | {
+      status: 'valid';
+      email: string;
+      nom: string | null;
+      telephone: string | null;
+      description: string | null;
+    }
   | { status: 'invalid'; code: string; message: string };
 
 // ── Composant principal ───────────────────────────────────────────────────
@@ -72,7 +78,13 @@ export function FirstLogin() {
     authService
       .validerTokenPremierLogin(token)
       .then(({ data }) => {
-        setTokenState({ status: 'valid', email: data.email, nom: data.nom });
+        setTokenState({
+          status: 'valid',
+          email: data.email,
+          nom: data.nom,
+          telephone: data.telephone ?? null,
+          description: data.description ?? null,
+        });
       })
       .catch((err) => {
         const code: string = err.response?.data?.code ?? 'TOKEN_INVALID';
@@ -105,16 +117,17 @@ export function FirstLogin() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       nom: tokenState.status === 'valid' ? (tokenState.nom ?? '') : '',
-      telephone: '',
-      description: '',
+      telephone: tokenState.status === 'valid' ? (tokenState.telephone ?? '') : '',
+      description: tokenState.status === 'valid' ? (tokenState.description ?? '') : '',
     },
   });
 
-  // Pré-remplir le nom si disponible après chargement du token
+  // Pré-remplir les champs depuis la demande d'accès dès que le token est validé
   useEffect(() => {
-    if (tokenState.status === 'valid' && tokenState.nom) {
-      profileForm.setValue('nom', tokenState.nom);
-    }
+    if (tokenState.status !== 'valid') return;
+    if (tokenState.nom)         profileForm.setValue('nom', tokenState.nom);
+    if (tokenState.telephone)   profileForm.setValue('telephone', tokenState.telephone);
+    if (tokenState.description) profileForm.setValue('description', tokenState.description);
   }, [tokenState, profileForm]);
 
   const onProfileSubmit = async (data: ProfileFormData) => {

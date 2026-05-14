@@ -1,5 +1,7 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { Search } from 'lucide-react';
+import { Badge } from '../components/ui/badge';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { SkeletonCard } from '../components/SkeletonCard';
@@ -30,13 +32,14 @@ export function Institutions() {
   const [activeFilter, setActiveFilter] = React.useState<FilterKey>('all');
   const [page, setPage] = React.useState(1);
 
-  // Filtres serveur : pagination + filtre `est_verifie` quand l'onglet "Vérifiés"
-  // est actif (les autres tris restent côté client sur la page courante).
+  // La recherche textuelle est envoyée au serveur (nom + sigle via Op.or).
+  // Quand une recherche est active, on charge jusqu'à 100 résultats sans pagination.
   const filters = React.useMemo<InstitutFilters>(() => ({
     page,
-    limit: PAGE_SIZE,
+    limit: searchQuery.trim() ? 100 : PAGE_SIZE,
     est_verifie: activeFilter === 'verified' ? true : undefined,
-  }), [page, activeFilter]);
+    search: searchQuery.trim() || undefined,
+  }), [page, activeFilter, searchQuery]);
 
   const { instituts, pagination, loading, error, refetch } = useInstituts(filters);
   // `usePrograms()` sert uniquement au compteur du hero — `pagination.total` du
@@ -58,13 +61,9 @@ export function Institutions() {
     ? Math.round((verifiedCount / allInstituts.length) * 100)
     : 0;
 
-  // Filtrage + tri local
+  // Tri local uniquement — la recherche textuelle est déléguée au serveur.
   const filtered = React.useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-
-    let result = q
-      ? allInstituts.filter((i) => i.nom?.toLowerCase().includes(q))
-      : allInstituts;
+    let result = allInstituts;
 
     switch (activeFilter) {
       case 'verified':
@@ -81,101 +80,137 @@ export function Institutions() {
     }
 
     return result;
-  }, [allInstituts, searchQuery, activeFilter]);
+  }, [allInstituts, activeFilter]);
 
   return (
     <div className="min-h-screen bg-[var(--edu-surface)]">
       <Navbar />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
-      <div className="relative py-16 px-4 sm:px-6 bg-[var(--edu-surface)] border-b border-[var(--edu-border)]">
-        <div className="absolute inset-0 dotted-bg opacity-40 mix-blend-multiply dark:mix-blend-overlay" />
-        <div className="relative max-w-[1440px] mx-auto text-center z-10">
-          <h1 className="text-3xl sm:text-4xl font-bold text-[var(--edu-text-primary)] mb-3">
-            Découvrez nos institutions partenaires
-          </h1>
+      <section
+        className="relative overflow-hidden border-b border-[var(--edu-border)]"
+        style={{
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--edu-blue) 8%, white) 0%, white 100%)',
+        }}
+      >
+        {/* Motif décoratif dots — identique au Guide */}
+        <svg
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full opacity-30 dark:opacity-10 pointer-events-none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <pattern id="inst-grille-dots" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1.5" fill="var(--edu-blue)" fillOpacity="0.15" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#inst-grille-dots)" />
+        </svg>
 
-          {!loading && totalInstituts > 0 && (
-            <p className="mb-8 text-base text-[var(--edu-text-secondary)]">
-              {totalInstituts} établissement
-              {totalInstituts !== 1 ? 's' : ''} privé
-              {totalInstituts !== 1 ? 's' : ''} partenaire
-              {totalInstituts !== 1 ? 's' : ''} en Tunisie
-            </p>
-          )}
+        <div className="relative max-w-[1440px] mx-auto px-4 sm:px-6 py-12 sm:py-16 z-10">
+          {/* Titre + sous-titre */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center"
+          >
+            <Badge
+              variant="outline"
+              className="mb-5 border-[var(--edu-blue)] text-[var(--edu-blue)] bg-white"
+            >
+              Instituts partenaires
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl font-bold text-[var(--edu-text-primary)] mb-4 leading-tight">
+              Découvrez nos institutions partenaires
+            </h1>
+            {!loading && totalInstituts > 0 && (
+              <p className="text-lg text-[var(--edu-text-secondary)] max-w-xl mx-auto">
+                {totalInstituts} établissement{totalInstituts !== 1 ? 's' : ''} privé
+                {totalInstituts !== 1 ? 's' : ''} partenaire{totalInstituts !== 1 ? 's' : ''} en Tunisie
+              </p>
+            )}
+          </motion.div>
 
           {/* Barre de recherche */}
-          <div className="relative max-w-2xl mx-auto mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="relative max-w-2xl mx-auto mt-8 mb-10"
+          >
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--edu-text-tertiary)] pointer-events-none" />
             <input
               type="text"
               placeholder="Rechercher un établissement..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 h-12 rounded-xl bg-white dark:bg-[#1D1D1F] border border-[var(--edu-border)] text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--edu-blue)] shadow-sm"
+              className="w-full pl-12 pr-4 h-13 rounded-2xl bg-white border border-[var(--edu-border)] text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--edu-blue)] shadow-md"
             />
-          </div>
+          </motion.div>
 
-          {/* Stat chips dynamiques */}
-          {!loading && totalInstituts > 0 && (
-            <div className="flex flex-wrap justify-center gap-3">
-              {[
-                `${totalInstituts} Institution${totalInstituts !== 1 ? 's' : ''}`,
-                `${totalProgrammes} Programme${totalProgrammes !== 1 ? 's' : ''}`,
-                `${verifiedPct}% Vérifiés`,
-              ].map((label) => (
-                <span
-                  key={label}
-                  className="px-4 py-1.5 rounded-full text-sm font-medium text-[var(--edu-blue)] bg-[var(--edu-blue)]/10"
+          {/* ── Filtres — intégrés au hero, segmented-control style ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.35 }}
+            className="flex justify-center mt-8"
+          >
+            <div
+              className="inline-flex items-center gap-1 rounded-2xl p-1.5"
+              style={{
+                background: 'rgba(255,255,255,0.7)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid var(--edu-border)',
+                boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+              }}
+            >
+              {FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setActiveFilter(f.key)}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap"
+                  style={
+                    activeFilter === f.key
+                      ? {
+                          background: 'var(--edu-blue)',
+                          color: 'white',
+                          boxShadow: '0 2px 10px color-mix(in srgb, var(--edu-blue) 40%, transparent)',
+                        }
+                      : {
+                          color: 'var(--edu-text-secondary)',
+                          background: 'transparent',
+                        }
+                  }
                 >
-                  {label}
-                </span>
+                  {f.label}
+                </button>
               ))}
             </div>
-          )}
+          </motion.div>
         </div>
-      </div>
-
-      {/* ── Barre de filtres ──────────────────────────────────── */}
-      <div
-        className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)] sticky top-[73px] z-30"
-      >
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-3 flex gap-2 flex-wrap">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setActiveFilter(f.key)}
-              className="px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
-              style={
-                activeFilter === f.key
-                  ? { background: 'var(--edu-blue)', color: 'white' }
-                  : { background: 'var(--edu-surface)', color: 'var(--edu-text-secondary)' }
-              }
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      </section>
 
       {/* ── Contenu ───────────────────────────────────────────── */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8">
 
         {/* Compteur dynamique */}
         {!loading && !error && (
-          <p
-            className="mb-6"
-            style={{ fontWeight: 600, color: 'var(--edu-text-primary)' }}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mb-6 text-base font-semibold text-[var(--edu-text-primary)]"
           >
             {filtered.length} établissement{filtered.length !== 1 ? 's' : ''}
             {searchQuery.trim() && (
               <>
                 {' '}pour «{' '}
-                <span style={{ color: 'var(--edu-blue)' }}>{searchQuery.trim()}</span>
+                <span className="text-[var(--edu-blue)]">{searchQuery.trim()}</span>
                 {' '}»
               </>
             )}
-          </p>
+          </motion.p>
         )}
 
         {/* Loading — 3 squelettes */}
@@ -240,8 +275,8 @@ export function Institutions() {
           </div>
         )}
 
-        {/* Pagination serveur */}
-        {!loading && !error && pagination && (
+        {/* Pagination serveur — masquée quand une recherche est active */}
+        {!loading && !error && pagination && !searchQuery.trim() && (
           <Pagination
             page={pagination.page}
             totalPages={pagination.totalPages}

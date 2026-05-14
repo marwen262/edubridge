@@ -182,8 +182,86 @@ function Hero({ stats }: { stats: StatGuide[] }) {
             </motion.div>
           ))}
         </div>
+
+        {/* Marquee défilant — pills des sections du guide, défilement automatique */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="mt-10 md:mt-12"
+        >
+          <MarqueeSections />
+        </motion.div>
       </div>
     </section>
+  );
+}
+
+// ===========================================================================
+// Marquee défilant — bande de pills cliquables défilant en boucle
+// (placée dans le Hero, sous les stats — décorative + navigation rapide)
+// ===========================================================================
+
+function MarqueeSections() {
+  const { t } = useTranslation();
+
+  // Scroll vers la section ciblée (même offset que NavigationSticky)
+  const handleClick = useCallback((id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      window.scrollTo({ top: el.offsetTop - 140, behavior: 'smooth' });
+    }
+  }, []);
+
+  // On duplique la liste pour permettre une boucle continue sans saut visuel
+  const sectionsDoublees = [...SECTIONS, ...SECTIONS];
+
+  return (
+    <div
+      className="edu-marquee-container relative overflow-hidden"
+      aria-label={t('guide.nav.aria')}
+      style={{
+        // Fades de bord pour adoucir l'entrée/sortie des pills
+        maskImage:
+          'linear-gradient(to right, transparent 0, black 64px, black calc(100% - 64px), transparent 100%)',
+        WebkitMaskImage:
+          'linear-gradient(to right, transparent 0, black 64px, black calc(100% - 64px), transparent 100%)',
+      }}
+    >
+      <div
+        className="edu-marquee-track flex items-center gap-3"
+        // Le track contient deux copies identiques côte à côte ;
+        // l'animation translate de 0 à -50% donne une boucle parfaite
+      >
+        {sectionsDoublees.map((section, i) => (
+          <button
+            key={`${section.id}-${i}`}
+            onClick={() => handleClick(section.id)}
+            type="button"
+            className="shrink-0 rounded-full border whitespace-nowrap px-4 py-1.5 text-[13px] md:px-5 md:py-2 md:text-[14px] font-medium transition-all duration-200 hover:scale-[1.04]"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              borderColor: 'rgba(0, 0, 0, 0.08)',
+              color: 'var(--edu-text-secondary)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--edu-blue)';
+              e.currentTarget.style.color = '#ffffff';
+              e.currentTarget.style.borderColor = 'var(--edu-blue)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
+              e.currentTarget.style.color = 'var(--edu-text-secondary)';
+              e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.08)';
+            }}
+          >
+            {t(`guide.sections.${section.id}`)}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -333,7 +411,7 @@ function NavigationSticky() {
           ref={navRef}
           onScroll={mettreAJourFades}
           aria-label={t('guide.nav.aria')}
-          className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden px-4 py-2.5 gap-1.5 md:px-6 md:py-3 md:gap-2"
+          className="flex items-center justify-center overflow-x-auto [&::-webkit-scrollbar]:hidden px-4 py-2.5 gap-1.5 md:px-6 md:py-3 md:gap-2"
           style={{ scrollbarWidth: 'none' }}
         >
           {SECTIONS.map((section) => {

@@ -252,6 +252,51 @@
       }
     }
   },
+  "institutionProfile": {
+    "notFound": "Institution introuvable",
+    "backHome": "Retour à l'accueil",
+    "verified": "Vérifié",
+    "stats": {
+      "rating": "Note",
+      "programs_one": "Programme",
+      "programs_other": "Programmes",
+      "students": "Étudiants",
+      "accepted": "Acceptés",
+      "accreditationsLabel": "Accréditations"
+    },
+    "cta": {
+      "visitWebsite": "Visiter le site",
+      "contact": "Contacter"
+    },
+    "about": "À propos",
+    "domains": {
+      "title": "Domaines couverts",
+      "description": "Spécialisations enseignées dans les programmes proposés."
+    },
+    "whyChoose": {
+      "title": "Pourquoi choisir cet institut",
+      "accreditations_one": "Accréditation reconnue : {{list}}",
+      "accreditations_other": "Accréditations reconnues : {{list}}",
+      "studentsFormed": "{{value}} étudiants formés chaque année",
+      "programsOffered_one": "{{count}} programme d'enseignement proposé",
+      "programsOffered_other": "{{count}} programmes d'enseignement proposés",
+      "verifiedByTeam": "Institut vérifié et validé par l'équipe EduBridge"
+    },
+    "quickInfo": {
+      "title": "Infos rapides",
+      "address": "Adresse",
+      "email": "Email",
+      "phone": "Téléphone",
+      "website": "Site web",
+      "languages": "Langues d'enseignement"
+    },
+    "programsList": {
+      "title_one": "{{count}} programme disponible",
+      "title_other": "{{count}} programmes disponibles",
+      "titleFallback": "Programmes",
+      "empty": "Aucun programme disponible pour le moment."
+    }
+  },
   "institution": {
     "dashboard": {
       "label": "Tableau de bord",
@@ -350,7 +395,23 @@
         "address": "Adresse",
         "lastDiploma": "Dernier diplôme",
         "mention": "Mention :",
-        "notFilled": "Non renseigné"
+        "notFilled": "Non renseigné",
+        "dateNaissance": "Date de naissance",
+        "genre": "Genre",
+        "genreHomme": "Homme",
+        "genreFemme": "Femme",
+        "niveauActuel": "Niveau actuel",
+        "typeBac": "Type bac",
+        "moyenneBac": "Moyenne bac",
+        "anneeBac": "Année bac",
+        "parcoursTitle": "Parcours académique",
+        "motivationTitle": "Lettre de motivation",
+        "motivationEmpty": "Aucune lettre de motivation fournie",
+        "documentsTitle": "Documents soumis",
+        "documentsEmpty": "Aucun document soumis",
+        "download": "Télécharger",
+        "sectionIdentite": "Identité & Contact",
+        "sectionProfil": "Profil académique"
       },
       "pagination": "candidature",
       "paginationPlural": "candidatures",
@@ -419,6 +480,36 @@
         "subtitle": "Statistiques et exports",
         "description": "Rapports périodiques, exports CSV et indicateurs de performance de votre établissement. Disponible prochainement."
       }
+    },
+    "reports": {
+      "title": "Rapports",
+      "subtitle": "Statistiques et exports de votre établissement",
+      "exportPdf": "Exporter PDF",
+      "exportCandidatures": "Exporter candidatures",
+      "pdfSuccess": "PDF généré avec succès.",
+      "pdfError": "Erreur lors de la génération du PDF.",
+      "kpis": {
+        "programs": "Programmes publiés",
+        "total": "Total candidatures",
+        "pending": "En attente",
+        "accepted": "Acceptées",
+        "rejected": "Refusées",
+        "rate": "Taux d'acceptation"
+      },
+      "charts": {
+        "monthlyChart": "Candidatures par mois",
+        "statusChart": "Répartition par statut",
+        "topPrograms": "Top programmes"
+      },
+      "table": {
+        "title": "Performances par programme",
+        "name": "Programme",
+        "total": "Total",
+        "accepted": "Acceptées",
+        "rejected": "Refusées",
+        "pending": "En attente",
+        "rate": "Taux"
+      }
     }
   },
   "navbar": {
@@ -453,7 +544,7 @@
     "institutions": {
       "title": "Instituts",
       "login": "Connexion institut",
-      "requestInvitation": "Demander une invitation"
+      "areYouInstitution": "Vous êtes un établissement ?"
     },
     "company": {
       "title": "Entreprise",
@@ -471,7 +562,7 @@
   "home": {
     "hero": {
       "title": "Trouvez votre voie vers\nl'institution idéale",
-      "subtitle": "Découvrez des programmes, comparez les instituts et gérez vos candidatures — tout en un seul endroit."
+      "subtitle": "Découvrez des programmes, comparez les instituts et gérez vos candidatures tout en un seul endroit."
     },
     "stats": {
       "programs": "Programmes",
@@ -482,7 +573,7 @@
     "about": {
       "title": "À propos d'EduBridge",
       "subtitle": "Une plateforme conçue pour simplifier l'accès à l'enseignement supérieur en Tunisie",
-      "description1": "EduBridge est une plateforme numérique tunisienne dédiée à la mise en relation entre les candidats et les établissements d'enseignement supérieur privés en Tunisie. Elle couvre l'ensemble des filières : cycles préparatoires, licences, cycles ingénieurs et masters — dans des domaines aussi variés que l'informatique, le génie civil, l'électrique, la mécanique et bien d'autres.",
+      "description1": "EduBridge est une plateforme numérique tunisienne dédiée à la mise en relation entre les candidats et les établissements d'enseignement supérieur privés en Tunisie. Elle couvre l'ensemble des filières : cycles préparatoires, licences, cycles ingénieurs et masters dans des domaines aussi variés que l'informatique, le génie civil, l'électrique, la mécanique et bien d'autres.",
       "description2": "Les candidats peuvent explorer les programmes disponibles, comparer les institutions et soumettre leurs dossiers en ligne. Les institutions disposent d'un espace dédié pour gérer les admissions et communiquer directement avec les candidats.",
       "mission": {
         "icon": "🎯",
@@ -543,6 +634,16 @@
           "icon": "🎓"
         }
       ]
+    },
+    "institutionCta": {
+      "eyebrow": "Pour les établissements",
+      "title": "Vous représentez un établissement ?",
+      "subtitle": "Rejoignez EduBridge, publiez vos programmes et gérez vos candidatures depuis un espace dédié.",
+      "feature1": "Visibilité auprès de milliers de candidats",
+      "feature2": "Gestion des candidatures centralisée",
+      "feature3": "Tableau de bord institution complet",
+      "cta": "Demander l'accès",
+      "login": "Déjà inscrit ? Se connecter"
     }
   },
   "auth": {
@@ -1264,6 +1365,37 @@
       "emptyAll": "La plateforme est à jour.",
       "pagination_one": "{{count}} notification",
       "pagination_other": "{{count}} notifications"
+    },
+    "reports": {
+      "title": "Rapports",
+      "subtitle": "Analyses détaillées et exports de données",
+      "exportPdf": "Exporter PDF",
+      "exportCandidatures": "Exporter candidatures",
+      "exportInstituts": "Exporter instituts",
+      "pdfSuccess": "PDF généré avec succès.",
+      "pdfError": "Erreur lors de la génération du PDF.",
+      "kpis": {
+        "candidats": "Candidats",
+        "approvedInstituts": "Instituts approuvés",
+        "activePrograms": "Programmes actifs",
+        "totalCandidatures": "Total candidatures",
+        "accepted": "Acceptées",
+        "acceptanceRate": "Taux d'acceptation"
+      },
+      "charts": {
+        "candidaturesByDomain": "Candidatures par domaine",
+        "programsByLevel": "Programmes par niveau",
+        "acceptanceByDomain": "Taux d'acceptation par domaine",
+        "topPrograms": "Top programmes par candidatures"
+      },
+      "table": {
+        "title": "Récapitulatif par institut",
+        "name": "Institut",
+        "programs": "Programmes",
+        "candidatures": "Candidatures",
+        "accepted": "Acceptées",
+        "rate": "Taux"
+      }
     }
   },
   "programDialog": {
@@ -1323,6 +1455,71 @@
       "createError": "Erreur lors de la création.",
       "updated": "Programme mis à jour.",
       "updateError": "Erreur lors de la mise à jour."
+    }
+  },
+  "preInscription": {
+    "title": "Pré-inscription",
+    "subtitle": "Complétez vos informations administratives pour finaliser votre dossier",
+    "action": "Pré-inscription",
+    "actionTooltip": "Compléter la pré-inscription administrative",
+    "notFound": "Candidature introuvable.",
+    "notAccepted": "La pré-inscription est accessible uniquement pour les candidatures acceptées.",
+    "status": {
+      "en_attente": "En cours",
+      "completee": "Complétée"
+    },
+    "completed": {
+      "title": "Pré-inscription complétée",
+      "description": "Votre pré-inscription a été complétée le {{date}}. Vous pouvez télécharger votre attestation ci-dessous.",
+      "downloadPdf": "Télécharger l'attestation PDF",
+      "downloading": "Téléchargement…"
+    },
+    "sections": {
+      "address": "Adresse",
+      "identity": "Identité",
+      "photo": "Photo d'identité (optionnelle)"
+    },
+    "fields": {
+      "adresse_complete": "Adresse complète",
+      "ville": "Ville",
+      "pays": "Pays",
+      "code_postal": "Code postal",
+      "telephone": "Téléphone",
+      "date_naissance": "Date de naissance",
+      "nationalite": "Nationalité",
+      "type_piece_identite": "Type de pièce d'identité",
+      "numero_piece_identite": "Numéro de pièce d'identité",
+      "photo_identite": "Photo d'identité"
+    },
+    "pieceIdentite": {
+      "cin": "CIN (Carte d'identité nationale)",
+      "passeport": "Passeport"
+    },
+    "photo": {
+      "upload": "Cliquez pour choisir une photo",
+      "change": "Changer la photo",
+      "remove": "Supprimer",
+      "hint": "JPG ou PNG — 5 Mo max. Non obligatoire."
+    },
+    "submit": "Enregistrer",
+    "submitting": "Enregistrement…",
+    "toasts": {
+      "saved": "Informations enregistrées.",
+      "savedAndCompleted": "Pré-inscription complétée !",
+      "error": "Erreur lors de l'enregistrement.",
+      "photoTooLarge": "La photo ne doit pas dépasser 5 Mo.",
+      "pdfError": "Erreur lors du téléchargement du PDF."
+    },
+    "validation": {
+      "addressRequired": "Adresse requise",
+      "cityRequired": "Ville requise",
+      "countryRequired": "Pays requis",
+      "postalRequired": "Code postal requis",
+      "phoneRequired": "Téléphone requis",
+      "birthDateRequired": "Date de naissance requise",
+      "nationalityRequired": "Nationalité requise",
+      "pieceTypeRequired": "Type de pièce requis",
+      "pieceNumRequired": "Numéro de pièce requis"
     }
   }
 }

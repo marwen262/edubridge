@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { Inbox, FileText, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Inbox, FileText, Pencil, Trash2, AlertTriangle, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/app/components/ui/button';
 import {
@@ -26,6 +27,7 @@ import {
 import type { Candidature } from '@/types/api';
 
 export function ListeCandidatures() {
+  const { t } = useTranslation();
   const { candidatures, loading, error, refetch } = useCandidatures();
   const [draftToResume, setDraftToResume] = useState<Candidature | null>(null);
   const [draftToDelete, setDraftToDelete] = useState<Candidature | null>(null);
@@ -184,6 +186,27 @@ export function ListeCandidatures() {
                             <Trash2 className="w-3 h-3" />
                             {deletingId === c.id ? '…' : 'Supprimer'}
                           </Button>
+                        </>
+                      ) : c.statut === 'acceptee' ? (
+                        <>
+                          <Link to={`/dashboard/preinscription/${c.id}`}>
+                            <Button
+                              size="sm"
+                              className="text-xs flex items-center gap-1 bg-[var(--edu-success)] hover:opacity-90 text-white"
+                            >
+                              <ClipboardList className="w-3 h-3" />
+                              {t('preInscription.action')}
+                            </Button>
+                          </Link>
+                          <Link to={`/program/${c.programme_id}`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs text-[var(--edu-success)]"
+                            >
+                              {getActionLabel(c.statut)}
+                            </Button>
+                          </Link>
                         </>
                       ) : (
                         <Link to={`/program/${c.programme_id}`}>
