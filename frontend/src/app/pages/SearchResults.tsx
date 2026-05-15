@@ -241,7 +241,7 @@ export function SearchResults() {
       <div className="max-w-[1440px] mx-auto px-6 py-8">
         <div className="flex gap-8">
           {/* Sidebar filtres */}
-          <aside className="w-[280px] flex-shrink-0 sticky top-[145px] self-start">
+          <aside className="w-[280px] flex-shrink-0 sticky top-[145px] self-start max-h-[calc(100vh-160px)] overflow-y-auto">
             <div className="glass-card rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-semibold text-[var(--edu-text-primary)] flex items-center gap-2">
