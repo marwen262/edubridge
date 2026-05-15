@@ -2,6 +2,7 @@
 // Affiche au maximum 7 boutons (1 … N-1 N N+1 … total) pour rester compact
 // quand le nombre de pages est élevé.
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 
 interface PaginationProps {
@@ -41,13 +42,16 @@ export function Pagination({
   disabled = false,
   className = '',
 }: PaginationProps) {
+  const { t } = useTranslation();
+  const resolvedItemLabel = itemLabel || t('common.page');
+
   if (totalPages <= 1) {
     // Affiche tout de même le compteur seul si demandé (utile sur listing court)
     if (totalItems !== undefined) {
       return (
         <div className={`flex items-center justify-center mt-12 ${className}`}>
           <p className="text-sm text-[var(--edu-text-tertiary)]">
-            {totalItems} {itemLabel}{totalItems !== 1 ? 's' : ''}
+            {totalItems} {resolvedItemLabel}{totalItems !== 1 ? 's' : ''}
           </p>
         </div>
       );
@@ -61,7 +65,7 @@ export function Pagination({
     <div className={`flex flex-col sm:flex-row items-center justify-center gap-3 mt-12 ${className}`}>
       {totalItems !== undefined && (
         <p className="text-sm text-[var(--edu-text-tertiary)] sm:mr-4">
-          {totalItems} {itemLabel}{totalItems !== 1 ? 's' : ''} — page {page}/{totalPages}
+          {totalItems} {resolvedItemLabel}{totalItems !== 1 ? 's' : ''} — {t('common.page')} {page}/{totalPages}
         </p>
       )}
       <div className="flex items-center gap-2 flex-wrap justify-center">
@@ -70,10 +74,10 @@ export function Pagination({
           disabled={disabled || page <= 1}
           onClick={() => onPageChange(page - 1)}
           className="rounded-full"
-          aria-label="Page précédente"
+          aria-label={`${t('common.page')} ${Math.max(1, page - 1)}`}
         >
           <ChevronLeft className="w-4 h-4 sm:mr-1" />
-          <span className="hidden sm:inline">Précédent</span>
+          <span className="hidden sm:inline">{t('common.page')} {Math.max(1, page - 1)}</span>
         </Button>
 
         {pages.map((p) =>
@@ -94,7 +98,7 @@ export function Pagination({
               className={`rounded-full w-10 h-10 p-0 ${
                 p === page ? 'bg-[var(--edu-blue)] text-white hover:bg-[var(--edu-blue-hover)]' : ''
               }`}
-              aria-label={`Page ${p}`}
+              aria-label={`${t('common.page')} ${p}`}
               aria-current={p === page ? 'page' : undefined}
             >
               {p}
@@ -107,9 +111,9 @@ export function Pagination({
           disabled={disabled || page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           className="rounded-full"
-          aria-label="Page suivante"
+          aria-label={`${t('common.page')} ${Math.min(totalPages, page + 1)}`}
         >
-          <span className="hidden sm:inline">Suivant</span>
+          <span className="hidden sm:inline">{t('common.page')} {Math.min(totalPages, page + 1)}</span>
           <ChevronRight className="w-4 h-4 sm:ml-1" />
         </Button>
       </div>

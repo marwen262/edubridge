@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   FileText, Users, Clock, Send, Plus, ChevronRight, TrendingUp,
   Clock3, CheckCircle2, XCircle, AlertTriangle, RefreshCw, Bell, Phone,
@@ -20,6 +21,7 @@ import { useInstitutCandidatures } from '@/hooks/useCandidatures';
 import { usePrograms } from '@/hooks/usePrograms';
 import { useNotifications } from '@/hooks/useNotifications';
 import { candidatureService, notificationService, institutService } from '@/services/api';
+import i18n from '@/i18n';
 import type { Candidature, Institut, ValidationStatus } from '@/types/api';
 
 const TRANSITIONS_INSTITUT: Record<string, string[]> = {
@@ -27,40 +29,39 @@ const TRANSITIONS_INSTITUT: Record<string, string[]> = {
   en_examen: ['acceptee', 'refusee', 'liste_attente'],
   liste_attente: ['acceptee', 'refusee'],
 };
-const TRANSITION_LABELS: Record<string, string> = {
-  en_examen: 'En examen', acceptee: 'Accepter', refusee: 'Refuser', liste_attente: 'Attente',
-};
 const TRANSITION_COLORS: Record<string, string> = {
   en_examen: 'var(--edu-warning)', acceptee: 'var(--edu-success)', refusee: 'var(--edu-danger)', liste_attente: '#8B5CF6',
 };
 const PIPELINE_COLUMNS = [
-  { statut: 'soumise', title: 'Soumises', color: 'var(--edu-blue)' },
-  { statut: 'en_examen', title: 'En examen', color: 'var(--edu-warning)' },
-  { statut: 'liste_attente', title: "Liste d'attente", color: '#8B5CF6' },
-  { statut: 'acceptee', title: 'Acceptées', color: 'var(--edu-success)' },
-  { statut: 'refusee', title: 'Refusées', color: 'var(--edu-danger)' },
+  { statut: 'soumise', color: 'var(--edu-blue)' },
+  { statut: 'en_examen', color: 'var(--edu-warning)' },
+  { statut: 'liste_attente', color: '#8B5CF6' },
+  { statut: 'acceptee', color: 'var(--edu-success)' },
+  { statut: 'refusee', color: 'var(--edu-danger)' },
 ] as const;
 
 function ValidationBanner({ status, reason, onResoumettre }: { status: ValidationStatus; reason?: string | null; onResoumettre?: () => void }) {
-  const configs: Record<string, { icon: React.ReactNode; bg: string; border: string; title: string; message: string }> = {
-    pending_admin_review: { icon: <Clock3 className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />, bg: 'bg-amber-50 dark:bg-amber-950/20', border: 'border-amber-200 dark:border-amber-800', title: 'Statut de votre établissement', message: "Votre établissement est en attente de validation administrateur." },
-    approved: { icon: <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />, bg: 'bg-green-50 dark:bg-green-950/20', border: 'border-green-200 dark:border-green-800', title: 'Statut de votre établissement', message: "Votre établissement est approuvé et actif sur la plateforme." },
-    suspended: { icon: <XCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />, bg: 'bg-red-50 dark:bg-red-950/20', border: 'border-red-200 dark:border-red-800', title: 'Statut de votre établissement', message: "Votre compte établissement est suspendu." },
-    invited: { icon: <AlertTriangle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />, bg: 'bg-blue-50 dark:bg-blue-950/20', border: 'border-blue-200 dark:border-blue-800', title: 'Statut de votre établissement', message: "Veuillez finaliser votre inscription." },
-    rejected: { icon: <XCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />, bg: 'bg-red-50 dark:bg-red-950/20', border: 'border-red-200 dark:border-red-800', title: 'Statut de votre établissement', message: reason ?? 'Votre dossier a été rejeté. Veuillez corriger et resoumettre.' },
+  const { t } = useTranslation();
+  const configs: Record<string, { icon: React.ReactNode; bg: string; border: string }> = {
+    pending_admin_review: { icon: <Clock3 className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />, bg: 'bg-amber-50 dark:bg-amber-950/20', border: 'border-amber-200 dark:border-amber-800' },
+    approved: { icon: <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />, bg: 'bg-green-50 dark:bg-green-950/20', border: 'border-green-200 dark:border-green-800' },
+    suspended: { icon: <XCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />, bg: 'bg-red-50 dark:bg-red-950/20', border: 'border-red-200 dark:border-red-800' },
+    invited: { icon: <AlertTriangle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />, bg: 'bg-blue-50 dark:bg-blue-950/20', border: 'border-blue-200 dark:border-blue-800' },
+    rejected: { icon: <XCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />, bg: 'bg-red-50 dark:bg-red-950/20', border: 'border-red-200 dark:border-red-800' },
   };
   const cfg = configs[status];
   if (!cfg) return null;
+  const message = status === 'rejected' ? (reason ?? t('status.rejected')) : t(`status.${status}`);
   return (
     <div className={`rounded-2xl border p-4 flex items-start gap-3 ${cfg.bg} ${cfg.border}`}>
       {cfg.icon}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm text-[var(--edu-text-primary)]">{cfg.title}</p>
-        <p className="text-xs text-[var(--edu-text-secondary)] mt-1 leading-relaxed">{cfg.message}</p>
+        <p className="font-semibold text-sm text-[var(--edu-text-primary)]">{t('status.institutionStatus')}</p>
+        <p className="text-xs text-[var(--edu-text-secondary)] mt-1 leading-relaxed">{message}</p>
       </div>
       {status === 'rejected' && onResoumettre && (
         <button onClick={onResoumettre} className="text-xs font-semibold text-[var(--edu-blue)] hover:underline shrink-0 flex items-center gap-1">
-          <RefreshCw className="w-3 h-3" /> Resoumettre
+          <RefreshCw className="w-3 h-3" /> {t('status.resubmit')}
         </button>
       )}
     </div>
@@ -70,6 +71,7 @@ function ValidationBanner({ status, reason, onResoumettre }: { status: Validatio
 interface Props { institut: Institut | null; }
 
 export function InstitutionOverviewSection({ institut }: Props) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -82,22 +84,22 @@ export function InstitutionOverviewSection({ institut }: Props) {
     if (!user?.institut_id) return;
     try {
       await institutService.resoumettre(user.institut_id);
-      toast.success('Dossier resoumis pour validation.');
+      toast.success(t('institution.dashboard.toasts.resubmitted'));
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } } };
-      toast.error(apiErr.response?.data?.message ?? 'Erreur');
+      toast.error(apiErr.response?.data?.message ?? t('institution.dashboard.toasts.error'));
     }
   };
 
-  const { programs: programmes, loading: loadingProgrammes, refetch: refetchProgrammes } = usePrograms({ institut_id: user?.institut_id });
+  const { programs: programmes, refetch: refetchProgrammes } = usePrograms({ institut_id: user?.institut_id });
   const { candidatures, loading: loadingCandidatures, refetch: refetchCandidatures } = useInstitutCandidatures();
   const { notifications, unreadCount, loading: loadingNotifications, refetch: refetchNotifications } = useNotifications();
 
   const stats = [
-    { label: 'Programmes publiés', value: String(programmes.length), icon: FileText, color: 'var(--edu-blue)' },
-    { label: 'Nouvelles demandes', value: String(candidatures.filter((c) => c.statut === 'soumise').length), icon: Users, color: 'var(--edu-info)' },
-    { label: 'En examen', value: String(candidatures.filter((c) => c.statut === 'en_examen').length), icon: Clock, color: 'var(--edu-warning)' },
-    { label: 'Décisions rendues', value: String(candidatures.filter((c) => ['acceptee', 'refusee', 'liste_attente'].includes(c.statut)).length), icon: Send, color: 'var(--edu-success)' },
+    { label: t('institution.dashboard.stats.publishedPrograms'), value: String(programmes.length), icon: FileText, color: 'var(--edu-blue)' },
+    { label: t('institution.dashboard.stats.newRequests'), value: String(candidatures.filter((c) => c.statut === 'soumise').length), icon: Users, color: 'var(--edu-info)' },
+    { label: t('institution.dashboard.stats.inReview'), value: String(candidatures.filter((c) => c.statut === 'en_examen').length), icon: Clock, color: 'var(--edu-warning)' },
+    { label: t('institution.dashboard.stats.decisionsRendered'), value: String(candidatures.filter((c) => ['acceptee', 'refusee', 'liste_attente'].includes(c.statut)).length), icon: Send, color: 'var(--edu-success)' },
   ];
 
   const pipeline = PIPELINE_COLUMNS.reduce<Record<string, Candidature[]>>((acc, col) => {
@@ -107,7 +109,7 @@ export function InstitutionOverviewSection({ institut }: Props) {
 
   const candidaturesParMois = candidatures.reduce<Record<string, number>>((acc, c) => {
     if (!c.cree_le) return acc;
-    const mois = new Date(c.cree_le).toLocaleString('fr-FR', { month: 'short' });
+    const mois = new Date(c.cree_le).toLocaleString(i18n.language, { month: 'short' });
     acc[mois] = (acc[mois] ?? 0) + 1;
     return acc;
   }, {});
@@ -117,11 +119,11 @@ export function InstitutionOverviewSection({ institut }: Props) {
     setProcessingId(id);
     try {
       await candidatureService.changerStatut(id, statut);
-      toast.success('Statut mis à jour');
+      toast.success(t('institution.candidatures.toasts.statusUpdated'));
       refetchCandidatures();
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } } };
-      toast.error(apiErr?.response?.data?.message ?? 'Erreur');
+      toast.error(apiErr?.response?.data?.message ?? t('institution.candidatures.toasts.error'));
     } finally { setProcessingId(null); }
   };
 
@@ -129,7 +131,7 @@ export function InstitutionOverviewSection({ institut }: Props) {
     try { await notificationService.markAsRead(id); refetchNotifications(); } catch { /* silent */ }
   };
 
-  const currentDate = new Date().toLocaleDateString('fr-FR', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const currentDate = new Date().toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   return (
     <div>
@@ -137,14 +139,14 @@ export function InstitutionOverviewSection({ institut }: Props) {
       <div className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)] px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)] mb-1">Tableau de bord</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)] mb-1">{t('institution.dashboard.label')}</p>
             <h1 className="text-3xl font-bold text-[var(--edu-text-primary)] mb-1">{nomInstitut}</h1>
             <p className="text-[var(--edu-text-secondary)]">{currentDate}</p>
           </div>
           <Button
             onClick={() => {
               if (validationStatus && validationStatus !== 'approved') {
-                toast.error("Votre établissement doit être validé par l'administrateur avant de pouvoir publier des programmes.");
+                toast.error(t('institution.dashboard.notValidated'));
                 return;
               }
               setShowCreateDialog(true);
@@ -153,7 +155,7 @@ export function InstitutionOverviewSection({ institut }: Props) {
             style={{ backgroundColor: validationStatus && validationStatus !== 'approved' ? 'var(--edu-text-tertiary)' : 'var(--edu-blue)' }}
           >
             <Plus className="w-5 h-5 mr-2" />
-            Créer un programme
+            {t('institution.dashboard.createProgram')}
           </Button>
         </div>
       </div>
@@ -177,9 +179,9 @@ export function InstitutionOverviewSection({ institut }: Props) {
         {/* Pipeline Kanban */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.4 }}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-[var(--edu-text-primary)]">Pipeline des candidatures</h2>
+            <h2 className="text-2xl font-bold text-[var(--edu-text-primary)]">{t('institution.dashboard.pipeline.title')}</h2>
             <Link to="/dashboard/institution/candidatures">
-              <Button variant="ghost" className="text-[var(--edu-blue)]">Voir tout<ChevronRight className="w-4 h-4 ml-1" /></Button>
+              <Button variant="ghost" className="text-[var(--edu-blue)]">{t('common.seeAll')}<ChevronRight className="w-4 h-4 ml-1" /></Button>
             </Link>
           </div>
           {loadingCandidatures ? (
@@ -201,13 +203,13 @@ export function InstitutionOverviewSection({ institut }: Props) {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: col.color }} />
-                        <h3 className="font-semibold text-[var(--edu-text-primary)] text-sm">{col.title}</h3>
+                        <h3 className="font-semibold text-[var(--edu-text-primary)] text-sm">{t(`institution.dashboard.pipeline.columns.${col.statut}`)}</h3>
                       </div>
                       <span className="text-xs font-semibold text-[var(--edu-text-tertiary)] bg-[var(--edu-surface)] px-2 py-1 rounded-full">{cards.length}</span>
                     </div>
                     <div className="space-y-3">
                       {cards.length === 0 ? (
-                        <p className="text-xs text-[var(--edu-text-tertiary)] text-center py-4">Aucune</p>
+                        <p className="text-xs text-[var(--edu-text-tertiary)] text-center py-4">{t('institution.dashboard.pipeline.empty')}</p>
                       ) : cards.map((c) => {
                         const nomComplet = [c.candidat?.prenom, c.candidat?.nom].filter(Boolean).join(' ') || 'Candidat';
                         return (
@@ -229,10 +231,10 @@ export function InstitutionOverviewSection({ institut }: Props) {
                             <p className="text-xs text-[var(--edu-text-tertiary)] mb-2">{(c.soumise_le ?? c.cree_le) ? new Date((c.soumise_le ?? c.cree_le)!).toLocaleDateString() : '—'}</p>
                             {transitions.length > 0 && (
                               <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
-                                {transitions.map((t) => (
-                                  <button key={t} onClick={() => handleChangerStatut(c.id, t)} disabled={processingId === c.id}
+                                {transitions.map((tr) => (
+                                  <button key={tr} onClick={() => handleChangerStatut(c.id, tr)} disabled={processingId === c.id}
                                     className="text-xs px-2 py-0.5 rounded-full font-semibold text-white transition-opacity disabled:opacity-50"
-                                    style={{ backgroundColor: TRANSITION_COLORS[t] }}>{TRANSITION_LABELS[t]}</button>
+                                    style={{ backgroundColor: TRANSITION_COLORS[tr] }}>{t(`institution.candidatures.transitions.${tr}`)}</button>
                                 ))}
                               </div>
                             )}
@@ -251,14 +253,14 @@ export function InstitutionOverviewSection({ institut }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.4 }} className="lg:col-span-2">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-[var(--edu-text-primary)]">Tendance des candidatures</h2>
+              <h2 className="text-2xl font-bold text-[var(--edu-text-primary)]">{t('institution.dashboard.trend.title')}</h2>
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--edu-success)]">
-                <TrendingUp className="w-4 h-4" />{candidatures.length} total
+                <TrendingUp className="w-4 h-4" />{candidatures.length} {t('institution.dashboard.trend.total')}
               </div>
             </div>
             <div className="glass-card rounded-2xl p-6">
               {dataChart.length === 0 ? (
-                <div className="h-[280px] flex items-center justify-center text-[var(--edu-text-secondary)]">Pas encore de données.</div>
+                <div className="h-[280px] flex items-center justify-center text-[var(--edu-text-secondary)]">{t('institution.dashboard.trend.noData')}</div>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={dataChart}>
@@ -276,15 +278,15 @@ export function InstitutionOverviewSection({ institut }: Props) {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.4 }}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-[var(--edu-text-primary)]">
-                Notifications
+                {t('common.notifications')}
                 {unreadCount > 0 && <span className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white" style={{ backgroundColor: 'var(--edu-danger)' }}>{unreadCount}</span>}
               </h2>
             </div>
             <div className="glass-card rounded-2xl p-6 space-y-4">
               {loadingNotifications ? (
-                <p className="text-sm text-[var(--edu-text-secondary)]">Chargement…</p>
+                <p className="text-sm text-[var(--edu-text-secondary)]">{t('common.loading')}</p>
               ) : notifications.length === 0 ? (
-                <p className="text-sm text-[var(--edu-text-secondary)]">Aucune notification.</p>
+                <p className="text-sm text-[var(--edu-text-secondary)]">{t('common.noNotificationsShort')}</p>
               ) : notifications.slice(0, 5).map((n) => (
                 <div key={n.id} className={`flex items-start gap-3 p-3 rounded-xl transition-colors ${!n.est_lue ? 'bg-[var(--edu-blue)]/5' : ''}`}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--edu-blue)15' }}>
@@ -295,7 +297,7 @@ export function InstitutionOverviewSection({ institut }: Props) {
                     {n.contenu && <p className="text-xs text-[var(--edu-text-secondary)] line-clamp-2 mb-1">{n.contenu}</p>}
                     <div className="flex items-center justify-between">
                       {n.cree_le && <p className="text-xs text-[var(--edu-text-tertiary)]">{new Date(n.cree_le).toLocaleDateString()}</p>}
-                      {!n.est_lue && <button onClick={() => handleMarkAsRead(n.id)} className="text-xs text-[var(--edu-blue)] hover:underline ml-auto">Lue</button>}
+                      {!n.est_lue && <button onClick={() => handleMarkAsRead(n.id)} className="text-xs text-[var(--edu-blue)] hover:underline ml-auto">{t('common.markAsRead')}</button>}
                     </div>
                   </div>
                 </div>
@@ -329,11 +331,12 @@ export function InstitutionOverviewSection({ institut }: Props) {
 // Chip score sur les cartes pipeline
 // ─────────────────────────────────────────────────────────────
 function PipelineScoreChip({ score }: { score: number }) {
+  const { t } = useTranslation();
   const color = score >= 70 ? 'var(--edu-success)' : score >= 50 ? 'var(--edu-warning)' : 'var(--edu-danger)';
   const bg    = score >= 70 ? 'rgba(52,199,89,0.1)' : score >= 50 ? 'rgba(255,159,10,0.1)' : 'rgba(255,59,48,0.1)';
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold" style={{ color, backgroundColor: bg }}>
-      Score : {score}/100
+      {t('institution.dashboard.scoreChip')} {score}/100
     </span>
   );
 }
@@ -341,19 +344,20 @@ function PipelineScoreChip({ score }: { score: number }) {
 // ─────────────────────────────────────────────────────────────
 // Contenu du Dialog candidat
 // ─────────────────────────────────────────────────────────────
-const STATUT_DIALOG: Record<string, { label: string; color: string; bg: string }> = {
-  soumise:       { label: 'Soumise',        color: 'var(--edu-blue)',    bg: 'rgba(0,113,227,0.1)' },
-  en_examen:     { label: 'En examen',      color: 'var(--edu-warning)', bg: 'rgba(255,159,10,0.1)' },
-  acceptee:      { label: 'Acceptée',       color: 'var(--edu-success)', bg: 'rgba(52,199,89,0.1)' },
-  refusee:       { label: 'Refusée',        color: 'var(--edu-danger)',  bg: 'rgba(255,59,48,0.1)' },
-  liste_attente: { label: "Liste d'attente", color: '#8B5CF6',           bg: 'rgba(139,92,246,0.1)' },
+const STATUT_DIALOG_STYLE: Record<string, { color: string; bg: string }> = {
+  soumise:       { color: 'var(--edu-blue)',    bg: 'rgba(0,113,227,0.1)' },
+  en_examen:     { color: 'var(--edu-warning)', bg: 'rgba(255,159,10,0.1)' },
+  acceptee:      { color: 'var(--edu-success)', bg: 'rgba(52,199,89,0.1)' },
+  refusee:       { color: 'var(--edu-danger)',  bg: 'rgba(255,59,48,0.1)' },
+  liste_attente: { color: '#8B5CF6',            bg: 'rgba(139,92,246,0.1)' },
 };
 
 function CandidatDetailDialog({ candidature }: { candidature: Candidature }) {
+  const { t } = useTranslation();
   const nom = [candidature.candidat?.prenom, candidature.candidat?.nom].filter(Boolean).join(' ') || 'Candidat';
-  const st  = STATUT_DIALOG[candidature.statut] ?? STATUT_DIALOG.soumise;
+  const st  = STATUT_DIALOG_STYLE[candidature.statut] ?? STATUT_DIALOG_STYLE.soumise;
   const date = (candidature.soumise_le ?? candidature.cree_le)
-    ? new Date((candidature.soumise_le ?? candidature.cree_le)!).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    ? new Date((candidature.soumise_le ?? candidature.cree_le)!).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' })
     : '—';
   const score = candidature.score_diplome;
 
@@ -372,13 +376,11 @@ function CandidatDetailDialog({ candidature }: { candidature: Candidature }) {
       </DialogHeader>
 
       <div className="space-y-3 pt-2">
-        {/* Statut */}
-        <DialogRow label="Statut">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style={{ color: st.color, backgroundColor: st.bg }}>{st.label}</span>
+        <DialogRow label={t('institution.dashboard.candidateDialog.status')}>
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style={{ color: st.color, backgroundColor: st.bg }}>{t(`status.${candidature.statut}`)}</span>
         </DialogRow>
 
-        {/* Score */}
-        <DialogRow label="Score diplôme">
+        <DialogRow label={t('institution.dashboard.candidateDialog.score')}>
           {score != null ? (
             (() => {
               const color = score >= 70 ? 'var(--edu-success)' : score >= 50 ? 'var(--edu-warning)' : 'var(--edu-danger)';
@@ -386,18 +388,16 @@ function CandidatDetailDialog({ candidature }: { candidature: Candidature }) {
               return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style={{ color, backgroundColor: bg }}>{score}/100</span>;
             })()
           ) : (
-            <span className="text-sm text-[var(--edu-text-tertiary)]">Non vérifié</span>
+            <span className="text-sm text-[var(--edu-text-tertiary)]">{t('institution.dashboard.candidateDialog.notVerified')}</span>
           )}
         </DialogRow>
 
-        {/* Date */}
-        <DialogRow label="Date de soumission">
+        <DialogRow label={t('institution.dashboard.candidateDialog.submissionDate')}>
           <span className="text-sm text-[var(--edu-text-primary)]">{date}</span>
         </DialogRow>
 
-        {/* Téléphone */}
         {candidature.candidat?.telephone && (
-          <DialogRow label="Téléphone">
+          <DialogRow label={t('institution.dashboard.candidateDialog.phone')}>
             <a href={`tel:${candidature.candidat.telephone}`} className="text-sm text-[var(--edu-blue)] hover:underline flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5" />
               {candidature.candidat.telephone}

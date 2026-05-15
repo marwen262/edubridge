@@ -1,6 +1,7 @@
 // Utilitaires partagés pour les statuts de candidature.
 // Source unique de vérité — importer depuis ici plutôt que dupliquer.
 import type { Candidature } from '@/types/api';
+import i18n from '@/i18n';
 
 export function getStatutColor(statut: Candidature['statut']): string {
   switch (statut) {
@@ -15,21 +16,16 @@ export function getStatutColor(statut: Candidature['statut']): string {
 }
 
 export function getStatutLabel(statut: Candidature['statut']): string {
-  switch (statut) {
-    case 'brouillon':     return 'Brouillon';
-    case 'soumise':       return 'Soumise';
-    case 'en_examen':     return 'En examen';
-    case 'acceptee':      return 'Acceptée';
-    case 'refusee':       return 'Refusée';
-    case 'liste_attente': return "Liste d'attente";
-    default:              return statut;
+  if (statut === 'brouillon' || statut === 'soumise' || statut === 'en_examen' || statut === 'acceptee' || statut === 'refusee' || statut === 'liste_attente') {
+    return i18n.t(`status.${statut}`);
   }
+  return statut;
 }
 
 export function getActionLabel(statut: Candidature['statut']): string {
-  if (statut === 'brouillon') return 'Continuer';
-  if (statut === 'soumise' || statut === 'en_examen') return 'Voir détails';
-  return 'Voir résultat';
+  if (statut === 'brouillon') return i18n.t('candidate.actions.continue');
+  if (statut === 'soumise' || statut === 'en_examen') return i18n.t('candidate.actions.viewDetails');
+  return i18n.t('candidate.actions.viewResult');
 }
 
 export function getActionColor(statut: Candidature['statut']): string {

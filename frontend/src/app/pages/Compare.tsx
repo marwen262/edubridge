@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router';
 import { X, Plus, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { Button } from '../components/ui/button';
@@ -8,8 +9,19 @@ import { programmeService } from '@/services/api';
 import type { Programme } from '@/types/api';
 import { motion } from 'motion/react';
 import { useComparaison } from '@/hooks/useComparaison';
+import i18n from '@/i18n';
+
+// Normalise un champ JSONB qui peut arriver soit comme tableau, soit comme string JSON (anciens seeds)
+const parseJsonbArray = (v: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(v)) return v as Record<string, unknown>[];
+  if (typeof v === 'string') {
+    try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
+  }
+  return [];
+};
 
 export function Compare() {
+  const { t } = useTranslation();
   const [programmes, setProgrammes] = React.useState<Programme[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -42,7 +54,7 @@ export function Compare() {
         });
         setProgrammes(items);
         if (items.length === 0 && failures > 0) {
-          setError('Impossible de charger les programmes sélectionnés.');
+          setError(t('compare.loadError'));
         }
       })
       .finally(() => {
@@ -52,7 +64,7 @@ export function Compare() {
     return () => {
       cancelled = true;
     };
-  }, [ids]);
+  }, [ids, t]);
 
   const handleRemove = (id: string) => {
     retirer(id);
@@ -60,30 +72,47 @@ export function Compare() {
   };
 
   const comparisonRows: { label: string; getValue: (p: Programme) => React.ReactNode }[] = [
-    { label: 'Institut', getValue: (p) => p.institut?.nom ?? '—' },
+    { label: t('compare.rows.institute'), getValue: (p) => p.institut?.nom ?? '—' },
     {
-      label: 'Localisation',
+      label: t('compare.rows.location'),
       getValue: (p) =>
         [p.institut?.adresse?.ville, p.institut?.adresse?.pays].filter(Boolean).join(', ') || '—',
     },
-    { label: 'Niveau', getValue: (p) => p.niveau ?? '—' },
-    { label: 'Domaine', getValue: (p) => p.domaine ?? '—' },
-    { label: 'Mode', getValue: (p) => p.mode ?? '—' },
     {
-      label: 'Durée',
-      getValue: (p) => (p.duree_annees != null ? `${p.duree_annees} ans` : '—'),
+      label: t('compare.rows.level'),
+      getValue: (p) =>
+        p.niveau ? t(`program.levels.${p.niveau}`, { defaultValue: p.niveau }) : '—',
     },
-    { label: 'Langue', getValue: (p) => p.langue ?? '—' },
     {
-      label: 'Frais inscription',
+      label: t('compare.rows.domain'),
+      getValue: (p) =>
+        p.domaine ? t(`admin.programs.domains.${p.domaine}`, { defaultValue: p.domaine }) : '—',
+    },
+    {
+      label: t('compare.rows.mode'),
+      getValue: (p) =>
+        p.mode ? t(`admin.programs.modes.${p.mode}`, { defaultValue: p.mode }) : '—',
+    },
+    {
+      label: t('compare.rows.duration'),
+      getValue: (p) =>
+        p.duree_annees != null
+          ? p.duree_annees > 1
+            ? t('compare.rows.durationYearsPlural', { count: p.duree_annees })
+            : t('compare.rows.durationYears', { count: p.duree_annees })
+          : '—',
+    },
+    { label: t('compare.rows.language'), getValue: (p) => p.langue ?? '—' },
+    {
+      label: t('compare.rows.tuition'),
       getValue: (p) =>
         p.frais_inscription != null ? `${p.frais_inscription.toLocaleString()} TND` : 'N/A',
     },
     {
-      label: 'Date limite',
+      label: t('compare.rows.deadline'),
       getValue: (p) =>
         p.date_limite_candidature
-          ? new Date(p.date_limite_candidature).toLocaleDateString('fr-FR')
+          ? new Date(p.date_limite_candidature).toLocaleDateString(i18n.language)
           : '—',
     },
   ];
@@ -100,10 +129,10 @@ export function Compare() {
         >
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-[var(--edu-text-primary)] mb-4">
-              Comparer les programmes
+              {t('compare.title')}
             </h1>
             <p className="text-lg text-[var(--edu-text-secondary)]">
-              Comparaison côte à côte pour vous aider à faire le bon choix
+              {t('compare.subtitle')}
             </p>
           </div>
 
@@ -116,22 +145,21 @@ export function Compare() {
               <p className="text-[var(--edu-danger)] text-lg mb-6">{error}</p>
               <Link to="/search">
                 <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
-                  Retour à la recherche
+                  {t('compare.backToSearch')}
                 </Button>
               </Link>
             </div>
           ) : programmes.length === 0 ? (
             <div className="glass-card rounded-2xl p-16 text-center">
               <p className="text-[var(--edu-text-secondary)] text-lg mb-6">
-                Aucun programme sélectionné pour la comparaison.
+                {t('compare.emptyTitle')}
               </p>
               <p className="text-sm text-[var(--edu-text-tertiary)] mb-8">
-                Utilisez le bouton «&nbsp;Comparer&nbsp;» sur les cartes de programmes pour en
-                ajouter jusqu'à 3.
+                {t('compare.emptyHint')}
               </p>
               <Link to="/search">
                 <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
-                  Parcourir les programmes
+                  {t('compare.browsePrograms')}
                 </Button>
               </Link>
             </div>
@@ -143,7 +171,7 @@ export function Compare() {
                     <thead>
                       <tr className="bg-[var(--edu-surface)]">
                         <th className="sticky left-0 bg-[var(--edu-surface)] px-6 py-4 text-left font-semibold text-[var(--edu-text-primary)] min-w-[200px]">
-                          Critère
+                          {t('compare.criterion')}
                         </th>
                         {programmes.map((programme) => {
                           // Pré-calculs sécurisés : éviter tout .charAt() sur undefined
@@ -174,7 +202,7 @@ export function Compare() {
                                   <button
                                     onClick={() => handleRemove(programme.id)}
                                     className="absolute top-2 right-2 p-1.5 bg-white dark:bg-[#1D1D1F] rounded-full hover:bg-[var(--edu-danger)] hover:text-white transition-colors"
-                                    aria-label="Retirer de la comparaison"
+                                    aria-label={t('compare.removeAriaLabel')}
                                   >
                                     <X className="w-4 h-4" />
                                   </button>
@@ -205,7 +233,7 @@ export function Compare() {
                                     size="sm"
                                     className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white"
                                   >
-                                    Voir les détails
+                                    {t('compare.viewDetails')}
                                   </Button>
                                 </Link>
                               </div>
@@ -220,7 +248,7 @@ export function Compare() {
                                   <Plus className="w-8 h-8 text-[var(--edu-text-tertiary)]" />
                                 </div>
                                 <p className="text-sm text-[var(--edu-text-secondary)]">
-                                  Ajouter un programme
+                                  {t('compare.addProgram')}
                                 </p>
                               </div>
                             </Link>
@@ -249,56 +277,64 @@ export function Compare() {
                       {/* Documents requis */}
                       <tr>
                         <td className="sticky left-0 bg-[var(--edu-surface)]/50 px-6 py-4 font-semibold text-[var(--edu-text-primary)]">
-                          Documents requis
+                          {t('compare.rows.requiredDocuments')}
                         </td>
-                        {programmes.map((p) => (
-                          <td key={p.id} className="px-6 py-4">
-                            {p.documents_requis && p.documents_requis.length > 0 ? (
-                              <ul className="space-y-1 text-sm text-[var(--edu-text-secondary)]">
-                                {p.documents_requis.slice(0, 3).map((doc, i) => (
-                                  <li key={i} className="line-clamp-1">
-                                    •&nbsp;{doc.nom}
-                                    {doc.obligatoire ? ' *' : ''}
-                                  </li>
-                                ))}
-                                {p.documents_requis.length > 3 && (
-                                  <li className="text-[var(--edu-blue)]">
-                                    +{p.documents_requis.length - 3} de plus
-                                  </li>
-                                )}
-                              </ul>
-                            ) : (
-                              <span className="text-[var(--edu-text-tertiary)] text-sm">—</span>
-                            )}
-                          </td>
-                        ))}
+                        {programmes.map((p) => {
+                          const docs = parseJsonbArray(p.documents_requis);
+                          return (
+                            <td key={p.id} className="px-6 py-4">
+                              {docs.length > 0 ? (
+                                <ul className="space-y-1 text-sm text-[var(--edu-text-secondary)]">
+                                  {docs.slice(0, 3).map((doc, i) => (
+                                    <li key={i} className="line-clamp-1">
+                                      •&nbsp;{String(doc.nom)}
+                                      {doc.obligatoire ? ' *' : ''}
+                                    </li>
+                                  ))}
+                                  {docs.length > 3 && (
+                                    <li className="text-[var(--edu-blue)]">
+                                      {t('compare.rows.moreDocuments', { count: docs.length - 3 })}
+                                    </li>
+                                  )}
+                                </ul>
+                              ) : (
+                                <span className="text-[var(--edu-text-tertiary)] text-sm">—</span>
+                              )}
+                            </td>
+                          );
+                        })}
                         {programmes.length < 3 && <td className="px-6 py-4" />}
                       </tr>
 
                       {/* Prérequis */}
                       <tr className="bg-[var(--edu-surface)]/50">
                         <td className="sticky left-0 bg-inherit px-6 py-4 font-semibold text-[var(--edu-text-primary)]">
-                          Prérequis
+                          {t('compare.rows.prerequisites')}
                         </td>
-                        {programmes.map((p) => (
-                          <td key={p.id} className="px-6 py-4 text-sm text-[var(--edu-text-secondary)]">
-                            {p.prerequis ? (
-                              <div className="space-y-1">
-                                {p.prerequis.moyenne_min != null && (
-                                  <p>Moyenne min.&nbsp;: {p.prerequis.moyenne_min}</p>
-                                )}
-                                {p.prerequis.types_bac && p.prerequis.types_bac.length > 0 && (
-                                  <p>Bac&nbsp;: {p.prerequis.types_bac.join(', ')}</p>
-                                )}
-                                {p.prerequis.matieres && p.prerequis.matieres.length > 0 && (
-                                  <p>Matières&nbsp;: {p.prerequis.matieres.join(', ')}</p>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-[var(--edu-text-tertiary)]">—</span>
-                            )}
-                          </td>
-                        ))}
+                        {programmes.map((p) => {
+                          const prereq = typeof p.prerequis === 'string'
+                            ? (() => { try { return JSON.parse(p.prerequis); } catch { return null; } })()
+                            : p.prerequis;
+                          return (
+                            <td key={p.id} className="px-6 py-4 text-sm text-[var(--edu-text-secondary)]">
+                              {prereq ? (
+                                <div className="space-y-1">
+                                  {prereq.moyenne_min != null && (
+                                    <p>{t('compare.rows.minAverage', { value: prereq.moyenne_min })}</p>
+                                  )}
+                                  {Array.isArray(prereq.types_bac) && prereq.types_bac.length > 0 && (
+                                    <p>{t('compare.rows.bacTypes', { types: prereq.types_bac.join(', ') })}</p>
+                                  )}
+                                  {Array.isArray(prereq.matieres) && prereq.matieres.length > 0 && (
+                                    <p>{t('compare.rows.subjects', { subjects: prereq.matieres.join(', ') })}</p>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-[var(--edu-text-tertiary)]">—</span>
+                              )}
+                            </td>
+                          );
+                        })}
                         {programmes.length < 3 && <td className="px-6 py-4" />}
                       </tr>
                     </tbody>
@@ -309,7 +345,7 @@ export function Compare() {
               <div className="text-center mt-8">
                 <Link to="/search">
                   <Button variant="outline" className="rounded-full">
-                    Parcourir plus de programmes
+                    {t('compare.browseMore')}
                   </Button>
                 </Link>
               </div>

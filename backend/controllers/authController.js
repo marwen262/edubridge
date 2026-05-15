@@ -4,6 +4,7 @@ const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sequelize, Utilisateur, Candidat, Institut } = require('../models');
 const { sendInstitutInviteEmail, sendPasswordResetEmail } = require('../services/emailService');
+const notificationService = require('../services/notificationService');
 
 const signToken = (utilisateur) =>
   jwt.sign(
@@ -84,7 +85,7 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -161,7 +162,7 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -190,17 +191,19 @@ exports.validerTokenPremierLogin = async (req, res) => {
 
     const institut = await Institut.findOne({
       where: { utilisateur_id: utilisateur.id },
-      attributes: ['nom'],
+      attributes: ['nom', 'description', 'contact'],
     });
 
     return res.status(200).json({
       valide: true,
       email: utilisateur.email,
       nom: institut?.nom || null,
+      telephone: institut?.contact?.telephone || null,
+      description: institut?.description || null,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -272,6 +275,23 @@ exports.terminerPremierLogin = async (req, res) => {
 
     const jwtToken = signToken(result.utilisateur);
 
+    // Notifier les admins qu'un institut est prêt à être validé (hors transaction)
+    try {
+      const admins = await Utilisateur.findAll({ where: { role: 'admin', est_actif: true } });
+      await Promise.all(admins.map((admin) =>
+        notificationService.creerNotification({
+          utilisateur_id: admin.id,
+          type: 'systeme',
+          titre: 'Institut prêt à valider',
+          contenu: `${result.institut.nom} a complété son profil et attend votre validation.`,
+          ref_id: result.institut.id,
+          ref_type: 'Institut',
+        })
+      ));
+    } catch (notifErr) {
+      console.error('[terminerPremierLogin] Notification admin échouée:', notifErr.message);
+    }
+
     return res.status(200).json({
       message: 'Compte activé avec succès. Votre profil est en attente de validation par l\'administrateur.',
       token: jwtToken,
@@ -289,7 +309,7 @@ exports.terminerPremierLogin = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -345,7 +365,7 @@ exports.demanderResetPassword = async (req, res) => {
     return res.status(200).json(reponseGenerique);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -372,7 +392,7 @@ exports.validerResetToken = async (req, res) => {
     return res.status(200).json({ valide: true, email: utilisateur.email });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -414,7 +434,7 @@ exports.reinitialiserPassword = async (req, res) => {
     return res.status(200).json({ message: 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -427,10 +447,10 @@ exports.changerMotDePasse = async (req, res) => {
       return res.status(400).json({ message: 'Ancien et nouveau mot de passe requis.' });
     }
 
-    const pwdRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    const pwdRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
     if (!pwdRegex.test(newPassword)) {
       return res.status(400).json({
-        message: 'Le nouveau mot de passe doit contenir au moins 8 caractères, une majuscule et un chiffre.',
+        message: 'Le nouveau mot de passe doit contenir au moins 8 caractères, une majuscule, un chiffre et un caractère spécial (!@#$%^&*).',
       });
     }
 
@@ -450,7 +470,7 @@ exports.changerMotDePasse = async (req, res) => {
     return res.status(200).json({ message: 'Mot de passe modifié avec succès.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -468,6 +488,6 @@ exports.getMe = async (req, res) => {
     return res.status(200).json({ utilisateur });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };

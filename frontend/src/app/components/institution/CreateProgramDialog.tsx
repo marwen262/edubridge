@@ -1,6 +1,7 @@
 import React from 'react';
 import { toast } from 'sonner';
 import { X, Plus, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { programmeService } from '@/services/api';
 import type { CreateProgrammeData, DocumentRequis } from '@/types/api';
@@ -12,36 +13,15 @@ interface CreateProgramDialogProps {
   onCreated: () => void;
 }
 
-const DOMAINES = [
-  { value: 'informatique', label: 'Informatique' },
-  { value: 'genie_civil', label: 'Génie civil' },
-  { value: 'electrique', label: 'Électrique' },
-  { value: 'mecanique', label: 'Mécanique' },
-  { value: 'chimie', label: 'Chimie' },
-  { value: 'agronomie', label: 'Agronomie' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'management', label: 'Management' },
-];
-
-const NIVEAUX = [
-  { value: 'cycle_preparatoire', label: 'Cycle préparatoire' },
-  { value: 'licence', label: 'Licence' },
-  { value: 'master', label: 'Master' },
-  { value: 'ingenieur', label: 'Ingénieur' },
-];
-
-const MODES = [
-  { value: 'cours_du_jour', label: 'Cours du jour' },
-  { value: 'cours_du_soir', label: 'Cours du soir' },
-  { value: 'alternance', label: 'Alternance' },
-  { value: 'formation_continue', label: 'Formation continue' },
-];
+const DOMAINE_VALUES = ['informatique', 'genie_civil', 'electrique', 'mecanique', 'chimie', 'agronomie', 'finance', 'management'] as const;
+const NIVEAU_VALUES = ['cycle_preparatoire', 'licence', 'master', 'ingenieur'] as const;
+const MODE_VALUES = ['cours_du_jour', 'cours_du_soir', 'alternance', 'formation_continue'] as const;
 
 export function CreateProgramDialog({ institutId, open, onClose, onCreated }: CreateProgramDialogProps) {
+  const { t } = useTranslation();
   const [submitting, setSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
-  // Form state
   const [titre, setTitre] = React.useState('');
   const [domaine, setDomaine] = React.useState('');
   const [niveau, setNiveau] = React.useState('');
@@ -54,13 +34,9 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
   const [dateDebut, setDateDebut] = React.useState('');
   const [capacite, setCapacite] = React.useState('');
   const [estActif, setEstActif] = React.useState(true);
-
-  // Documents requis
   const [documents, setDocuments] = React.useState<DocumentRequis[]>([]);
   const [newDocNom, setNewDocNom] = React.useState('');
   const [newDocObligatoire, setNewDocObligatoire] = React.useState(true);
-
-  // Prérequis
   const [moyenneMin, setMoyenneMin] = React.useState('');
   const [typesBac, setTypesBac] = React.useState('');
 
@@ -105,12 +81,12 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!titre.trim()) errs.titre = 'Le titre est obligatoire.';
-    if (titre.trim().length < 3) errs.titre = 'Le titre doit contenir au moins 3 caractères.';
-    if (dureeAnnees && (isNaN(Number(dureeAnnees)) || Number(dureeAnnees) < 1)) errs.dureeAnnees = 'Durée invalide.';
-    if (fraisInscription && isNaN(Number(fraisInscription))) errs.fraisInscription = 'Montant invalide.';
-    if (capacite && (isNaN(Number(capacite)) || Number(capacite) < 1)) errs.capacite = 'Capacité invalide.';
-    if (moyenneMin && (isNaN(Number(moyenneMin)) || Number(moyenneMin) < 0 || Number(moyenneMin) > 20)) errs.moyenneMin = 'Moyenne entre 0 et 20.';
+    if (!titre.trim()) errs.titre = t('programDialog.fields.titleRequired');
+    else if (titre.trim().length < 3) errs.titre = t('programDialog.fields.titleMin');
+    if (dureeAnnees && (isNaN(Number(dureeAnnees)) || Number(dureeAnnees) < 1)) errs.dureeAnnees = t('programDialog.fields.durationInvalid');
+    if (fraisInscription && isNaN(Number(fraisInscription))) errs.fraisInscription = t('programDialog.fields.tuitionInvalid');
+    if (capacite && (isNaN(Number(capacite)) || Number(capacite) < 1)) errs.capacite = t('programDialog.fields.capacityInvalid');
+    if (moyenneMin && (isNaN(Number(moyenneMin)) || Number(moyenneMin) < 0 || Number(moyenneMin) > 20)) errs.moyenneMin = t('programDialog.fields.minAverageInvalid');
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -145,13 +121,13 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
       }
 
       await programmeService.create(data);
-      toast.success('Programme créé avec succès !');
+      toast.success(t('programDialog.toasts.created'));
       resetForm();
       onCreated();
       onClose();
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string; manquants?: string[] } } };
-      const msg = apiErr?.response?.data?.message ?? 'Erreur lors de la création.';
+      const msg = apiErr?.response?.data?.message ?? t('programDialog.toasts.createError');
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -167,17 +143,15 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* Overlay */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
 
-      {/* Dialog */}
       <div className="relative w-full max-w-2xl max-h-[90vh] bg-white dark:bg-[#1D1D1F] rounded-2xl shadow-2xl border border-[var(--edu-border)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="px-6 py-5 border-b border-[var(--edu-border)] flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-[var(--edu-text-primary)]">Nouveau programme</h2>
+            <h2 className="text-xl font-bold text-[var(--edu-text-primary)]">{t('programDialog.create.title')}</h2>
             <p className="text-xs text-[var(--edu-text-secondary)] mt-0.5">
-              Remplissez les informations pour créer une nouvelle formation
+              {t('programDialog.create.subtitle')}
             </p>
           </div>
           <button
@@ -190,102 +164,98 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
-          {/* Titre */}
           <div>
             <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">
-              Titre du programme <span className="text-[var(--edu-danger)]">*</span>
+              {t('programDialog.fields.titleLabel')} <span className="text-[var(--edu-danger)]">*</span>
             </label>
             <input
               type="text"
               value={titre}
               onChange={(e) => setTitre(e.target.value)}
-              placeholder="Ex : Master en Intelligence Artificielle"
+              placeholder={t('programDialog.fields.titlePlaceholder')}
               className={inputClass('titre')}
             />
             {errors.titre && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.titre}</p>}
           </div>
 
-          {/* Domaine + Niveau + Mode */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Domaine</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.domain')}</label>
               <select value={domaine} onChange={(e) => setDomaine(e.target.value)} className={inputClass()}>
-                <option value="">— Sélectionner —</option>
-                {DOMAINES.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                <option value="">{t('programDialog.fields.select')}</option>
+                {DOMAINE_VALUES.map((v) => <option key={v} value={v}>{t(`admin.programs.domains.${v}`)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Niveau</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.level')}</label>
               <select value={niveau} onChange={(e) => setNiveau(e.target.value)} className={inputClass()}>
-                <option value="">— Sélectionner —</option>
-                {NIVEAUX.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
+                <option value="">{t('programDialog.fields.select')}</option>
+                {NIVEAU_VALUES.map((v) => <option key={v} value={v}>{t(`program.levels.${v}`)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Mode</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.mode')}</label>
               <select value={mode} onChange={(e) => setMode(e.target.value)} className={inputClass()}>
-                <option value="">— Sélectionner —</option>
-                {MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                <option value="">{t('programDialog.fields.select')}</option>
+                {MODE_VALUES.map((v) => <option key={v} value={v}>{t(`admin.programs.modes.${v}`)}</option>)}
               </select>
             </div>
           </div>
 
-          {/* Durée + Langue + Capacité */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Durée (années)</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.duration')}</label>
               <input
                 type="number"
                 min="1"
                 max="10"
                 value={dureeAnnees}
                 onChange={(e) => setDureeAnnees(e.target.value)}
-                placeholder="Ex : 2"
+                placeholder={t('programDialog.fields.durationPlaceholder')}
                 className={inputClass('dureeAnnees')}
               />
               {errors.dureeAnnees && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.dureeAnnees}</p>}
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Langue</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.language')}</label>
               <input
                 type="text"
                 value={langue}
                 onChange={(e) => setLangue(e.target.value)}
-                placeholder="Ex : Français"
+                placeholder={t('programDialog.fields.languagePlaceholder')}
                 className={inputClass()}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Capacité</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.capacity')}</label>
               <input
                 type="number"
                 min="1"
                 value={capacite}
                 onChange={(e) => setCapacite(e.target.value)}
-                placeholder="Ex : 30"
+                placeholder={t('programDialog.fields.capacityPlaceholder')}
                 className={inputClass('capacite')}
               />
               {errors.capacite && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.capacite}</p>}
             </div>
           </div>
 
-          {/* Frais + Date limite + Date début */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Frais d'inscription (TND)</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.tuition')}</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={fraisInscription}
                 onChange={(e) => setFraisInscription(e.target.value)}
-                placeholder="Ex : 500"
+                placeholder={t('programDialog.fields.tuitionPlaceholder')}
                 className={inputClass('fraisInscription')}
               />
               {errors.fraisInscription && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.fraisInscription}</p>}
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Date limite candidature</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.deadline')}</label>
               <input
                 type="date"
                 value={dateLimite}
@@ -294,7 +264,7 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Date de début</label>
+              <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.startDate')}</label>
               <input
                 type="date"
                 value={dateDebut}
@@ -304,24 +274,22 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
             </div>
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">Description</label>
+            <label className="block text-sm font-semibold text-[var(--edu-text-primary)] mb-1.5">{t('programDialog.fields.description')}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez le programme, ses objectifs et débouchés…"
+              placeholder={t('programDialog.fields.descriptionPlaceholder')}
               rows={4}
               className={inputClass()}
             />
           </div>
 
-          {/* Prérequis */}
           <div className="bg-[var(--edu-surface)] rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-[var(--edu-text-primary)]">Prérequis</h3>
+            <h3 className="text-sm font-semibold text-[var(--edu-text-primary)]">{t('programDialog.fields.prerequisites')}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-[var(--edu-text-secondary)] mb-1">Moyenne minimum (/20)</label>
+                <label className="block text-xs text-[var(--edu-text-secondary)] mb-1">{t('programDialog.fields.minAverage')}</label>
                 <input
                   type="number"
                   min="0"
@@ -329,34 +297,33 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
                   step="0.01"
                   value={moyenneMin}
                   onChange={(e) => setMoyenneMin(e.target.value)}
-                  placeholder="Ex : 12"
+                  placeholder={t('programDialog.fields.minAveragePlaceholder')}
                   className={inputClass('moyenneMin')}
                 />
                 {errors.moyenneMin && <p className="text-xs text-[var(--edu-danger)] mt-1">{errors.moyenneMin}</p>}
               </div>
               <div>
-                <label className="block text-xs text-[var(--edu-text-secondary)] mb-1">Types de bac (séparés par virgule)</label>
+                <label className="block text-xs text-[var(--edu-text-secondary)] mb-1">{t('programDialog.fields.bacTypes')}</label>
                 <input
                   type="text"
                   value={typesBac}
                   onChange={(e) => setTypesBac(e.target.value)}
-                  placeholder="Ex : mathematiques, sciences"
+                  placeholder={t('programDialog.fields.bacTypesPlaceholder')}
                   className={inputClass()}
                 />
               </div>
             </div>
           </div>
 
-          {/* Documents requis */}
           <div className="bg-[var(--edu-surface)] rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-[var(--edu-text-primary)]">Documents requis</h3>
+            <h3 className="text-sm font-semibold text-[var(--edu-text-primary)]">{t('programDialog.fields.requiredDocuments')}</h3>
             {documents.length > 0 && (
               <div className="space-y-2">
                 {documents.map((doc, i) => (
                   <div key={i} className="flex items-center gap-2 bg-white dark:bg-[#2D2D2F] rounded-lg px-3 py-2">
                     <span className="text-sm text-[var(--edu-text-primary)] flex-1">{doc.nom}</span>
                     <span className={`text-xs font-semibold ${doc.obligatoire ? 'text-[var(--edu-danger)]' : 'text-[var(--edu-text-tertiary)]'}`}>
-                      {doc.obligatoire ? 'Obligatoire' : 'Optionnel'}
+                      {doc.obligatoire ? t('programDialog.fields.mandatory') : t('programDialog.fields.optional')}
                     </span>
                     <button type="button" onClick={() => removeDocument(i)} className="p-1 hover:bg-[var(--edu-surface)] rounded">
                       <X className="w-3.5 h-3.5 text-[var(--edu-text-tertiary)]" />
@@ -370,7 +337,7 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
                 type="text"
                 value={newDocNom}
                 onChange={(e) => setNewDocNom(e.target.value)}
-                placeholder="Nom du document"
+                placeholder={t('programDialog.fields.documentName')}
                 className="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-[#2D2D2F] border border-[var(--edu-border)] text-sm text-[var(--edu-text-primary)] placeholder:text-[var(--edu-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--edu-blue)]"
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); addDocument(); } }}
               />
@@ -381,7 +348,7 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
                   onChange={(e) => setNewDocObligatoire(e.target.checked)}
                   className="rounded"
                 />
-                Obligatoire
+                {t('programDialog.fields.mandatory')}
               </label>
               <button
                 type="button"
@@ -394,7 +361,6 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
             </div>
           </div>
 
-          {/* Actif */}
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -403,10 +369,10 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
                 onChange={(e) => setEstActif(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm font-medium text-[var(--edu-text-primary)]">Programme actif</span>
+              <span className="text-sm font-medium text-[var(--edu-text-primary)]">{t('programDialog.fields.active')}</span>
             </label>
             <span className="text-xs text-[var(--edu-text-tertiary)]">
-              (visible immédiatement aux candidats)
+              {t('programDialog.fields.activeHint')}
             </span>
           </div>
         </form>
@@ -414,7 +380,7 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
         {/* Footer */}
         <div className="px-6 py-4 border-t border-[var(--edu-border)] flex items-center justify-end gap-3 shrink-0">
           <Button type="button" variant="outline" onClick={handleClose} disabled={submitting} className="rounded-xl">
-            Annuler
+            {t('programDialog.actions.cancel')}
           </Button>
           <Button
             type="submit"
@@ -424,9 +390,9 @@ export function CreateProgramDialog({ institutId, open, onClose, onCreated }: Cr
             style={{ backgroundColor: 'var(--edu-blue)' }}
           >
             {submitting ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Création…</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t('programDialog.actions.creating')}</>
             ) : (
-              <><Plus className="w-4 h-4 mr-2" /> Créer le programme</>
+              <><Plus className="w-4 h-4 mr-2" /> {t('programDialog.actions.create')}</>
             )}
           </Button>
         </div>

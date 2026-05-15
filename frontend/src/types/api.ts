@@ -8,6 +8,7 @@ export interface Adresse {
   gouvernorat?: string;
   code_postal?: string;
   pays?: string;
+  lien_maps?: string;
 }
 
 export interface Contact {
@@ -55,6 +56,7 @@ export interface InstitutResume {
   image_couverture?: string;
   taux_acceptation?: number;
   nombre_etudiants?: number;
+  accreditations?: string[];
 }
 
 /** Programme complet tel que retourné par /api/programmes */
@@ -168,6 +170,7 @@ export interface ProgrammeFilters extends PaginationFilters {
 
 export interface InstitutFilters extends PaginationFilters {
   nom?: string;
+  search?: string;
   est_verifie?: boolean;
   admin_view?: boolean;
 }
@@ -333,6 +336,64 @@ export interface Utilisateur {
   mis_a_jour_le?: string;
   candidat?: Candidat;
   institut?: Institut;
+}
+
+// --- Demandes d'accès ---
+
+export interface DemandeAcces {
+  id: string;
+  nom: string;
+  email: string;
+  telephone: string;
+  presentation: string;
+  statut: 'en_attente' | 'approuvee' | 'rejetee';
+  notes_admin?: string | null;
+  traite_par?: string | null;
+  traite_le?: string | null;
+  cree_le: string;
+}
+
+export interface DemandeAccesFilters {
+  statut?: string;
+  page?: number;
+  limit?: number;
+}
+
+// --- Pré-inscriptions ---
+
+export interface PreInscription {
+  id: string;
+  candidature_id: string;
+  candidat_id: string;
+  institut_id: string;
+  programme_id: string;
+  adresse_complete?: string | null;
+  ville?: string | null;
+  pays?: string | null;
+  code_postal?: string | null;
+  telephone?: string | null;
+  date_naissance?: string | null;
+  nationalite?: string | null;
+  type_piece_identite?: 'cin' | 'passeport' | null;
+  numero_piece_identite?: string | null;
+  photo_identite_url?: string | null;
+  statut: 'en_attente' | 'completee';
+  completee_le?: string | null;
+  cree_le?: string;
+  mis_a_jour_le?: string;
+}
+
+export interface PreInscriptionFormData {
+  candidature_id: string;
+  adresse_complete?: string;
+  ville?: string;
+  pays?: string;
+  code_postal?: string;
+  telephone?: string;
+  date_naissance?: string;
+  nationalite?: string;
+  type_piece_identite?: 'cin' | 'passeport';
+  numero_piece_identite?: string;
 }
 
 // --- Erreurs API ---

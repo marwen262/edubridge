@@ -25,7 +25,7 @@ exports.creerCandidature = async (req, res) => {
   } catch (error) {
     if (error.status) return res.status(error.status).json({ message: error.message, manquants: error.manquants });
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -45,7 +45,7 @@ exports.mettreAJourCandidature = async (req, res) => {
   } catch (error) {
     if (error.status) return res.status(error.status).json({ message: error.message });
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -72,7 +72,7 @@ exports.soumettreCandidature = async (req, res) => {
       });
     }
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -88,12 +88,13 @@ exports.changerStatut = async (req, res) => {
       user_id: req.user.id,
       role: req.user.role,
       notes_institut,
+      institut_id: req.user.institut_id,
     });
     return res.status(200).json({ message: 'Statut mis à jour.', candidature });
   } catch (error) {
     if (error.status) return res.status(error.status).json({ message: error.message });
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -114,7 +115,7 @@ exports.getMesCandidatures = async (req, res) => {
     return res.status(200).json({ candidatures });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -150,7 +151,7 @@ exports.getCandidaturesInstitut = async (req, res) => {
     return res.status(200).json({ candidatures });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -169,7 +170,8 @@ exports.getAllCandidatures = async (req, res) => {
       where,
       include: [
         { model: Candidat,  as: 'candidat',  attributes: ['id', 'prenom', 'nom'] },
-        { model: Programme, as: 'programme', attributes: ['id', 'titre', 'institut_id'] },
+        { model: Programme, as: 'programme', attributes: ['id', 'titre', 'domaine', 'niveau', 'institut_id'],
+          include: [{ model: Institut, as: 'institut', attributes: ['id', 'nom', 'sigle'] }] },
       ],
       order: [['cree_le', 'DESC']],
       limit,
@@ -183,7 +185,7 @@ exports.getAllCandidatures = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -198,19 +200,20 @@ exports.getCandidatureById = async (req, res) => {
     });
     if (!candidature) return res.status(404).json({ message: 'Ressource introuvable.' });
 
-    // Contrôle d'accès selon le rôle
+    // Contrôle d'accès selon le rôle — on renvoie 404 (pas 403) pour les
+    // non-admins afin d'éviter de révéler l'existence de la ressource.
     const { role, candidat_id, institut_id } = req.user;
     if (role === 'candidat' && candidature.candidat_id !== candidat_id) {
-      return res.status(403).json({ message: 'Accès refusé.' });
+      return res.status(404).json({ message: 'Ressource introuvable.' });
     }
     if (role === 'institut' && candidature.programme?.institut_id !== institut_id) {
-      return res.status(403).json({ message: 'Accès refusé.' });
+      return res.status(404).json({ message: 'Ressource introuvable.' });
     }
 
     return res.status(200).json({ candidature });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -224,7 +227,7 @@ exports.deleteCandidature = async (req, res) => {
     const { role, candidat_id } = req.user;
     if (role === 'candidat') {
       if (candidature.candidat_id !== candidat_id) {
-        return res.status(403).json({ message: 'Accès refusé.' });
+        return res.status(404).json({ message: 'Ressource introuvable.' });
       }
       if (candidature.statut !== 'brouillon') {
         return res.status(409).json({
@@ -239,6 +242,6 @@ exports.deleteCandidature = async (req, res) => {
     return res.status(200).json({ message: 'Candidature supprimée.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };

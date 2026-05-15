@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Heart, MapPin, Calendar, Clock, Globe, Scale } from 'lucide-react';
 import type { Programme } from '@/types/api';
 import { Badge } from './ui/badge';
@@ -8,6 +9,13 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { useFavoriStatus } from '@/hooks/useFavoriStatus';
 import { useComparaison } from '@/hooks/useComparaison';
+
+const NIVEAU_LABELS: Record<string, string> = {
+  cycle_preparatoire: 'Cycle préparatoire',
+  licence: 'Licence',
+  master: 'Master',
+  ingenieur: 'Ingénieur',
+};
 
 // Mapping champs mock → backend :
 // program.title           → programme.titre
@@ -32,6 +40,7 @@ interface ProgramCardProps {
 
 export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Favoris synchronisés avec l'API
   const { isFavori, loading: favoriLoading, handleToggle } = useFavoriStatus(programme?.id);
@@ -51,15 +60,15 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
     const pid = programme?.id ?? '';
     if (!pid) return;
     if (!dansCmp && compareIds.length >= 3) {
-      toast.error('Maximum 3 programmes peuvent être comparés');
+      toast.error(t('compare.toasts.maxReached'));
       return;
     }
     toggle(pid);
     if (dansCmp) {
-      toast.info('Retiré de la comparaison');
+      toast.info(t('compare.toasts.removed'));
     } else {
-      toast.success('Ajouté à la comparaison', {
-        action: { label: 'Voir comparaison', onClick: () => navigate('/compare') },
+      toast.success(t('compare.toasts.added'), {
+        action: { label: t('compare.toasts.viewCompare'), onClick: () => navigate('/compare') },
       });
     }
   };
@@ -70,7 +79,7 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
   const institutLogo = programme?.institut?.logo;
   const institutVille = programme?.institut?.adresse?.ville;
   const institutPays = programme?.institut?.adresse?.pays;
-  const niveau = programme?.niveau;
+  const niveau = programme?.niveau ? (NIVEAU_LABELS[programme.niveau] ?? programme.niveau) : null;
   const domaine = programme?.domaine;
   const mode = programme?.mode;
   const duree = programme?.duree_annees != null ? `${programme.duree_annees} ans` : null;
@@ -169,7 +178,7 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
                       <span>•</span>
                       <div className="flex items-center gap-1 text-[var(--edu-warning)]">
                         <Calendar className="w-3 h-3" />
-                        <span>Date limite : {new Date(deadline).toLocaleDateString()}</span>
+                        <span>{t('program.card.deadlineLabel', { date: new Date(deadline).toLocaleDateString() })}</span>
                       </div>
                     </>
                   )}
@@ -206,14 +215,14 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
                     className={`p-2 rounded-full hover:bg-[var(--edu-surface)] transition-colors ${
                       dansCmp ? 'text-[var(--edu-blue)]' : 'text-[var(--edu-text-secondary)]'
                     }`}
-                    aria-label="Comparer le programme"
-                    title={dansCmp ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
+                    aria-label={t('compare.compareAriaLabel')}
+                    title={dansCmp ? t('compare.removeAriaLabel') : t('compare.addAriaLabel')}
                   >
                     <Scale className={`w-5 h-5 ${dansCmp ? 'fill-[var(--edu-blue)]/20' : ''}`} />
                   </button>
 
                   <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
-                    Voir les détails
+                    {t('program.card.viewDetails')}
                   </Button>
                 </div>
               </div>
@@ -317,7 +326,7 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
               {deadline && (
                 <div className="flex items-center gap-2 text-[var(--edu-warning)]">
                   <Calendar className="w-3 h-3" />
-                  <span>Deadline : {new Date(deadline).toLocaleDateString()}</span>
+                  <span>{t('program.card.deadlineShort', { date: new Date(deadline).toLocaleDateString() })}</span>
                 </div>
               )}
             </div>
@@ -330,10 +339,10 @@ export function ProgramCard({ programme, view = 'grid' }: ProgramCardProps) {
                   ? 'border-[var(--edu-blue)] text-[var(--edu-blue)] bg-[var(--edu-blue)]/10'
                   : 'border-[var(--edu-border)] text-[var(--edu-text-secondary)] hover:border-[var(--edu-blue)] hover:text-[var(--edu-blue)]'
               }`}
-              aria-label={dansCmp ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
+              aria-label={dansCmp ? t('compare.removeAriaLabel') : t('compare.addAriaLabel')}
             >
               <Scale className="w-3.5 h-3.5" />
-              {dansCmp ? 'Retirer de la comparaison' : 'Comparer'}
+              {dansCmp ? t('compare.removeAriaLabel') : t('compare.compareButton')}
             </button>
           </div>
         </div>

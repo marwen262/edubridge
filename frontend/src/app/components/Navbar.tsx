@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router';
 import { Bell, LogOut } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -13,7 +14,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ transparent = false }: NavbarProps) {
-
+  const { t, i18n } = useTranslation();
   const [notifOpen, setNotifOpen] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
 
@@ -69,14 +70,18 @@ export function Navbar({ transparent = false }: NavbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-
-
   const handleMarkAsRead = async (id: string) => {
     try {
       await notificationService.markAsRead(id);
       refetchNotifications();
     } catch {
       // Silencieux — l'échec d'un markAsRead ne doit pas perturber l'UX
+    }
+  };
+
+  const switchToLanguage = (lang: 'fr' | 'en') => {
+    if (!i18n.language.startsWith(lang)) {
+      i18n.changeLanguage(lang);
     }
   };
 
@@ -104,55 +109,75 @@ export function Navbar({ transparent = false }: NavbarProps) {
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Accueil
+              {t('navbar.home')}
             </Link>
             <Link
               to="/search"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Programmes
+              {t('navbar.programs')}
             </Link>
             <Link
               to="/institutions"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Instituts
+              {t('navbar.institutions')}
             </Link>
             <Link
               to="/compare"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Comparer
+              {t('navbar.compare')}
             </Link>
             <Link
               to="/guide"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Guide
+              {t('navbar.guide')}
             </Link>
             <a
               href="#how-it-works"
               onClick={(e) => handleScrollAnchor(e, 'how-it-works')}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              Comment ça marche
+              {t('navbar.howItWorks')}
             </a>
             <a
               href="#about"
               onClick={(e) => handleScrollAnchor(e, 'about')}
               className="text-[15px] text-[var(--edu-text-primary)] hover:text-[var(--edu-blue)] transition-colors"
             >
-              À propos
+              {t('navbar.about')}
             </a>
           </div>
 
           {/* Actions */}
           <div className="flex items-center gap-4">
 
+            {/* Language Switcher */}
+            <div className="flex items-center border border-[var(--edu-border)] rounded-full overflow-hidden text-xs font-semibold">
+              {(['fr', 'en'] as const).map((lang) => {
+                const isActive = i18n.language.startsWith(lang);
+                return (
+                  <button
+                    key={lang}
+                    onClick={() => switchToLanguage(lang)}
+                    title={lang === 'fr' ? 'Passer en français' : 'Switch to English'}
+                    className={`px-3 py-1.5 leading-none transition-colors ${
+                      isActive
+                        ? 'bg-[var(--edu-blue)] text-white'
+                        : 'text-[var(--edu-text-secondary)] hover:text-[var(--edu-blue)]'
+                    }`}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Cloche notifications — uniquement si connecté */}
             {isAuthenticated && (
@@ -187,14 +212,14 @@ export function Navbar({ transparent = false }: NavbarProps) {
               <>
                 <Link to={dashboardPath}>
                   <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white text-[15px] font-medium px-6">
-                    Mon espace
+                    {t('navbar.mySpace')}
                   </Button>
                 </Link>
                 <button
                   onClick={logout}
                   className="p-2 rounded-full hover:bg-[var(--edu-surface)] transition-colors text-[var(--edu-text-secondary)] hover:text-[var(--edu-danger)]"
-                  aria-label="Se déconnecter"
-                  title="Se déconnecter"
+                  aria-label={t('navbar.logout')}
+                  title={t('navbar.logout')}
                 >
                   <LogOut className="w-5 h-5" />
                 </button>
@@ -203,13 +228,13 @@ export function Navbar({ transparent = false }: NavbarProps) {
               <>
                 <Link to="/login">
                   <Button variant="ghost" className="text-[15px] font-medium text-[var(--edu-text-primary)]">
-                    Se connecter
+                    {t('navbar.login')}
                   </Button>
                 </Link>
 
                 <Link to="/signup">
                   <Button className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white text-[15px] font-medium px-6">
-                    Commencer
+                    {t('navbar.start')}
                   </Button>
                 </Link>
               </>

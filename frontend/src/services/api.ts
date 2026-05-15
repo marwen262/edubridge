@@ -10,6 +10,8 @@ import type {
   InviterInstitutData,
   TerminerPremierLoginData,
   UpdateUtilisateurData,
+  DemandeAccesFilters,
+  PreInscriptionFormData,
 } from '@/types/api';
 
 // Instance axios centralisée
@@ -218,6 +220,42 @@ export const utilisateurService = {
 
   delete: (id: string) =>
     api.delete(`/utilisateurs/${id}`),
+};
+
+// --- Service pré-inscriptions ---
+export const preInscriptionService = {
+  creerOuCompleter: (data: FormData | PreInscriptionFormData) =>
+    api.post('/preinscriptions', data),
+
+  getMine: (candidatureId: string) =>
+    api.get(`/preinscriptions/mine/${candidatureId}`),
+
+  downloadPdf: async (id: string, nomFichier?: string): Promise<void> => {
+    const response = await api.get(`/preinscriptions/${id}/pdf`, { responseType: 'blob' });
+    const url = URL.createObjectURL(response.data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomFichier ?? `attestation-preinscription-${id.substring(0, 8)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+};
+
+// --- Service demandes d'accès ---
+export const demandeAccesService = {
+  creer: (data: { nom: string; email: string; telephone: string; presentation: string }) =>
+    api.post('/demandes-acces', data),
+
+  listerToutes: (params?: DemandeAccesFilters) =>
+    api.get('/demandes-acces', { params }),
+
+  approuver: (id: string) =>
+    api.post(`/demandes-acces/${id}/approuver`),
+
+  rejeter: (id: string, notes_admin?: string) =>
+    api.post(`/demandes-acces/${id}/rejeter`, { notes_admin }),
 };
 
 export default api;

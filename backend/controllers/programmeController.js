@@ -52,7 +52,7 @@ exports.getAllProgrammes = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -66,7 +66,7 @@ exports.getProgrammeById = async (req, res) => {
     return res.status(200).json({ programme });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -97,7 +97,7 @@ exports.createProgramme = async (req, res) => {
     return res.status(201).json({ message: 'Programme créé.', programme });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -115,7 +115,7 @@ exports.updateProgramme = async (req, res) => {
     return res.status(200).json({ message: 'Programme mis à jour.', programme });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -133,6 +133,6 @@ exports.deleteProgramme = async (req, res) => {
     return res.status(200).json({ message: 'Programme supprimé.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };

@@ -10,6 +10,7 @@ import { InstitutionNotificationsSection } from '../components/institution/Insti
 import { InstitutionProfilSection } from '../components/institution/InstitutionProfilSection';
 import { InstitutionParametresSection } from '../components/institution/InstitutionParametresSection';
 import { InstitutionPlaceholderSection } from '../components/institution/InstitutionPlaceholderSection';
+import { InstitutionRapportsSection } from '../components/institution/InstitutionRapportsSection';
 
 export function InstitutionDashboard() {
   const { section } = useParams<{ section?: string }>();
@@ -35,13 +36,7 @@ export function InstitutionDashboard() {
       content = <InstitutionNotificationsSection />;
       break;
     case 'rapports':
-      content = (
-        <InstitutionPlaceholderSection
-          title="Rapports"
-          subtitle="Statistiques et exports"
-          description="Rapports périodiques, exports CSV et indicateurs de performance de votre établissement. Disponible prochainement."
-        />
-      );
+      content = <InstitutionRapportsSection />;
       break;
     case 'profil':
       content = <InstitutionProfilSection />;

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60" role="img" aria-label="CTI">
+  <title>CTI — Commission des Titres d'Ingénieur</title>
+  <rect width="120" height="60" rx="8" fill="#003D7A"/>
+  <text x="60" y="38" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="24" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">CTI</text>
+  <rect x="8" y="48" width="104" height="2" fill="#E30613"/>
+</svg>

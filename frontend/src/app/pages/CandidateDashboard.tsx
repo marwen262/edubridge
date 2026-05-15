@@ -1,9 +1,10 @@
 import React from 'react';
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   FileText, Clock, CheckCircle, FileEdit, Search,
-  UserCircle, Upload, Bell, ChevronRight, Inbox, Pencil,
+  UserCircle, Upload, Bell, ChevronRight, Inbox, Pencil, ClipboardList,
 } from 'lucide-react';
 import { DashboardSidebar } from '../components/DashboardSidebar';
 import { StatCard } from '../components/StatCard';
@@ -25,6 +26,7 @@ import {
 import type { Candidature } from '@/types/api';
 
 export function CandidateDashboard() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [draftToResume, setDraftToResume] = useState<Candidature | null>(null);
 
@@ -48,9 +50,9 @@ export function CandidateDashboard() {
     }
   };
 
-  const prenom = user?.prenom ?? user?.email?.split('@')[0] ?? 'Candidat';
+  const prenom = user?.prenom ?? user?.email?.split('@')[0] ?? t('sidebar.roles.candidate');
 
-  const currentDate = new Date().toLocaleDateString('fr-FR', {
+  const currentDate = new Date().toLocaleDateString(i18n.language, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -65,10 +67,10 @@ export function CandidateDashboard() {
   const brouillons = candidatures.filter((c) => c.statut === 'brouillon').length;
 
   const stats = [
-    { label: 'Total candidatures', value: String(totalCandidatures), icon: FileText, color: 'var(--edu-blue)' },
-    { label: 'En cours', value: String(enCours), icon: Clock, color: 'var(--edu-warning)' },
-    { label: 'Acceptées', value: String(acceptees), icon: CheckCircle, color: 'var(--edu-success)' },
-    { label: 'Brouillons', value: String(brouillons), icon: FileEdit, color: 'var(--edu-text-secondary)' },
+    { label: t('candidate.dashboard.stats.total'), value: String(totalCandidatures), icon: FileText, color: 'var(--edu-blue)' },
+    { label: t('candidate.dashboard.stats.inProgress'), value: String(enCours), icon: Clock, color: 'var(--edu-warning)' },
+    { label: t('candidate.dashboard.stats.accepted'), value: String(acceptees), icon: CheckCircle, color: 'var(--edu-success)' },
+    { label: t('candidate.dashboard.stats.drafts'), value: String(brouillons), icon: FileEdit, color: 'var(--edu-text-secondary)' },
   ];
 
   const recentCandidatures = candidatures.slice(0, 5);
@@ -84,7 +86,7 @@ export function CandidateDashboard() {
         {/* Section A — En-tête */}
         <div className="bg-white dark:bg-[#1D1D1F] border-b border-[var(--edu-border)] px-8 py-6">
           <h1 className="text-2xl font-bold text-[var(--edu-text-primary)]">
-            Bonjour, {prenom}
+            {t('candidate.dashboard.greeting', { name: prenom })}
           </h1>
           <p className="text-sm text-[var(--edu-text-secondary)] mt-0.5 capitalize">
             {currentDate}
@@ -130,13 +132,13 @@ export function CandidateDashboard() {
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-[var(--edu-text-primary)]">
-                  Mes candidatures récentes
+                  {t('candidate.dashboard.recentApplications.title')}
                 </h2>
                 <Link
                   to="/dashboard/candidatures"
                   className="text-sm text-[var(--edu-blue)] hover:underline flex items-center gap-0.5"
                 >
-                  Voir toutes <ChevronRight className="w-4 h-4" />
+                  {t('candidate.dashboard.recentApplications.seeAll')} <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
 
@@ -155,14 +157,14 @@ export function CandidateDashboard() {
                   <div className="py-14 flex flex-col items-center gap-3 text-center px-6">
                     <Inbox className="w-10 h-10 text-[var(--edu-text-tertiary)]" />
                     <p className="text-sm text-[var(--edu-text-secondary)]">
-                      Vous n'avez encore aucune candidature.
+                      {t('candidate.dashboard.recentApplications.empty')}
                     </p>
                     <Link to="/search">
                       <Button
                         size="sm"
                         className="bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white mt-1"
                       >
-                        Explorer les programmes
+                        {t('candidate.dashboard.recentApplications.explore')}
                       </Button>
                     </Link>
                   </div>
@@ -172,16 +174,16 @@ export function CandidateDashboard() {
                       <thead className="bg-[var(--edu-surface)]">
                         <tr>
                           <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide">
-                            Programme
+                            {t('candidate.dashboard.recentApplications.columns.program')}
                           </th>
                           <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide hidden sm:table-cell">
-                            Institut
+                            {t('candidate.dashboard.recentApplications.columns.institution')}
                           </th>
                           <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide hidden md:table-cell">
-                            Date
+                            {t('candidate.dashboard.recentApplications.columns.date')}
                           </th>
                           <th className="text-left px-5 py-3 text-xs font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide">
-                            Statut
+                            {t('candidate.dashboard.recentApplications.columns.status')}
                           </th>
                           <th className="px-5 py-3" />
                         </tr>
@@ -205,9 +207,9 @@ export function CandidateDashboard() {
                             <td className="px-5 py-3.5 hidden md:table-cell">
                               <p className="text-sm text-[var(--edu-text-secondary)]">
                                 {c.soumise_le
-                                  ? new Date(c.soumise_le).toLocaleDateString('fr-FR')
+                                  ? new Date(c.soumise_le).toLocaleDateString(i18n.language)
                                   : c.cree_le
-                                  ? new Date(c.cree_le).toLocaleDateString('fr-FR')
+                                  ? new Date(c.cree_le).toLocaleDateString(i18n.language)
                                   : '—'}
                               </p>
                             </td>
@@ -233,6 +235,16 @@ export function CandidateDashboard() {
                                 <Pencil className="w-3 h-3" />
                                 {getActionLabel(c.statut)}
                               </Button>
+                            ) : c.statut === 'acceptee' ? (
+                              <Link to={`/dashboard/preinscription/${c.id}`}>
+                                <Button
+                                  size="sm"
+                                  className="text-xs flex items-center gap-1 bg-[var(--edu-success)] hover:opacity-90 text-white"
+                                >
+                                  <ClipboardList className="w-3 h-3" />
+                                  {t('preInscription.action')}
+                                </Button>
+                              </Link>
                             ) : (
                               <Link to={`/program/${c.programme_id}`}>
                                 <Button
@@ -264,13 +276,13 @@ export function CandidateDashboard() {
               {/* Actions rapides */}
               <div>
                 <h2 className="text-lg font-semibold text-[var(--edu-text-primary)] mb-3">
-                  Actions rapides
+                  {t('candidate.dashboard.quickActions.title')}
                 </h2>
                 <div className="glass-card rounded-2xl p-3 space-y-1">
                   {[
-                    { label: 'Explorer les programmes', href: '/search', Icon: Search },
-                    { label: 'Compléter mon profil', href: '/dashboard/parametres', Icon: UserCircle },
-                    { label: 'Uploader des documents', href: '/dashboard/documents', Icon: Upload },
+                    { label: t('candidate.dashboard.quickActions.explore'), href: '/search', Icon: Search },
+                    { label: t('candidate.dashboard.quickActions.completeProfile'), href: '/dashboard/parametres', Icon: UserCircle },
+                    { label: t('candidate.dashboard.quickActions.uploadDocuments'), href: '/dashboard/documents', Icon: Upload },
                   ].map(({ label, href, Icon }) => (
                     <Link
                       key={href}
@@ -295,7 +307,7 @@ export function CandidateDashboard() {
               {/* Notifications récentes */}
               <div>
                 <h2 className="text-lg font-semibold text-[var(--edu-text-primary)] mb-3 flex items-center gap-2">
-                  Notifications
+                  {t('common.notifications')}
                   {unreadCount > 0 && (
                     <span
                       className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold text-white"
@@ -322,7 +334,7 @@ export function CandidateDashboard() {
                     <div className="py-8 text-center px-4">
                       <Bell className="w-8 h-8 text-[var(--edu-text-tertiary)] mx-auto mb-2" />
                       <p className="text-sm text-[var(--edu-text-secondary)]">
-                        Aucune notification pour le moment
+                        {t('common.noNotifications')}
                       </p>
                     </div>
                   ) : (
@@ -350,7 +362,7 @@ export function CandidateDashboard() {
                             <div className="flex items-center justify-between mt-1">
                               {n.cree_le && (
                                 <span className="text-[11px] text-[var(--edu-text-tertiary)]">
-                                  {new Date(n.cree_le).toLocaleDateString('fr-FR')}
+                                  {new Date(n.cree_le).toLocaleDateString(i18n.language)}
                                 </span>
                               )}
                               {!n.est_lue && (
@@ -358,7 +370,7 @@ export function CandidateDashboard() {
                                   onClick={() => handleMarkAsRead(n.id)}
                                   className="text-[11px] text-[var(--edu-blue)] hover:underline"
                                 >
-                                  Marquer lue
+                                  {t('common.markAsRead')}
                                 </button>
                               )}
                             </div>
@@ -381,17 +393,17 @@ export function CandidateDashboard() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-semibold text-[var(--edu-text-primary)]">
-                  Découvrir des programmes
+                  {t('candidate.dashboard.discoverPrograms.title')}
                 </h2>
                 <p className="text-sm text-[var(--edu-text-secondary)] mt-0.5">
-                  Explorez les formations disponibles sur EduBridge
+                  {t('candidate.dashboard.discoverPrograms.subtitle')}
                 </p>
               </div>
               <Link
                 to="/search"
                 className="text-sm text-[var(--edu-blue)] hover:underline flex items-center gap-0.5"
               >
-                Voir tous <ChevronRight className="w-4 h-4" />
+                {t('candidate.dashboard.discoverPrograms.seeAll')} <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

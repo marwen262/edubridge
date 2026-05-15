@@ -1,16 +1,18 @@
-// models/index.js — Chargement des 8 modèles MVP et déclaration des associations
+// models/index.js — Chargement des 10 modèles et déclaration des associations
 const sequelize = require('../config/database');
 const { DataTypes } = require('sequelize');
 
 // ── Chargement des modèles (factory pattern) ──────────────────────────
-const Utilisateur  = require('./Utilisateur')(sequelize, DataTypes);
-const Candidat     = require('./Candidat')(sequelize, DataTypes);
-const Institut     = require('./Institut')(sequelize, DataTypes);
-const Programme    = require('./Programme')(sequelize, DataTypes);
-const Candidature  = require('./Candidature')(sequelize, DataTypes);
-const Notification = require('./Notification')(sequelize, DataTypes);
-const Media        = require('./Media')(sequelize, DataTypes);
-const Favori       = require('./Favori')(sequelize, DataTypes);
+const Utilisateur    = require('./Utilisateur')(sequelize, DataTypes);
+const Candidat       = require('./Candidat')(sequelize, DataTypes);
+const Institut       = require('./Institut')(sequelize, DataTypes);
+const Programme      = require('./Programme')(sequelize, DataTypes);
+const Candidature    = require('./Candidature')(sequelize, DataTypes);
+const Notification   = require('./Notification')(sequelize, DataTypes);
+const Media          = require('./Media')(sequelize, DataTypes);
+const Favori         = require('./Favori')(sequelize, DataTypes);
+const DemandeAcces   = require('./DemandeAcces')(sequelize, DataTypes);
+const PreInscription = require('./PreInscription')(sequelize, DataTypes);
 
 // ── Associations ──────────────────────────────────────────────────────
 
@@ -65,6 +67,20 @@ Media.belongsTo(Institut, {
   as: 'institutProprietaire',
 });
 
+// --- DemandeAcces → Utilisateur (admin qui a traité) ---
+DemandeAcces.belongsTo(Utilisateur, {
+  foreignKey: 'traite_par',
+  as: 'admin',
+  onDelete: 'SET NULL',
+});
+
+// --- PreInscription (1:1 Candidature, N:1 Candidat / Institut / Programme) ---
+Candidature.hasOne(PreInscription, { foreignKey: 'candidature_id', as: 'preInscription', onDelete: 'CASCADE' });
+PreInscription.belongsTo(Candidature, { foreignKey: 'candidature_id', as: 'candidature' });
+PreInscription.belongsTo(Candidat,    { foreignKey: 'candidat_id',    as: 'candidat' });
+PreInscription.belongsTo(Institut,    { foreignKey: 'institut_id',    as: 'institut' });
+PreInscription.belongsTo(Programme,   { foreignKey: 'programme_id',   as: 'programme' });
+
 // ── Export ─────────────────────────────────────────────────────────────
 module.exports = {
   sequelize,
@@ -76,4 +92,6 @@ module.exports = {
   Notification,
   Media,
   Favori,
+  DemandeAcces,
+  PreInscription,
 };

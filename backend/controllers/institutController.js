@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { Op }  = require('sequelize');
 const { sequelize, Institut, Utilisateur, Programme } = require('../models');
 const { sendInstitutInviteEmail } = require('../services/emailService');
+const notificationService = require('../services/notificationService');
 const { lirePagination, construirePaginationMeta } = require('../utils/pagination');
 
 const CHAMPS_EDITABLES = [
@@ -22,7 +23,7 @@ function pick(body, keys) {
 // GET /api/instituts — public (catalogue) ou admin (liste complète) + pagination
 exports.getAllInstituts = async (req, res) => {
   try {
-    const { nom, est_verifie, admin_view } = req.query;
+    const { nom, search, est_verifie, admin_view } = req.query;
     const where = {};
 
     const isAdmin = req.user?.role === 'admin';
@@ -33,6 +34,12 @@ exports.getAllInstituts = async (req, res) => {
     }
 
     if (nom) where.nom = { [Op.iLike]: `%${nom}%` };
+    if (search) {
+      where[Op.or] = [
+        { nom:   { [Op.iLike]: `%${search}%` } },
+        { sigle: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
     if (est_verifie !== undefined && isAdmin) where.est_verifie = est_verifie === 'true';
 
     const { page, limit, offset } = lirePagination(req.query);
@@ -55,7 +62,7 @@ exports.getAllInstituts = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -69,7 +76,7 @@ exports.getInstitutById = async (req, res) => {
     return res.status(200).json({ institut });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -132,7 +139,7 @@ exports.createInstitut = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -143,7 +150,7 @@ exports.updateInstitut = async (req, res) => {
     const institut = await Institut.findByPk(req.params.id);
     if (!institut) return res.status(404).json({ message: 'Ressource introuvable.' });
 
-    if (req.user.role === 'institut' && req.user.institut_id !== req.params.id) {
+    if (req.user.role === 'institut' && String(req.user.institut_id) !== String(req.params.id)) {
       return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -175,7 +182,7 @@ exports.updateInstitut = async (req, res) => {
     return res.status(200).json({ message: 'Établissement mis à jour.', institut });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -188,7 +195,7 @@ exports.deleteInstitut = async (req, res) => {
     return res.status(200).json({ message: 'Établissement supprimé.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -212,7 +219,7 @@ exports.listerEnAttente = async (req, res) => {
     return res.status(200).json({ instituts });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -242,7 +249,7 @@ exports.approuverInstitut = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -269,20 +276,34 @@ exports.rejeterInstitut = async (req, res) => {
       suspension_reason: motif,
     });
 
+    // Notifier l'institut du motif pour qu'il puisse corriger
+    try {
+      await notificationService.creerNotification({
+        utilisateur_id: institut.utilisateur_id,
+        type: 'systeme',
+        titre: 'Profil à corriger',
+        contenu: `Votre profil nécessite des corrections. Motif : ${motif}`,
+        ref_id: institut.id,
+        ref_type: 'Institut',
+      });
+    } catch (notifErr) {
+      console.error('[rejeterInstitut] Notification échouée:', notifErr.message);
+    }
+
     return res.status(200).json({
       message: 'Institut rejeté. L\'établissement peut corriger son profil et resoumettre.',
       institut,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
 // POST /api/instituts/:id/resoumettre — institut : resoumet après correction (statut rejected)
 exports.resoumettre = async (req, res) => {
   try {
-    if (req.user.role === 'institut' && req.user.institut_id !== req.params.id) {
+    if (req.user.role === 'institut' && String(req.user.institut_id) !== String(req.params.id)) {
       return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -300,13 +321,30 @@ exports.resoumettre = async (req, res) => {
       suspension_reason: null,
     });
 
+    // Notifier les admins du re-soumission
+    try {
+      const admins = await Utilisateur.findAll({ where: { role: 'admin', est_actif: true } });
+      await Promise.all(admins.map((admin) =>
+        notificationService.creerNotification({
+          utilisateur_id: admin.id,
+          type: 'systeme',
+          titre: 'Profil corrigé et resoumis',
+          contenu: `${institut.nom || 'Un institut'} a corrigé son profil et attend votre re-validation.`,
+          ref_id: institut.id,
+          ref_type: 'Institut',
+        })
+      ));
+    } catch (notifErr) {
+      console.error('[resoumettre] Notification admins échouée:', notifErr.message);
+    }
+
     return res.status(200).json({
       message: 'Dossier resoumis pour validation.',
       institut,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -338,13 +376,27 @@ exports.suspendreInstitut = async (req, res) => {
       suspended_by: req.user.id,
     });
 
+    // Notifier l'institut de la suspension avec le motif
+    try {
+      await notificationService.creerNotification({
+        utilisateur_id: institut.utilisateur_id,
+        type: 'systeme',
+        titre: 'Compte suspendu',
+        contenu: `Votre compte a été suspendu par l'administration. Motif : ${motif}`,
+        ref_id: institut.id,
+        ref_type: 'Institut',
+      });
+    } catch (notifErr) {
+      console.error('[suspendreInstitut] Notification échouée:', notifErr.message);
+    }
+
     return res.status(200).json({
       message: 'Institut suspendu et retiré du catalogue.',
       institut,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -372,6 +424,6 @@ exports.reactiverInstitut = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };

@@ -100,7 +100,10 @@ function validerTransition(role, statut_actuel, statut_cible) {
   if (STATUTS_TERMINAUX.includes(statut_actuel)) {
     throw { status: 400, message: `Statut terminal « ${statut_actuel} » : aucune transition autorisée.` };
   }
-  if (role === 'admin') return; // admin peut tout (sauf valeur ENUM invalide, déjà rejetée)
+  // Admin bypass : l'admin peut forcer n'importe quelle transition (correction
+  // manuelle, migration de données, résolution de litige). Les valeurs ENUM
+  // invalides sont rejetées en amont (findByPk + validation Sequelize).
+  if (role === 'admin') return;
   const permises = TRANSITIONS[role]?.[statut_actuel] || [];
   if (!permises.includes(statut_cible)) {
     throw {
@@ -334,7 +337,7 @@ exports.soumettre = async ({ candidature_id, user_id, profil }) => {
     if (docDiplome && docDiplome.url) {
       const cheminFichier = path.resolve(
         __dirname,
-        '../../uploads',
+        '../uploads',
         path.basename(docDiplome.url)
       );
 
@@ -375,11 +378,16 @@ exports.soumettre = async ({ candidature_id, user_id, profil }) => {
 };
 
 // Transition de statut demandée par l'institut ou l'admin
-exports.changerStatut = async ({ candidature_id, statut_cible, user_id, role, notes_institut }) => {
+exports.changerStatut = async ({ candidature_id, statut_cible, user_id, role, notes_institut, institut_id }) => {
   const candidature = await Candidature.findByPk(candidature_id, {
     include: [{ model: Programme, as: 'programme', attributes: ['id', 'institut_id'] }],
   });
   if (!candidature) throw { status: 404, message: 'Candidature introuvable.' };
+
+  // Un institut ne peut agir que sur les candidatures de ses propres programmes
+  if (role === 'institut' && candidature.programme?.institut_id !== institut_id) {
+    throw { status: 403, message: 'Accès refusé.' };
+  }
 
   validerTransition(role, candidature.statut, statut_cible);
 

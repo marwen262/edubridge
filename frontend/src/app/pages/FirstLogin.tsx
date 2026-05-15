@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Check, X, Building2, AlertCircle, Loader2 } from 'lucide-react';
 import logoedubridge from '@/assets/logo/logoedubridge.png';
 import { useForm } from 'react-hook-form';
@@ -42,7 +43,13 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 type TokenState =
   | { status: 'loading' }
-  | { status: 'valid'; email: string; nom: string | null }
+  | {
+      status: 'valid';
+      email: string;
+      nom: string | null;
+      telephone: string | null;
+      description: string | null;
+    }
   | { status: 'invalid'; code: string; message: string };
 
 // ── Composant principal ───────────────────────────────────────────────────
@@ -50,6 +57,7 @@ type TokenState =
 export function FirstLogin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
   const { updateUser, login } = useAuth();
   const token = searchParams.get('token') ?? '';
 
@@ -65,18 +73,24 @@ export function FirstLogin() {
   // ── Validation du token au montage ────────────────────────────────────
   useEffect(() => {
     if (!token) {
-      setTokenState({ status: 'invalid', code: 'TOKEN_MISSING', message: 'Lien d\'invitation manquant.' });
+      setTokenState({ status: 'invalid', code: 'TOKEN_MISSING', message: t('firstLogin.tokenMissing') });
       return;
     }
 
     authService
       .validerTokenPremierLogin(token)
       .then(({ data }) => {
-        setTokenState({ status: 'valid', email: data.email, nom: data.nom });
+        setTokenState({
+          status: 'valid',
+          email: data.email,
+          nom: data.nom,
+          telephone: data.telephone ?? null,
+          description: data.description ?? null,
+        });
       })
       .catch((err) => {
         const code: string = err.response?.data?.code ?? 'TOKEN_INVALID';
-        const message: string = err.response?.data?.message ?? 'Lien d\'invitation invalide.';
+        const message: string = err.response?.data?.message ?? t('firstLogin.tokenInvalid');
         setTokenState({ status: 'invalid', code, message });
       });
   }, [token]);
@@ -89,10 +103,10 @@ export function FirstLogin() {
   const watchedPwd = pwdForm.watch('password') ?? '';
 
   const passwordChecks = [
-    { label: '8 caractères minimum', met: watchedPwd.length >= 8 },
-    { label: 'Une majuscule', met: /[A-Z]/.test(watchedPwd) },
-    { label: 'Un chiffre', met: /[0-9]/.test(watchedPwd) },
-    { label: 'Un caractère spécial (!@#$%^&*)', met: /[!@#$%^&*]/.test(watchedPwd) },
+    { label: t('firstLogin.checks.minChars'), met: watchedPwd.length >= 8 },
+    { label: t('firstLogin.checks.uppercase'), met: /[A-Z]/.test(watchedPwd) },
+    { label: t('firstLogin.checks.digit'), met: /[0-9]/.test(watchedPwd) },
+    { label: t('firstLogin.checks.special'), met: /[!@#$%^&*]/.test(watchedPwd) },
   ];
 
   const onPasswordSubmit = (data: PasswordFormData) => {
@@ -105,16 +119,17 @@ export function FirstLogin() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       nom: tokenState.status === 'valid' ? (tokenState.nom ?? '') : '',
-      telephone: '',
-      description: '',
+      telephone: tokenState.status === 'valid' ? (tokenState.telephone ?? '') : '',
+      description: tokenState.status === 'valid' ? (tokenState.description ?? '') : '',
     },
   });
 
-  // Pré-remplir le nom si disponible après chargement du token
+  // Pré-remplir les champs depuis la demande d'accès dès que le token est validé
   useEffect(() => {
-    if (tokenState.status === 'valid' && tokenState.nom) {
-      profileForm.setValue('nom', tokenState.nom);
-    }
+    if (tokenState.status !== 'valid') return;
+    if (tokenState.nom)         profileForm.setValue('nom', tokenState.nom);
+    if (tokenState.telephone)   profileForm.setValue('telephone', tokenState.telephone);
+    if (tokenState.description) profileForm.setValue('description', tokenState.description);
   }, [tokenState, profileForm]);
 
   const onProfileSubmit = async (data: ProfileFormData) => {
@@ -141,11 +156,11 @@ export function FirstLogin() {
         validation_status: result.profil?.validation_status,
       }));
 
-      toast.success('Compte activé ! Bienvenue sur EduBridge.');
+      toast.success(t('firstLogin.toasts.success'));
       navigate('/dashboard/institution');
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } } };
-      toast.error(apiErr.response?.data?.message ?? 'Erreur lors de l\'activation du compte.');
+      toast.error(apiErr.response?.data?.message ?? t('firstLogin.toasts.error'));
     } finally {
       setSubmitting(false);
     }
@@ -157,7 +172,7 @@ export function FirstLogin() {
       <div className="min-h-screen dotted-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-10 h-10 text-[var(--edu-blue)] animate-spin" />
-          <p className="text-[var(--edu-text-secondary)]">Validation du lien d'invitation…</p>
+          <p className="text-[var(--edu-text-secondary)]">{t('firstLogin.loading')}</p>
         </div>
       </div>
     );
@@ -179,12 +194,12 @@ export function FirstLogin() {
               <AlertCircle className="w-8 h-8 text-[var(--edu-danger)]" />
             </div>
             <h1 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-3">
-              {isExpired ? 'Lien expiré' : isUsed ? 'Lien déjà utilisé' : 'Lien invalide'}
+              {isExpired ? t('firstLogin.invalidTitle.expired') : isUsed ? t('firstLogin.invalidTitle.used') : t('firstLogin.invalidTitle.invalid')}
             </h1>
             <p className="text-[var(--edu-text-secondary)] mb-6">{tokenState.message}</p>
             {(isExpired || tokenState.code === 'TOKEN_INVALID') && (
               <p className="text-sm text-[var(--edu-text-tertiary)]">
-                Contactez l'administrateur EduBridge pour recevoir un nouveau lien d'invitation.
+                {t('firstLogin.contactAdmin')}
               </p>
             )}
             {isUsed && (
@@ -192,7 +207,7 @@ export function FirstLogin() {
                 onClick={() => navigate('/login')}
                 className="mt-4 rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white"
               >
-                Se connecter
+                {t('firstLogin.login')}
               </Button>
             )}
           </div>
@@ -237,7 +252,7 @@ export function FirstLogin() {
           <div className="flex items-center gap-3 p-3 bg-[var(--edu-surface)] rounded-xl mb-6">
             <Building2 className="w-5 h-5 text-[var(--edu-blue)] shrink-0" />
             <div>
-              <p className="text-xs text-[var(--edu-text-tertiary)]">Invitation pour</p>
+              <p className="text-xs text-[var(--edu-text-tertiary)]">{t('firstLogin.invitationFor')}</p>
               <p className="text-sm font-medium text-[var(--edu-text-primary)]">
                 {nomInstitut ? `${nomInstitut} — ` : ''}{email}
               </p>
@@ -249,16 +264,16 @@ export function FirstLogin() {
             <>
               <div className="text-center mb-6">
                 <h1 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
-                  Définir votre mot de passe
+                  {t('firstLogin.step1.title')}
                 </h1>
                 <p className="text-sm text-[var(--edu-text-secondary)]">
-                  Étape 1 sur 2 — Sécurisez votre accès
+                  {t('firstLogin.step1.subtitle')}
                 </p>
               </div>
 
               <form onSubmit={pwdForm.handleSubmit(onPasswordSubmit)} className="space-y-5">
                 <div>
-                  <Label htmlFor="password">Mot de passe *</Label>
+                  <Label htmlFor="password">{t('firstLogin.step1.passwordLabel')}</Label>
                   <div className="relative mt-1">
                     <Input
                       id="password"
@@ -281,7 +296,7 @@ export function FirstLogin() {
                 </div>
 
                 <div>
-                  <Label htmlFor="confirmPassword">Confirmer le mot de passe *</Label>
+                  <Label htmlFor="confirmPassword">{t('firstLogin.step1.confirmLabel')}</Label>
                   <div className="relative mt-1">
                     <Input
                       id="confirmPassword"
@@ -307,7 +322,7 @@ export function FirstLogin() {
                 {watchedPwd && (
                   <div className="bg-[var(--edu-surface)] rounded-xl p-4">
                     <p className="text-xs font-semibold text-[var(--edu-text-secondary)] mb-3 uppercase tracking-wide">
-                      Critères de sécurité
+                      {t('firstLogin.step1.criteriaTitle')}
                     </p>
                     <div className="space-y-2">
                       {passwordChecks.map((check, i) => (
@@ -334,7 +349,7 @@ export function FirstLogin() {
                   type="submit"
                   className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 font-medium"
                 >
-                  Continuer →
+                  {t('firstLogin.step1.continue')}
                 </Button>
               </form>
             </>
@@ -345,20 +360,20 @@ export function FirstLogin() {
             <>
               <div className="text-center mb-6">
                 <h1 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">
-                  Profil de l'établissement
+                  {t('firstLogin.step2.title')}
                 </h1>
                 <p className="text-sm text-[var(--edu-text-secondary)]">
-                  Étape 2 sur 2 — Informations minimales requises
+                  {t('firstLogin.step2.subtitle')}
                 </p>
               </div>
 
               <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-5">
                 <div>
-                  <Label htmlFor="nom">Nom de l'établissement *</Label>
+                  <Label htmlFor="nom">{t('firstLogin.step2.nomLabel')}</Label>
                   <Input
                     id="nom"
                     type="text"
-                    placeholder="Ex : École Nationale d'Ingénieurs de Tunis"
+                    placeholder={t('firstLogin.step2.nomPlaceholder')}
                     {...profileForm.register('nom')}
                     className="rounded-xl mt-1"
                   />
@@ -368,21 +383,21 @@ export function FirstLogin() {
                 </div>
 
                 <div>
-                  <Label htmlFor="telephone">Téléphone</Label>
+                  <Label htmlFor="telephone">{t('firstLogin.step2.telephoneLabel')}</Label>
                   <Input
                     id="telephone"
                     type="tel"
-                    placeholder="Ex : +216 71 234 567"
+                    placeholder={t('firstLogin.step2.telephonePlaceholder')}
                     {...profileForm.register('telephone')}
                     className="rounded-xl mt-1"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Description courte</Label>
+                  <Label htmlFor="description">{t('firstLogin.step2.descriptionLabel')}</Label>
                   <textarea
                     id="description"
-                    placeholder="Présentez brièvement votre établissement…"
+                    placeholder={t('firstLogin.step2.descriptionPlaceholder')}
                     {...profileForm.register('description')}
                     rows={3}
                     className="w-full mt-1 px-3 py-2 rounded-xl border border-[var(--edu-border)] bg-white dark:bg-[#1D1D1F] text-[var(--edu-text-primary)] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--edu-blue)]"
@@ -392,9 +407,7 @@ export function FirstLogin() {
                 <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900">
                   <span className="text-blue-500 mt-0.5 shrink-0">ℹ️</span>
                   <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                    Après activation, vous pourrez compléter votre profil (logo, accréditations, adresse,
-                    programmes) depuis votre tableau de bord. Un administrateur validera votre établissement
-                    avant sa publication dans le catalogue.
+                    {t('firstLogin.step2.infoBanner')}
                   </p>
                 </div>
 
@@ -405,7 +418,7 @@ export function FirstLogin() {
                     onClick={() => setStep(1)}
                     className="flex-1 rounded-full h-12"
                   >
-                    ← Retour
+                    {t('firstLogin.step2.back')}
                   </Button>
                   <Button
                     type="submit"
@@ -413,9 +426,9 @@ export function FirstLogin() {
                     className="flex-1 rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-12 font-medium disabled:opacity-60"
                   >
                     {submitting ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Activation…</>
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('firstLogin.step2.activating')}</>
                     ) : (
-                      'Activer mon compte'
+                      t('firstLogin.step2.activate')
                     )}
                   </Button>
                 </div>
@@ -425,7 +438,7 @@ export function FirstLogin() {
         </div>
 
         <p className="text-center text-xs text-[var(--edu-text-tertiary)] mt-6">
-          EduBridge · Plateforme des instituts d'ingénieurs tunisiens
+          {t('firstLogin.footer')}
         </p>
       </div>
     </div>
