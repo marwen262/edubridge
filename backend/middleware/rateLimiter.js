@@ -32,6 +32,9 @@ const GLOBAL_MAX     = parseInt(process.env.RATE_LIMIT_GLOBAL_MAX || '600', 10);
 // candidat, plusieurs instituts) tout en restant utile contre le brute-force,
 // d'autant que `skipSuccessfulRequests: true` ne décompte que les échecs.
 const LOGIN_MAX      = parseInt(process.env.RATE_LIMIT_LOGIN_MAX || '20', 10);
+// 10 soumissions/15 min/IP sur les endpoints publics sensibles (demandes-acces,
+// premier-login) — protège contre l'abus de création de comptes en masse.
+const PUBLIC_FORM_MAX = parseInt(process.env.RATE_LIMIT_PUBLIC_FORM_MAX || '10', 10);
 
 // Middleware no-op (transparent) — utilisé quand RATE_LIMIT_DISABLED=true
 const noopMiddleware = (_req, _res, next) => next();
@@ -70,12 +73,26 @@ const limiteurLogin = DISABLED ? noopMiddleware : rateLimit({
   handler: makeHandler('login'),
 });
 
+// ── Limiteur formulaires publics sensibles ───────────────────────────────────
+// Cible POST /api/demandes-acces et POST /api/auth/premier-login/terminer.
+// Pas de skipSuccessfulRequests : on veut bloquer même les soumissions valides
+// pour prévenir la création en masse de comptes/demandes par script.
+const limiteurFormulairePublic = DISABLED ? noopMiddleware : rateLimit({
+  windowMs: WINDOW_MS,
+  max: PUBLIC_FORM_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: MESSAGE_TROP_DE_REQUETES,
+  handler: makeHandler('formulaire-public'),
+});
+
 if (DISABLED) {
   console.warn('[RATE LIMIT] ⚠️  désactivé via RATE_LIMIT_DISABLED=true');
 } else {
   console.log(
-    `[RATE LIMIT] global=${GLOBAL_MAX}/${WINDOW_MIN}min · login=${LOGIN_MAX}/${WINDOW_MIN}min`
+    `[RATE LIMIT] global=${GLOBAL_MAX}/${WINDOW_MIN}min · login=${LOGIN_MAX}/${WINDOW_MIN}min · ` +
+    `formulaire-public=${PUBLIC_FORM_MAX}/${WINDOW_MIN}min`
   );
 }
 
-module.exports = { limiteurGlobal, limiteurLogin };
+module.exports = { limiteurGlobal, limiteurLogin, limiteurFormulairePublic };

@@ -67,6 +67,17 @@ export function InstitutionProfilSection() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
+  // Révoquer les object URLs quand elles sont remplacées ou à l'unmount
+  useEffect(() => {
+    if (!logoPreview?.startsWith('blob:')) return;
+    return () => URL.revokeObjectURL(logoPreview);
+  }, [logoPreview]);
+
+  useEffect(() => {
+    if (!coverPreview?.startsWith('blob:')) return;
+    return () => URL.revokeObjectURL(coverPreview);
+  }, [coverPreview]);
+
   useEffect(() => {
     if (!user?.institut_id) { setLoading(false); return; }
     let cancelled = false;

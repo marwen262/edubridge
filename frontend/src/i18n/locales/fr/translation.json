@@ -250,6 +250,29 @@
         "cinInvalid": "CIN tunisien requis (8 chiffres)",
         "passportInvalid": "Passeport requis (6 à 20 caractères alphanumériques)"
       }
+    },
+    "applications": {
+      "toasts": {
+        "draftDeleted": "Brouillon supprimé",
+        "deleteError": "Erreur lors de la suppression"
+      },
+      "emptyTitle": "Vous n'avez encore aucune candidature",
+      "emptySubtitle": "Commencez par explorer les programmes disponibles.",
+      "explore": "Explorer les programmes",
+      "columns": {
+        "program": "Programme",
+        "institution": "Institut",
+        "submittedAt": "Date soumission",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "delete": {
+        "ariaLabel": "Supprimer le brouillon",
+        "deleting": "…",
+        "deletingLabel": "Suppression…",
+        "dialogTitle": "Supprimer ce brouillon ?",
+        "dialogDescription": "Cette action est irréversible. Vos documents et la lettre de motivation associés seront définitivement perdus."
+      }
     }
   },
   "institutionProfile": {
@@ -839,6 +862,11 @@
       "licence": "Licence",
       "master": "Master",
       "ingenieur": "Ingénieur"
+    },
+    "card": {
+      "deadlineLabel": "Date limite : {{date}}",
+      "deadlineShort": "Deadline : {{date}}",
+      "viewDetails": "Voir les détails"
     }
   },
   "guide": {
@@ -1025,7 +1053,16 @@
       "minAverage": "Moyenne min. : {{value}}",
       "bacTypes": "Bac : {{types}}",
       "subjects": "Matières : {{subjects}}"
-    }
+    },
+    "toasts": {
+      "maxReached": "Maximum 3 programmes peuvent être comparés",
+      "removed": "Retiré de la comparaison",
+      "added": "Ajouté à la comparaison",
+      "viewCompare": "Voir comparaison"
+    },
+    "addAriaLabel": "Ajouter à la comparaison",
+    "compareAriaLabel": "Comparer le programme",
+    "compareButton": "Comparer"
   },
   "admin": {
     "timeAgo": {
@@ -1520,6 +1557,52 @@
       "nationalityRequired": "Nationalité requise",
       "pieceTypeRequired": "Type de pièce requis",
       "pieceNumRequired": "Numéro de pièce requis"
+    }
+  },
+  "firstLogin": {
+    "loading": "Validation du lien d'invitation…",
+    "tokenMissing": "Lien d'invitation manquant.",
+    "tokenInvalid": "Lien d'invitation invalide.",
+    "invalidTitle": {
+      "expired": "Lien expiré",
+      "used": "Lien déjà utilisé",
+      "invalid": "Lien invalide"
+    },
+    "contactAdmin": "Contactez l'administrateur EduBridge pour recevoir un nouveau lien d'invitation.",
+    "login": "Se connecter",
+    "invitationFor": "Invitation pour",
+    "step1": {
+      "title": "Définir votre mot de passe",
+      "subtitle": "Étape 1 sur 2 — Sécurisez votre accès",
+      "passwordLabel": "Mot de passe *",
+      "confirmLabel": "Confirmer le mot de passe *",
+      "criteriaTitle": "Critères de sécurité",
+      "continue": "Continuer →"
+    },
+    "step2": {
+      "title": "Profil de l'établissement",
+      "subtitle": "Étape 2 sur 2 — Informations minimales requises",
+      "nomLabel": "Nom de l'établissement *",
+      "nomPlaceholder": "Ex : École Nationale d'Ingénieurs de Tunis",
+      "telephoneLabel": "Téléphone",
+      "telephonePlaceholder": "Ex : +216 71 234 567",
+      "descriptionLabel": "Description courte",
+      "descriptionPlaceholder": "Présentez brièvement votre établissement…",
+      "infoBanner": "Après activation, vous pourrez compléter votre profil (logo, accréditations, adresse, programmes) depuis votre tableau de bord. Un administrateur validera votre établissement avant sa publication dans le catalogue.",
+      "back": "← Retour",
+      "activating": "Activation…",
+      "activate": "Activer mon compte"
+    },
+    "toasts": {
+      "success": "Compte activé ! Bienvenue sur EduBridge.",
+      "error": "Erreur lors de l'activation du compte."
+    },
+    "footer": "EduBridge · Plateforme des instituts d'ingénieurs tunisiens",
+    "checks": {
+      "minChars": "8 caractères minimum",
+      "uppercase": "Une majuscule",
+      "digit": "Un chiffre",
+      "special": "Un caractère spécial (!@#$%^&*)"
     }
   }
 }

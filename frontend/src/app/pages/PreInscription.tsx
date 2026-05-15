@@ -53,6 +53,12 @@ export function PreInscription() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
 
+  // Révoquer les blob URLs quand elles sont remplacées ou à l'unmount
+  useEffect(() => {
+    if (!photoPreview?.startsWith('blob:')) return;
+    return () => URL.revokeObjectURL(photoPreview);
+  }, [photoPreview]);
+
   const { register, handleSubmit, control, formState: { errors }, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {

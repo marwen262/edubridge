@@ -44,7 +44,7 @@ exports.getAllUsers = async (_req, res) => {
     return res.status(200).json({ utilisateurs });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -62,7 +62,7 @@ exports.getUserById = async (req, res) => {
     return res.status(200).json({ utilisateur });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -141,7 +141,7 @@ exports.updateUser = async (req, res) => {
       });
     }
 
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -157,6 +157,6 @@ exports.deleteUser = async (req, res) => {
     return res.status(200).json({ message: 'Utilisateur supprimé.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };

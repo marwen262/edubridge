@@ -5,7 +5,7 @@ const cors    = require('cors');
 const path    = require('path');
 
 const { sequelize } = require('./models');
-const { limiteurGlobal, limiteurLogin } = require('./middleware/rateLimiter');
+const { limiteurGlobal, limiteurLogin, limiteurFormulairePublic } = require('./middleware/rateLimiter');
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -20,10 +20,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Rate limiting ─────────────────────────────────────────────────────
 // Limiteur global appliqué à toutes les routes /api/* (avant les routes).
-// Le limiteur strict /auth/login est monté juste avant le router /api/auth
-// pour cibler uniquement POST /api/auth/login.
+// Limiteurs stricts sur les endpoints publics sensibles (avant le routeur).
 app.use('/api', limiteurGlobal);
 app.use('/api/auth/login', limiteurLogin);
+app.use('/api/auth/premier-login/terminer', limiteurFormulairePublic);
+app.use('/api/demandes-acces', limiteurFormulairePublic);
 
 // ── Routes ────────────────────────────────────────────────────────────
 app.use('/api/auth',         require('./routes/authRoutes'));

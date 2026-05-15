@@ -12,7 +12,7 @@ exports.getMesNotifications = async (req, res) => {
     return res.status(200).json({ notifications });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -25,7 +25,7 @@ exports.getCountNonLues = async (req, res) => {
     return res.status(200).json({ count });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -40,7 +40,7 @@ exports.marquerLue = async (req, res) => {
     return res.status(200).json({ message: 'Notification marquée comme lue.', notification: notif });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -54,6 +54,6 @@ exports.marquerToutesLues = async (req, res) => {
     return res.status(200).json({ message: 'Toutes les notifications marquées comme lues.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };

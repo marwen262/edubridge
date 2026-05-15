@@ -1,6 +1,6 @@
 'use strict';
 const PDFDocument = require('pdfkit');
-const { PreInscription, Candidature, Candidat, Institut, Programme } = require('../models');
+const { sequelize, PreInscription, Candidature, Candidat, Institut, Programme } = require('../models');
 const notif = require('./notificationService');
 
 const CHAMPS_OBLIGATOIRES = [
@@ -25,6 +25,7 @@ function _estComplete(pi) {
 // Si tous les champs obligatoires sont renseignés, passe au statut "completee"
 // et notifie l'utilisateur de l'institut (une seule fois).
 exports.creerOuCompleter = async (candidatureId, candidatId, donnees) => {
+  // Pré-validations hors transaction (lecture seule, pas de risque de doublon)
   const candidature = await Candidature.findByPk(candidatureId);
   if (!candidature) throw { status: 404, message: 'Candidature introuvable.' };
   if (candidature.candidat_id !== candidatId)
@@ -48,28 +49,38 @@ exports.creerOuCompleter = async (candidatureId, candidatId, donnees) => {
     if (donnees[c] !== undefined) defaults[c] = donnees[c];
   }
 
-  const [pi, cree] = await PreInscription.findOrCreate({
-    where: { candidature_id: candidatureId },
-    defaults,
+  let pi;
+  let notifierInstitut = false;
+
+  await sequelize.transaction(async (t) => {
+    const [record, cree] = await PreInscription.findOrCreate({
+      where: { candidature_id: candidatureId },
+      defaults,
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+
+    if (!cree) {
+      for (const c of CHAMPS_AUTORISES) {
+        if (donnees[c] !== undefined) record[c] = donnees[c];
+      }
+    }
+
+    const etaitCompletee = record.statut === 'completee';
+
+    if (_estComplete(record)) {
+      record.statut = 'completee';
+      if (!record.completee_le) record.completee_le = new Date();
+    }
+
+    await record.save({ transaction: t });
+
+    pi = record;
+    notifierInstitut = !etaitCompletee && record.statut === 'completee';
   });
 
-  if (!cree) {
-    for (const c of CHAMPS_AUTORISES) {
-      if (donnees[c] !== undefined) pi[c] = donnees[c];
-    }
-  }
-
-  const etaitCompletee = pi.statut === 'completee';
-
-  if (_estComplete(pi)) {
-    pi.statut = 'completee';
-    if (!pi.completee_le) pi.completee_le = new Date();
-  }
-
-  await pi.save();
-
-  // Notification unique à l'institut au passage en completee
-  if (!etaitCompletee && pi.statut === 'completee' && programme.institut) {
+  // Notification hors transaction (non critique si elle échoue)
+  if (notifierInstitut && programme.institut) {
     await notif.creerNotification({
       utilisateur_id: programme.institut.utilisateur_id,
       type: 'systeme',

@@ -54,7 +54,7 @@ Le repo contient trois composants indépendants :
 - **PyMuPDF** + **python-magic** : utilisés pour l'import PDF (`utils/image_converter`)
 - Conteneurisé (Dockerfile + docker-compose), exposé sur port 8000
 - **Stateless** : aucune base de données, pas d'authentification, pas de rate limiting
-- ⚠️ Modules présents mais non câblés à l'orchestrator : `tampering_detector`, `diploma_classifier`, `country_detector`, `preprocessing`
+- ⚠️ Modules présents mais non câblés à l'orchestrator : `diploma_classifier`, `country_detector`, `preprocessing` — `tampering_detector` est câblé (intégré dans `scoring_engine` via `detect_tampering`)
 
 ## Commandes utiles
 
@@ -521,7 +521,7 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - Clarifier le mapping slug → id pour la route `/institution/:slug`.
 
   **Diploma Verifier**
-  - Intégrer `tampering_detector`, `diploma_classifier`, `country_detector` au pipeline orchestrator (modules présents mais non câblés).
+  - Intégrer `diploma_classifier`, `country_detector` au pipeline orchestrator (modules présents mais non câblés — `tampering_detector` déjà intégré).
   - Authentification + rate limiting (API publique actuellement).
   - Monitoring (Prometheus / métriques exportées) et tracing.
   - Calibrer les nouveaux seuils V7 (`CRITICAL_FIELDS_LOW_THRESHOLD`, poids multi-score) sur corpus réel.

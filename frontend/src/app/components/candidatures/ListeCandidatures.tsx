@@ -39,12 +39,12 @@ export function ListeCandidatures() {
     setDeletingId(c.id);
     try {
       await candidatureService.delete(c.id);
-      toast.success('Brouillon supprimé');
+      toast.success(t('candidate.applications.toasts.draftDeleted'));
       setDraftToDelete(null);
       refetch();
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } } };
-      toast.error(apiErr.response?.data?.message ?? 'Erreur lors de la suppression');
+      toast.error(apiErr.response?.data?.message ?? t('candidate.applications.toasts.deleteError'));
     } finally {
       setDeletingId(null);
     }
@@ -82,15 +82,15 @@ export function ListeCandidatures() {
         <Inbox className="w-12 h-12 text-[var(--edu-text-tertiary)]" />
         <div>
           <p className="text-base font-semibold text-[var(--edu-text-primary)]">
-            Vous n'avez encore aucune candidature
+            {t('candidate.applications.emptyTitle')}
           </p>
           <p className="text-sm text-[var(--edu-text-secondary)] mt-1">
-            Commencez par explorer les programmes disponibles.
+            {t('candidate.applications.emptySubtitle')}
           </p>
         </div>
         <Link to="/search">
           <Button className="bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white mt-1">
-            Explorer les programmes
+            {t('candidate.applications.explore')}
           </Button>
         </Link>
       </div>
@@ -105,19 +105,19 @@ export function ListeCandidatures() {
             <thead className="bg-[var(--edu-surface)]">
               <tr>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide">
-                  Programme
+                  {t('candidate.applications.columns.program')}
                 </th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide hidden sm:table-cell">
-                  Institut
+                  {t('candidate.applications.columns.institution')}
                 </th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide hidden md:table-cell">
-                  Date soumission
+                  {t('candidate.applications.columns.submittedAt')}
                 </th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide">
-                  Statut
+                  {t('candidate.applications.columns.status')}
                 </th>
                 <th className="text-right px-6 py-4 text-xs font-semibold text-[var(--edu-text-secondary)] uppercase tracking-wide">
-                  Actions
+                  {t('candidate.applications.columns.actions')}
                 </th>
               </tr>
             </thead>
@@ -181,10 +181,10 @@ export function ListeCandidatures() {
                             onClick={() => setDraftToDelete(c)}
                             disabled={deletingId === c.id}
                             className="text-xs flex items-center gap-1 text-[var(--edu-danger)] hover:text-[var(--edu-danger)] hover:bg-[var(--edu-danger)]/10 disabled:opacity-50"
-                            aria-label="Supprimer le brouillon"
+                            aria-label={t('candidate.applications.delete.ariaLabel')}
                           >
                             <Trash2 className="w-3 h-3" />
-                            {deletingId === c.id ? '…' : 'Supprimer'}
+                            {deletingId === c.id ? t('candidate.applications.delete.deleting') : t('common.delete')}
                           </Button>
                         </>
                       ) : c.statut === 'acceptee' ? (
@@ -262,7 +262,7 @@ export function ListeCandidatures() {
                 <AlertTriangle className="w-5 h-5 text-[var(--edu-danger)]" />
               </div>
               <AlertDialogTitle className="text-[var(--edu-text-primary)]">
-                Supprimer ce brouillon ?
+                {t('candidate.applications.delete.dialogTitle')}
               </AlertDialogTitle>
             </div>
             <AlertDialogDescription className="text-sm text-[var(--edu-text-secondary)] pt-2">
@@ -271,13 +271,12 @@ export function ListeCandidatures() {
                   {draftToDelete.programme.titre}
                 </span>
               )}
-              Cette action est irréversible vos documents et la lettre de
-              motivation associés seront définitivement perdus.
+              {t('candidate.applications.delete.dialogDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deletingId !== null} className="rounded-full">
-              Annuler
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
@@ -287,7 +286,7 @@ export function ListeCandidatures() {
               disabled={deletingId !== null}
               className="rounded-full bg-[var(--edu-danger)] hover:bg-[var(--edu-danger)]/90 text-white"
             >
-              {deletingId !== null ? 'Suppression…' : 'Supprimer'}
+              {deletingId !== null ? t('candidate.applications.delete.deletingLabel') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

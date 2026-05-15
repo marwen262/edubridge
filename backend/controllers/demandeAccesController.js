@@ -108,7 +108,7 @@ exports.listerToutes = async (req, res) => {
 exports.approuver = async (req, res) => {
   const t = await sequelize.transaction();
   try {
-    const demande = await DemandeAcces.findByPk(req.params.id, { transaction: t });
+    const demande = await DemandeAcces.findByPk(req.params.id, { transaction: t, lock: t.LOCK.UPDATE });
     if (!demande) {
       await t.rollback();
       return res.status(404).json({ message: 'Demande introuvable.' });

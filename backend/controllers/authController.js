@@ -85,7 +85,7 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -162,7 +162,7 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -203,7 +203,7 @@ exports.validerTokenPremierLogin = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -309,7 +309,7 @@ exports.terminerPremierLogin = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -365,7 +365,7 @@ exports.demanderResetPassword = async (req, res) => {
     return res.status(200).json(reponseGenerique);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -392,7 +392,7 @@ exports.validerResetToken = async (req, res) => {
     return res.status(200).json({ valide: true, email: utilisateur.email });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -434,7 +434,7 @@ exports.reinitialiserPassword = async (req, res) => {
     return res.status(200).json({ message: 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -447,10 +447,10 @@ exports.changerMotDePasse = async (req, res) => {
       return res.status(400).json({ message: 'Ancien et nouveau mot de passe requis.' });
     }
 
-    const pwdRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    const pwdRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
     if (!pwdRegex.test(newPassword)) {
       return res.status(400).json({
-        message: 'Le nouveau mot de passe doit contenir au moins 8 caractères, une majuscule et un chiffre.',
+        message: 'Le nouveau mot de passe doit contenir au moins 8 caractères, une majuscule, un chiffre et un caractère spécial (!@#$%^&*).',
       });
     }
 
@@ -470,7 +470,7 @@ exports.changerMotDePasse = async (req, res) => {
     return res.status(200).json({ message: 'Mot de passe modifié avec succès.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -488,6 +488,6 @@ exports.getMe = async (req, res) => {
     return res.status(200).json({ utilisateur });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };

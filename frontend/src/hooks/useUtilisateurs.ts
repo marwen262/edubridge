@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { utilisateurService } from '@/services/api';
+import type { Utilisateur } from '@/types/api';
 
 // Pour admin uniquement
 export function useUtilisateurs() {
-  const [utilisateurs, setUtilisateurs] = useState<unknown[]>([]);
+  const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
@@ -18,7 +19,7 @@ export function useUtilisateurs() {
     utilisateurService
       .getAll()
       .then(({ data }) => {
-        if (!cancelled) setUtilisateurs((data as { utilisateurs: unknown[] }).utilisateurs ?? []);
+        if (!cancelled) setUtilisateurs((data as { utilisateurs: Utilisateur[] }).utilisateurs ?? []);
       })
       .catch((err) => {
         if (!cancelled)

@@ -18,7 +18,7 @@ exports.getMesFavoris = async (req, res) => {
     return res.status(200).json({ favoris });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -46,7 +46,7 @@ exports.toggleFavori = async (req, res) => {
     return res.status(201).json({ message: 'Ajouté aux favoris.', favori });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -67,6 +67,6 @@ exports.deleteFavori = async (req, res) => {
     return res.status(200).json({ message: 'Favori supprimé.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };

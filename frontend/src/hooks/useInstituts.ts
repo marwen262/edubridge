@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { institutService } from '@/services/api';
-import type { InstitutFilters, Pagination } from '@/types/api';
+import type { Institut, InstitutFilters, Pagination } from '@/types/api';
 
 // Cf. usePrograms : default `limit` élevé pour préserver la sémantique
 // historique des consommateurs qui veulent "tous les instituts" en un appel.
 const DEFAULT_LIMIT = 100;
 
 export function useInstituts(filters?: InstitutFilters) {
-  const [instituts, setInstituts] = useState<unknown[]>([]);
+  const [instituts, setInstituts] = useState<Institut[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function useInstituts(filters?: InstitutFilters) {
       .getAll(effectiveFilters)
       .then(({ data }) => {
         if (cancelled) return;
-        const payload = data as { instituts?: unknown[]; pagination?: Pagination };
+        const payload = data as { instituts?: Institut[]; pagination?: Pagination };
         setInstituts(payload.instituts ?? []);
         setPagination(payload.pagination ?? null);
       })

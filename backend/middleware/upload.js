@@ -19,10 +19,12 @@ const storage = multer.diskStorage({
   },
 });
 
+const ALLOWED_EXTS  = /^(jpeg|jpg|png|pdf)$/;
+const ALLOWED_MIMES = /^(image\/jpeg|image\/png|application\/pdf)$/;
+
 const fileFilter = (_req, file, cb) => {
-  const allowed = /jpeg|jpg|png|pdf/;
-  const ext     = path.extname(file.originalname).toLowerCase().replace('.', '');
-  if (allowed.test(ext)) {
+  const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+  if (ALLOWED_EXTS.test(ext) && ALLOWED_MIMES.test(file.mimetype)) {
     cb(null, true);
   } else {
     cb(new Error('Seuls les fichiers jpeg, jpg, png et pdf sont autorisés.'));

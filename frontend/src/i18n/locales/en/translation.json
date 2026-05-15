@@ -250,6 +250,29 @@
         "cinInvalid": "Tunisian national ID required (8 digits)",
         "passportInvalid": "Passport required (6 to 20 alphanumeric characters)"
       }
+    },
+    "applications": {
+      "toasts": {
+        "draftDeleted": "Draft deleted",
+        "deleteError": "Error deleting draft"
+      },
+      "emptyTitle": "You have no applications yet",
+      "emptySubtitle": "Start by exploring available programs.",
+      "explore": "Explore programs",
+      "columns": {
+        "program": "Program",
+        "institution": "Institution",
+        "submittedAt": "Submission date",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "delete": {
+        "ariaLabel": "Delete draft",
+        "deleting": "…",
+        "deletingLabel": "Deleting…",
+        "dialogTitle": "Delete this draft?",
+        "dialogDescription": "This action is irreversible. Your documents and cover letter will be permanently lost."
+      }
     }
   },
   "institutionProfile": {
@@ -839,6 +862,11 @@
       "licence": "Bachelor's degree",
       "master": "Master's degree",
       "ingenieur": "Engineering degree"
+    },
+    "card": {
+      "deadlineLabel": "Deadline: {{date}}",
+      "deadlineShort": "Deadline: {{date}}",
+      "viewDetails": "View details"
     }
   },
   "guide": {
@@ -1025,7 +1053,16 @@
       "minAverage": "Min. average: {{value}}",
       "bacTypes": "Bac: {{types}}",
       "subjects": "Subjects: {{subjects}}"
-    }
+    },
+    "toasts": {
+      "maxReached": "Maximum 3 programs can be compared",
+      "removed": "Removed from comparison",
+      "added": "Added to comparison",
+      "viewCompare": "View comparison"
+    },
+    "addAriaLabel": "Add to comparison",
+    "compareAriaLabel": "Compare program",
+    "compareButton": "Compare"
   },
   "admin": {
     "timeAgo": {
@@ -1520,6 +1557,52 @@
       "nationalityRequired": "Nationality required",
       "pieceTypeRequired": "ID type required",
       "pieceNumRequired": "ID number required"
+    }
+  },
+  "firstLogin": {
+    "loading": "Validating invitation link…",
+    "tokenMissing": "Invitation link missing.",
+    "tokenInvalid": "Invalid invitation link.",
+    "invalidTitle": {
+      "expired": "Link expired",
+      "used": "Link already used",
+      "invalid": "Invalid link"
+    },
+    "contactAdmin": "Contact the EduBridge administrator to receive a new invitation link.",
+    "login": "Log in",
+    "invitationFor": "Invitation for",
+    "step1": {
+      "title": "Set your password",
+      "subtitle": "Step 1 of 2 — Secure your access",
+      "passwordLabel": "Password *",
+      "confirmLabel": "Confirm password *",
+      "criteriaTitle": "Security requirements",
+      "continue": "Continue →"
+    },
+    "step2": {
+      "title": "Institution profile",
+      "subtitle": "Step 2 of 2 — Minimum required information",
+      "nomLabel": "Institution name *",
+      "nomPlaceholder": "E.g.: National School of Engineers of Tunis",
+      "telephoneLabel": "Phone",
+      "telephonePlaceholder": "E.g.: +216 71 234 567",
+      "descriptionLabel": "Short description",
+      "descriptionPlaceholder": "Briefly introduce your institution…",
+      "infoBanner": "After activation, you can complete your profile (logo, accreditations, address, programs) from your dashboard. An administrator will validate your institution before it is published in the catalog.",
+      "back": "← Back",
+      "activating": "Activating…",
+      "activate": "Activate my account"
+    },
+    "toasts": {
+      "success": "Account activated! Welcome to EduBridge.",
+      "error": "Error activating account."
+    },
+    "footer": "EduBridge · Platform for Tunisian engineering institutes",
+    "checks": {
+      "minChars": "At least 8 characters",
+      "uppercase": "One uppercase letter",
+      "digit": "One digit",
+      "special": "One special character (!@#$%^&*)"
     }
   }
 }

@@ -62,7 +62,7 @@ exports.getAllInstituts = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -76,7 +76,7 @@ exports.getInstitutById = async (req, res) => {
     return res.status(200).json({ institut });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -139,7 +139,7 @@ exports.createInstitut = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -150,7 +150,7 @@ exports.updateInstitut = async (req, res) => {
     const institut = await Institut.findByPk(req.params.id);
     if (!institut) return res.status(404).json({ message: 'Ressource introuvable.' });
 
-    if (req.user.role === 'institut' && req.user.institut_id !== req.params.id) {
+    if (req.user.role === 'institut' && String(req.user.institut_id) !== String(req.params.id)) {
       return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -182,7 +182,7 @@ exports.updateInstitut = async (req, res) => {
     return res.status(200).json({ message: 'Établissement mis à jour.', institut });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -195,7 +195,7 @@ exports.deleteInstitut = async (req, res) => {
     return res.status(200).json({ message: 'Établissement supprimé.' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -219,7 +219,7 @@ exports.listerEnAttente = async (req, res) => {
     return res.status(200).json({ instituts });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -249,7 +249,7 @@ exports.approuverInstitut = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -296,14 +296,14 @@ exports.rejeterInstitut = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
 // POST /api/instituts/:id/resoumettre — institut : resoumet après correction (statut rejected)
 exports.resoumettre = async (req, res) => {
   try {
-    if (req.user.role === 'institut' && req.user.institut_id !== req.params.id) {
+    if (req.user.role === 'institut' && String(req.user.institut_id) !== String(req.params.id)) {
       return res.status(403).json({ message: 'Accès refusé.' });
     }
 
@@ -344,7 +344,7 @@ exports.resoumettre = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -396,7 +396,7 @@ exports.suspendreInstitut = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
 
@@ -424,6 +424,6 @@ exports.reactiverInstitut = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erreur serveur.', error: error.message });
+    return res.status(500).json({ message: 'Erreur serveur.' });
   }
 };
