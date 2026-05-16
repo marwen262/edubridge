@@ -1559,6 +1559,43 @@
       "pieceNumRequired": "Numéro de pièce requis"
     }
   },
+  "demandeAcces": {
+    "title": "Rejoindre EduBridge",
+    "subtitle": "Demande d'accès établissement",
+    "description": "Renseignez les informations ci-dessous. Notre équipe examinera votre demande et vous enverra une invitation pour finaliser votre inscription.",
+    "fields": {
+      "nom": "Nom de l'établissement *",
+      "nomPlaceholder": "Ex : ESPRIT School of Engineering",
+      "email": "Adresse e-mail de contact *",
+      "emailPlaceholder": "contact@etablissement.tn",
+      "telephone": "Téléphone *",
+      "telephonePlaceholder": "+216 XX XXX XXX",
+      "presentation": "Présentez brièvement votre établissement *",
+      "presentationPlaceholder": "Ex : École d'ingénieurs privée basée à Sousse, spécialisée en informatique et télécommunications, fondée en 2010. Nous proposons des cycles préparatoires intégrés et des cycles ingénieurs…"
+    },
+    "submit": "Envoyer la demande",
+    "submitting": "Envoi en cours…",
+    "alreadyAccount": "Vous avez déjà un compte ?",
+    "login": "Se connecter",
+    "backHome": "← Retour à l'accueil",
+    "success": {
+      "title": "Demande envoyée !",
+      "body": "Votre demande a bien été reçue.",
+      "delay": "Notre équipe vous contactera à l'adresse indiquée sous",
+      "delayBold": "48 heures ouvrées",
+      "backHome": "Retour à l'accueil"
+    },
+    "validation": {
+      "nomRequired": "Nom de l'établissement requis (2 caractères minimum)",
+      "emailInvalid": "Adresse e-mail invalide",
+      "telephoneInvalid": "Numéro de téléphone invalide",
+      "presentationMin": "Présentation trop courte (20 caractères minimum)",
+      "presentationMax": "Présentation trop longue (500 caractères maximum)"
+    },
+    "toasts": {
+      "error": "Une erreur est survenue. Veuillez réessayer."
+    }
+  },
   "firstLogin": {
     "loading": "Validation du lien d'invitation…",
     "tokenMissing": "Lien d'invitation manquant.",
