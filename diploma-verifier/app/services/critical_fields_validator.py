@@ -343,9 +343,15 @@ def _score_name_part(
     """Score un fragment de nom (prénom OU nom).
 
     - 0   si absent
-    - 40  si regex-only (Latin ou Arabe)
-    - 80  si spaCy NER
+    - 40  si regex_latin sans contexte (faible fiabilité)
+    - 80  si spaCy NER ou regex_arabic avec préfixe-titre
     - +20 bonus si longueur > 2 caractères
+
+    Phase 3 : regex_arabic est promu au niveau spaCy (80) car il exige
+    un mot-titre explicite (`إلى`, `السيد`, `الطالب`, etc.) — c'est un
+    signal contextuel fort, plus fiable que la NER multilingue sur de
+    l'OCR arabe bruité. regex_latin reste à 40 (pas de contexte requis,
+    risque de matcher des chaînes Latin parasites en OCR).
 
     Ajustement OCR : si ocr_confidence est faible et le champ est absent,
     on ne pénalise qu'à moitié (multiplier appliqué côté agrégation).
@@ -353,9 +359,9 @@ def _score_name_part(
     if not part:
         return 0, "none"
 
-    if source == NAME_SOURCE_SPACY:
+    if source in (NAME_SOURCE_SPACY, NAME_SOURCE_REGEX_ARABIC):
         base = 80
-    elif source in (NAME_SOURCE_REGEX_LATIN, NAME_SOURCE_REGEX_ARABIC):
+    elif source == NAME_SOURCE_REGEX_LATIN:
         base = 40
     else:
         return 0, "none"
@@ -532,10 +538,16 @@ def validate_critical_fields(
         # V7 Fix 2 (override) — structure template forte + nom détecté
         # On considère que le "nom" est une fausse détection de la zone
         # ministère/préambule, pas l'identité étudiante.
-        elif has_strong_template_structure:
+        # Phase 3 : on n'override QUE quand la détection vient de spaCy.
+        # Les sources regex (Latin / Arabic) requièrent un mot-titre
+        # explicite ("M.", "إلى", "السيد", "الطالب", etc.) — un match est
+        # un signal structurel fort qui ne doit pas être annulé par la
+        # détection d'adjacences blank ailleurs dans le document (OCR
+        # fragmenté sur les autres lignes ≠ template vide).
+        elif has_strong_template_structure and name_source == NAME_SOURCE_SPACY:
             logger.info(
                 "V7 fix2 — structure template forte (%d champs blank "
-                "adjacents) → annule la détection du nom '%s'",
+                "adjacents) + nom spaCy '%s' → annulé",
                 adjacent_blanks, detected_name,
             )
             has_person_name = False
@@ -598,9 +610,13 @@ def validate_critical_fields(
         and has_template_blanks
         and not has_person_name
     )
-    # NEW : signal structurel autonome — flag même si has_person_name n'a
-    # pas été rejeté (filet de sécurité face à du garbage OCR imprévu).
-    is_template_structural = has_strong_template_structure
+    # Phase 3 : structurel ne flag QUE si aucun nom valide n'a survécu
+    # aux checks 1a–1c. Un regex_arabic qui matche "إلى X" est un signal
+    # structurel d'identité étudiante qui annule la suspicion template,
+    # même si l'OCR a fragmenté d'autres champs.
+    is_template_structural = (
+        has_strong_template_structure and not has_person_name
+    )
 
     is_template = (
         is_template_strict or is_template_pattern or is_template_structural

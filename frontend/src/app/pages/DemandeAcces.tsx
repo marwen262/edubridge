@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { Button } from '../components/ui/button';
@@ -12,26 +13,30 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { demandeAccesService } from '@/services/api';
 import { motion } from 'motion/react';
-const schema = z.object({
-  nom: z
-    .string()
-    .min(2, "Nom de l'établissement requis (2 caractères minimum)"),
-  email: z
-    .string()
-    .email('Adresse e-mail invalide'),
-  telephone: z
-    .string()
-    .min(8, 'Numéro de téléphone invalide'),
-  presentation: z
-    .string()
-    .min(20, 'Présentation trop courte (20 caractères minimum)')
-    .max(500, 'Présentation trop longue (500 caractères maximum)'),
-});
 
-type FormData = z.infer<typeof schema>;
+type FormData = {
+  nom: string;
+  email: string;
+  telephone: string;
+  presentation: string;
+};
 
 export function DemandeAcces() {
+  const { t } = useTranslation();
   const [success, setSuccess] = React.useState(false);
+
+  const schema = React.useMemo(() =>
+    z.object({
+      nom: z.string().min(2, t('demandeAcces.validation.nomRequired')),
+      email: z.string().email(t('demandeAcces.validation.emailInvalid')),
+      telephone: z.string().min(8, t('demandeAcces.validation.telephoneInvalid')),
+      presentation: z
+        .string()
+        .min(20, t('demandeAcces.validation.presentationMin'))
+        .max(500, t('demandeAcces.validation.presentationMax')),
+    }),
+    [t]
+  );
 
   const {
     register,
@@ -51,7 +56,7 @@ export function DemandeAcces() {
       setSuccess(true);
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } } };
-      toast.error(apiErr.response?.data?.message ?? 'Une erreur est survenue. Veuillez réessayer.');
+      toast.error(apiErr.response?.data?.message ?? t('demandeAcces.toasts.error'));
     }
   };
 
@@ -73,20 +78,20 @@ export function DemandeAcces() {
                 <CheckCircle2 className="w-8 h-8 text-[var(--edu-success)]" />
               </div>
               <h1 className="text-2xl font-bold text-[var(--edu-text-primary)] mb-3">
-                Demande envoyée !
+                {t('demandeAcces.success.title')}
               </h1>
               <p className="text-[var(--edu-text-secondary)] mb-2">
-                Votre demande a bien été reçue.
+                {t('demandeAcces.success.body')}
               </p>
               <p className="text-sm text-[var(--edu-text-secondary)] mb-8">
-                Notre équipe vous contactera à l'adresse indiquée sous{' '}
+                {t('demandeAcces.success.delay')}{' '}
                 <span className="font-semibold text-[var(--edu-text-primary)]">
-                  48 heures ouvrées
+                  {t('demandeAcces.success.delayBold')}
                 </span>.
               </p>
               <Link to="/">
                 <Button className="w-full rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white h-11">
-                  Retour à l'accueil
+                  {t('demandeAcces.success.backHome')}
                 </Button>
               </Link>
             </motion.div>
@@ -103,28 +108,26 @@ export function DemandeAcces() {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-[var(--edu-text-primary)]">
-                    Rejoindre EduBridge
+                    {t('demandeAcces.title')}
                   </h1>
                   <p className="text-sm text-[var(--edu-text-secondary)]">
-                    Demande d'accès établissement
+                    {t('demandeAcces.subtitle')}
                   </p>
                 </div>
               </div>
 
               <p className="text-sm text-[var(--edu-text-secondary)] mb-6 leading-relaxed">
-                Renseignez les informations ci-dessous. Notre équipe examinera
-                votre demande et vous enverra une invitation pour finaliser
-                votre inscription.
+                {t('demandeAcces.description')}
               </p>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
                 <div>
-                  <Label htmlFor="nom">Nom de l'établissement *</Label>
+                  <Label htmlFor="nom">{t('demandeAcces.fields.nom')}</Label>
                   <Input
                     id="nom"
                     type="text"
-                    placeholder="Ex : ESPRIT School of Engineering"
+                    placeholder={t('demandeAcces.fields.nomPlaceholder')}
                     {...register('nom')}
                     className="rounded-xl mt-1"
                     autoFocus
@@ -135,13 +138,13 @@ export function DemandeAcces() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Adresse e-mail de contact *</Label>
+                  <Label htmlFor="email">{t('demandeAcces.fields.email')}</Label>
                   <div className="relative mt-1">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--edu-text-tertiary)] pointer-events-none" />
                     <Input
                       id="email"
                       type="email"
-                      placeholder="contact@etablissement.tn"
+                      placeholder={t('demandeAcces.fields.emailPlaceholder')}
                       {...register('email')}
                       className="rounded-xl pl-9"
                     />
@@ -152,13 +155,13 @@ export function DemandeAcces() {
                 </div>
 
                 <div>
-                  <Label htmlFor="telephone">Téléphone *</Label>
+                  <Label htmlFor="telephone">{t('demandeAcces.fields.telephone')}</Label>
                   <div className="relative mt-1">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--edu-text-tertiary)] pointer-events-none" />
                     <Input
                       id="telephone"
                       type="tel"
-                      placeholder="+216 XX XXX XXX"
+                      placeholder={t('demandeAcces.fields.telephonePlaceholder')}
                       {...register('telephone')}
                       className="rounded-xl pl-9"
                     />
@@ -171,7 +174,7 @@ export function DemandeAcces() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <Label htmlFor="presentation">
-                      Présentez brièvement votre établissement *
+                      {t('demandeAcces.fields.presentation')}
                     </Label>
                     <span
                       className="text-xs"
@@ -187,7 +190,7 @@ export function DemandeAcces() {
                   <textarea
                     id="presentation"
                     rows={4}
-                    placeholder="Ex : École d'ingénieurs privée basée à Sousse, spécialisée en informatique et télécommunications, fondée en 2010. Nous proposons des cycles préparatoires intégrés et des cycles ingénieurs..."
+                    placeholder={t('demandeAcces.fields.presentationPlaceholder')}
                     {...register('presentation')}
                     className="w-full rounded-xl border border-[var(--edu-border)] bg-white dark:bg-[#1D1D1F] text-[var(--edu-text-primary)] text-sm px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--edu-blue)] resize-none placeholder:text-[var(--edu-text-tertiary)]"
                   />
@@ -204,18 +207,18 @@ export function DemandeAcces() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Envoi en cours…
+                      {t('demandeAcces.submitting')}
                     </>
                   ) : (
-                    'Envoyer la demande'
+                    t('demandeAcces.submit')
                   )}
                 </Button>
               </form>
 
               <p className="text-center text-sm text-[var(--edu-text-secondary)] mt-6">
-                Vous avez déjà un compte ?{' '}
+                {t('demandeAcces.alreadyAccount')}{' '}
                 <Link to="/login" className="text-[var(--edu-blue)] hover:underline font-medium">
-                  Se connecter
+                  {t('demandeAcces.login')}
                 </Link>
               </p>
             </motion.div>
@@ -223,7 +226,7 @@ export function DemandeAcces() {
 
           <div className="text-center mt-6">
             <Link to="/" className="text-sm text-[var(--edu-text-secondary)] hover:text-[var(--edu-blue)]">
-              ← Retour à l'accueil
+              {t('demandeAcces.backHome')}
             </Link>
           </div>
         </div>

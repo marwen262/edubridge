@@ -1,4 +1,6 @@
 'use strict';
+const path        = require('path');
+const fs          = require('fs');
 const PDFDocument = require('pdfkit');
 const { sequelize, PreInscription, Candidature, Candidat, Institut, Programme } = require('../models');
 const notif = require('./notificationService');
@@ -113,7 +115,7 @@ exports.genererPdf = async (preInscriptionId, candidatId) => {
       {
         model: Institut,
         as: 'institut',
-        attributes: ['nom', 'contact'],
+        attributes: ['nom', 'sigle', 'logo', 'adresse', 'contact'],
       },
       {
         model: Programme,
@@ -141,90 +143,221 @@ function _construirePdf(pi) {
     doc.on('end',   () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    const BLUE  = '#1D6CE5';
-    const GRIS  = '#6B7280';
-    const NOIR  = '#111827';
-    const GREEN = '#059669';
+    // ── Palette ──────────────────────────────────────────────────────────
+    const NAVY   = '#1A3A5C';
+    const BLUE   = '#1D6CE5';
+    const GRIS   = '#6B7280';
+    const GRIS_L = '#9CA3AF';
+    const NOIR   = '#111827';
+
     const margin = 60;
     const pageW  = doc.page.width;
+    const pageH  = doc.page.height;
+    const colW   = pageW - 2 * margin;
 
-    const refId  = pi.id.substring(0, 8).toUpperCase();
-    const dateGen = new Date().toLocaleDateString('fr-FR');
+    const cand       = pi.candidat  || {};
+    const prog       = pi.programme || {};
+    const inst       = pi.institut  || {};
+    const nomComplet = [cand.prenom, cand.nom].filter(Boolean).join(' ');
+    const piece      = pi.type_piece_identite === 'passeport' ? 'Passeport' : 'CIN';
+    const dateGen    = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric',
+    });
+    const ville = (inst.adresse && inst.adresse.ville) ? inst.adresse.ville : 'Tunis';
 
-    // ── En-tête ─────────────────────────────────────────────────────────
-    doc.rect(0, 0, pageW, 88).fill(BLUE);
+    // Numéro de référence réaliste
+    const hex8   = pi.id.replace(/-/g, '').slice(-8);
+    const refNum = String(parseInt(hex8, 16) % 100000).padStart(5, '0');
+    const refCode = `REF-EDU-2026-${refNum}`;
+
+    // ────────────────────────────────────────────────────────────────────
+    // 1. EN-TÊTE INSTITUTIONNEL (bande navy)
+    // ────────────────────────────────────────────────────────────────────
+    doc.rect(0, 0, pageW, 100).fill(NAVY);
+
+    // Logo de l'établissement (si disponible et accessible)
+    let textStartX = margin;
+    if (inst.logo) {
+      const logoAbsPath = path.join(__dirname, '..', inst.logo.replace(/^\//, ''));
+      if (fs.existsSync(logoAbsPath)) {
+        try {
+          doc.image(logoAbsPath, margin, 12, { fit: [76, 76] });
+          textStartX = margin + 86;
+        } catch (_) { /* logo inaccessible — on continue sans */ }
+      }
+    }
+
+    const nameAreaW = pageW - textStartX - margin - 90;
     doc.fillColor('white')
-       .fontSize(26).font('Helvetica-Bold').text('EduBridge', margin, 20);
-    doc.fontSize(11).font('Helvetica')
-       .text('Plateforme de mise en relation étudiants – instituts', margin, 52);
+       .fontSize(22).font('Helvetica-Bold')
+       .text(inst.nom || 'Établissement', textStartX, 18, { width: nameAreaW });
+    doc.fillColor(GRIS_L)
+       .fontSize(9).font('Helvetica')
+       .text("Établissement d'enseignement supérieur privé", textStartX, 50, { width: nameAreaW });
 
-    doc.fillColor(NOIR).moveDown(3.5);
+    // Mention EduBridge discrète en haut à droite
+    doc.fillColor(GRIS_L)
+       .fontSize(8).font('Helvetica')
+       .text('via EduBridge', pageW - margin - 80, 20, { width: 80, align: 'right' });
 
-    // ── Titre document ───────────────────────────────────────────────────
-    doc.fontSize(17).font('Helvetica-Bold').fillColor(BLUE)
-       .text('Attestation de pré-inscription', { align: 'center' });
-    doc.moveDown(0.3);
-    doc.fontSize(10).font('Helvetica').fillColor(GRIS)
-       .text(`Référence : ${refId}   |   Générée le : ${dateGen}`, { align: 'center' });
-    doc.moveDown(1.5);
+    // ────────────────────────────────────────────────────────────────────
+    // 2. ENCADRÉ TITRE DU DOCUMENT
+    // ────────────────────────────────────────────────────────────────────
+    const titleBoxY = 112;
+    doc.rect(margin, titleBoxY, colW, 54).fillAndStroke('#EEF2FF', NAVY);
+    doc.fillColor(NAVY)
+       .fontSize(15).font('Helvetica-Bold')
+       .text("ATTESTATION D'ACCEPTATION PROVISOIRE", margin, titleBoxY + 9, {
+         align: 'center', width: colW,
+       });
+    doc.fillColor(BLUE)
+       .fontSize(10).font('Helvetica')
+       .text('Année universitaire 2026 / 2027', margin, titleBoxY + 33, {
+         align: 'center', width: colW,
+       });
 
-    // ── Candidat ────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────────
+    // 3. LIGNE MÉTA (référence + date d'émission)
+    // ────────────────────────────────────────────────────────────────────
+    const metaY = titleBoxY + 64;
+    doc.fillColor(GRIS)
+       .fontSize(9).font('Helvetica')
+       .text(`Référence : ${refCode}`, margin, metaY);
+    doc.fillColor(GRIS)
+       .fontSize(9).font('Helvetica')
+       .text(`Date d'émission : ${dateGen}`, margin, metaY, { align: 'right', width: colW });
+
+    doc.moveTo(margin, metaY + 16).lineTo(pageW - margin, metaY + 16)
+       .strokeColor('#D1D5DB').lineWidth(0.5).stroke();
+
+    doc.x = margin;
+    doc.y = metaY + 26;
+
+    // ────────────────────────────────────────────────────────────────────
+    // 4. PARAGRAPHE D'ACCEPTATION OFFICIELLE
+    // ────────────────────────────────────────────────────────────────────
+    const acceptTxt =
+      `${inst.nom || "L'établissement"} a le plaisir de confirmer l'acceptation provisoire ` +
+      `de ${nomComplet || 'le candidat'} dans le programme « ${prog.titre || '—'} » ` +
+      `(${_cap(prog.niveau) || 'N/A'}) pour l'année universitaire 2026/2027. ` +
+      "Cette décision fait suite à l'examen de son dossier de candidature et à " +
+      "l'évaluation positive de ses qualifications académiques.";
+
+    doc.fontSize(11).font('Helvetica').fillColor(NOIR)
+       .text(acceptTxt, { align: 'justify', width: colW, lineGap: 2 });
+    doc.moveDown(0.5);
+    doc.fontSize(11).font('Helvetica-Bold').fillColor(NAVY)
+       .text(
+         "Cette acceptation reste soumise à la validation administrative finale " +
+         "et au règlement des frais de scolarité.",
+         { align: 'justify', width: colW, lineGap: 2 }
+       );
+    doc.moveDown(1.2);
+
+    // ────────────────────────────────────────────────────────────────────
+    // 5. INFORMATIONS DU CANDIDAT
+    // ────────────────────────────────────────────────────────────────────
     _titreSection(doc, 'Informations du candidat', BLUE, margin, pageW);
 
-    const cand     = pi.candidat || {};
-    const nomComplet = [cand.prenom, cand.nom].filter(Boolean).join(' ');
-    const piece    = pi.type_piece_identite === 'passeport' ? 'Passeport' : 'CIN';
-
     _lignes(doc, NOIR, GRIS, [
-      ['Nom complet',       nomComplet],
-      ['Date de naissance', _fmtDate(pi.date_naissance)],
-      ['Nationalité',       _cap(pi.nationalite)],
-      [piece,               pi.numero_piece_identite],
-      ['Adresse',           pi.adresse_complete],
-      ['Ville / Code postal', [pi.ville, pi.code_postal].filter(Boolean).join(' – ')],
-      ['Pays',              pi.pays],
-      ['Téléphone',         pi.telephone],
+      ['Nom complet',          nomComplet],
+      ['Date de naissance',    _fmtDate(pi.date_naissance)],
+      ['Nationalité',          _cap(pi.nationalite)],
+      [piece,                  pi.numero_piece_identite],
+      ['Adresse',              pi.adresse_complete],
+      ['Ville / Code postal',  [pi.ville, pi.code_postal].filter(Boolean).join(' – ')],
+      ['Pays',                 pi.pays],
+      ['Téléphone',            pi.telephone],
     ]);
-
     doc.moveDown(0.8);
 
-    // ── Programme / Institut ─────────────────────────────────────────────
-    _titreSection(doc, 'Programme et établissement', BLUE, margin, pageW);
-
-    const prog = pi.programme || {};
-    const inst = pi.institut  || {};
+    // ────────────────────────────────────────────────────────────────────
+    // 6. PROGRAMME ADMIS
+    // ────────────────────────────────────────────────────────────────────
+    _titreSection(doc, 'Programme admis', BLUE, margin, pageW);
 
     _lignes(doc, NOIR, GRIS, [
-      ['Programme',     prog.titre],
-      ['Niveau',        _cap(prog.niveau)],
-      ['Domaine',       _cap(prog.domaine)],
-      ['Établissement', inst.nom],
+      ['Intitulé',       prog.titre],
+      ['Niveau',         _cap(prog.niveau)],
+      ['Domaine',        _cap(prog.domaine)],
+      ['Établissement',  inst.nom],
     ]);
-
     doc.moveDown(0.8);
 
-    // ── Statut ───────────────────────────────────────────────────────────
-    _titreSection(doc, 'Statut de la pré-inscription', BLUE, margin, pageW);
-    doc.fontSize(11).font('Helvetica-Bold').fillColor(GREEN).text('Complétée');
-    doc.fontSize(10).font('Helvetica').fillColor(NOIR)
-       .text(`Date de complétion : ${_fmtDate(pi.completee_le)}`);
+    // ────────────────────────────────────────────────────────────────────
+    // 7. CONDITIONS DE L'INSCRIPTION DÉFINITIVE
+    // ────────────────────────────────────────────────────────────────────
+    _titreSection(doc, "Conditions de l'inscription définitive", BLUE, margin, pageW);
 
-    doc.moveDown(1.5);
+    for (const cond of [
+      "1. Présentation des originaux des diplômes et relevés de notes dans un délai de 30 jours.",
+      "2. Validation administrative du dossier par le service des admissions.",
+      "3. Règlement intégral des frais d'inscription pour l'année universitaire 2026/2027.",
+      "4. Signature de la charte de l'étudiant et du règlement intérieur de l'établissement.",
+    ]) {
+      doc.fontSize(10).font('Helvetica').fillColor(NOIR)
+         .text(cond, margin + 8, doc.y, { width: colW - 8 });
+      doc.moveDown(0.3);
+    }
+    doc.moveDown(0.8);
 
-    // ── Mention légale ───────────────────────────────────────────────────
-    doc.moveTo(margin, doc.y).lineTo(pageW - margin, doc.y)
+    // ────────────────────────────────────────────────────────────────────
+    // 8. BLOC SIGNATURE ET CACHET
+    // ────────────────────────────────────────────────────────────────────
+    const sigY = doc.y;
+    doc.moveTo(margin, sigY).lineTo(pageW - margin, sigY)
        .strokeColor('#D1D5DB').lineWidth(0.5).stroke();
-    doc.moveDown(0.6);
 
-    doc.fontSize(8.5).font('Helvetica').fillColor(GRIS)
+    const sigContentY = sigY + 14;
+
+    // Colonne gauche — représentant et signature
+    doc.fontSize(10).font('Helvetica-Bold').fillColor(NOIR)
+       .text('Le Responsable des admissions', margin, sigContentY);
+    doc.fontSize(9).font('Helvetica').fillColor(GRIS)
+       .text(inst.nom || 'Établissement', margin, doc.y);
+
+    const sigImgPath = path.join(__dirname, '..', 'uploads', 'demo-signature.png');
+    if (fs.existsSync(sigImgPath)) {
+      try {
+        doc.image(sigImgPath, margin, sigContentY + 24, { height: 44, fit: [130, 44] });
+      } catch (_) { /* fichier inaccessible */ }
+    }
+
+    doc.fontSize(9).font('Helvetica').fillColor(GRIS)
+       .text(`Fait à ${ville}, le ${dateGen}`, margin, sigContentY + 74, { width: 200 });
+
+    // Colonne droite — cachet officiel
+    const cachetSize = 78;
+    const cachetX    = pageW - margin - cachetSize - 8;
+    doc.fontSize(9).font('Helvetica-Bold').fillColor(NOIR)
+       .text('Cachet officiel', cachetX - 8, sigContentY, { width: cachetSize + 16, align: 'center' });
+
+    const cachetImgPath = path.join(__dirname, '..', 'uploads', 'demo-cachet.png');
+    if (fs.existsSync(cachetImgPath)) {
+      try {
+        doc.image(cachetImgPath, cachetX, sigContentY + 18, { fit: [cachetSize, cachetSize] });
+      } catch (_) { /* fichier inaccessible */ }
+    } else {
+      // Cercle placeholder lorsque l'image de cachet est absente
+      const cx = cachetX + cachetSize / 2;
+      const cy = sigContentY + 18 + cachetSize / 2;
+      doc.circle(cx, cy, cachetSize / 2).strokeColor(NAVY).lineWidth(1.5).stroke();
+      doc.circle(cx, cy, cachetSize / 2 - 5).strokeColor(NAVY).lineWidth(0.5).stroke();
+      doc.fontSize(7).font('Helvetica-Bold').fillColor(NAVY)
+         .text('CACHET\nOFFICIEL', cx - 22, cy - 10, { width: 44, align: 'center' });
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // 9. PIED DE PAGE — mention EduBridge discrète
+    // ────────────────────────────────────────────────────────────────────
+    const footerY = pageH - 28;
+    doc.moveTo(margin, footerY - 10).lineTo(pageW - margin, footerY - 10)
+       .strokeColor('#E5E7EB').lineWidth(0.5).stroke();
+    doc.fontSize(7.5).font('Helvetica').fillColor(GRIS_L)
        .text(
-         'AVERTISSEMENT : Ce document est une attestation de pré-inscription administrative émise ' +
-         'par la plateforme EduBridge. Il ne constitue PAS une admission officielle dans ' +
-         "l'établissement et n'engage pas contractuellement celui-ci. Ce document ne peut en " +
-         'aucun cas être utilisé à des fins officielles (demande de visa, procédure consulaire ' +
-         "ou toute démarche auprès d'une autorité publique). Pour une admission officielle, " +
-         "rapprochez-vous directement de l'établissement d'enseignement concerné.",
-         { align: 'justify', lineGap: 2 }
+         "Émis par l'établissement via la plateforme EduBridge · " +
+         "Document généré électroniquement · Non opposable sans cachet officiel",
+         margin, footerY, { align: 'center', width: colW }
        );
 
     doc.end();

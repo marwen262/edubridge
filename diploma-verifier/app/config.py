@@ -5,8 +5,8 @@ Toutes les constantes, seuils et dictionnaires de référence sont centralisés 
 
 # --- Contraintes fichier ---
 MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 Mo
-ALLOWED_MIME_TYPES: list[str] = ["application/pdf", "image/jpeg", "image/png"]
-ALLOWED_EXTENSIONS: list[str] = [".pdf", ".jpg", ".jpeg", ".png"]
+ALLOWED_MIME_TYPES: list[str] = ["image/jpeg", "image/png", "image/webp", "image/tiff"]
+ALLOWED_EXTENSIONS: list[str] = [".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"]
 
 # --- Poids et seuils de scoring gérés dans scoring_engine.py ---
 
@@ -118,9 +118,6 @@ OCR_LANGUAGES: str = "fra+eng+ara+spa+deu"
 LOG_DIR: str = "logs"
 LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-# --- Résolution de conversion PDF → image ---
-PDF_DPI: int = 300
-
 # --- Taille maximale d'image pour le traitement (pixels, côté le plus long) ---
 MAX_IMAGE_DIMENSION: int = 4000
 
@@ -185,11 +182,11 @@ TAMPERING_GATE_DIPLOMA_CONFIDENCE: float = 0.2
 # Pondération du score de confiance global. La somme doit faire 1.0.
 # critical_fields a le poids le plus élevé (cœur du correctif V7).
 GLOBAL_SCORE_WEIGHTS: dict[str, float] = {
-    "structure":           0.15,
-    "semantic":            0.15,
-    "critical_fields":     0.30,
+    "structure":           0.14,
+    "semantic":            0.10,
+    "critical_fields":     0.20,
     "visual_authenticity": 0.10,
-    "fraud_trust":         0.20,   # = 100 - fraud_score
+    "fraud_trust":         0.36,   # = 100 - fraud_score
     "ocr_confidence":      0.10,
 }
 
@@ -221,10 +218,20 @@ V7_SEMANTIC_CEILING_THRESHOLD: int = 15
 V7_SEMANTIC_CEILING_CAP: int = 70
 
 # ── Nouveaux caps V7 ──
-# "template" : visuel fort + critical_fields faible → c'est un template
-V7_TEMPLATE_VISUAL_THRESHOLD: int = 70
-V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD: int = 30
-V7_TEMPLATE_CAP: int = 40
+# "template" : visuel fort + critical_fields faible + sémantique cohérente
+# → probablement un template IA (structure parfaite, pas d'identité).
+# V7_TEMPLATE_SEMANTIC_MIN discrimine l'IA (sémantique ≥ 50) de l'OCR raté
+# sur vrai diplôme (sémantique < 50 malgré confidence élevée).
+V7_TEMPLATE_VISUAL_THRESHOLD: int = 80
+V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD: int = 40
+V7_TEMPLATE_SEMANTIC_MIN: int = 40
+V7_TEMPLATE_CAP: int = 50
+
+# Guard OCR pour le cap "template" (Cap 4) : on ne déclenche le cap que si
+# ocr_confidence_score >= V7_TEMPLATE_OCR_GUARD. Un diplôme réel dont l'OCR a
+# échoué (ex: arabe rotaté) peut avoir un visual fort et un CF faible sans être
+# un template IA. L'OCR raté est la cause, pas l'absence d'identité.
+V7_TEMPLATE_OCR_GUARD: int = 60
 
 # "fraud" : fraud_score très élevé → cap final
 V7_FRAUD_HARD_CAP_THRESHOLD: int = 80
@@ -232,6 +239,12 @@ V7_FRAUD_HARD_CAP_SCORE: int = 35
 
 # "template_without_identity" : flag explicit du critical_fields_validator
 V7_TEMPLATE_FLAG_CAP: int = 35
+
+# Phase 3 — Fix 1 : seuil minimal d'OCR pour appliquer le cap template_flag.
+# Si ocr_confidence_score < ce seuil, on n'applique pas template_flag :
+# une OCR ratée n'est PAS la preuve d'un template vide (le validator peut
+# flag à tort parce que l'OCR n'a rien extrait sur un vrai diplôme).
+V7_TEMPLATE_FLAG_MIN_OCR_CONFIDENCE: int = 55
 
 # Seuil de divergence V6 vs V7 au-delà duquel on log un warning
 # (utilisé pendant la phase de migration shadow).

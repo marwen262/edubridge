@@ -1559,6 +1559,43 @@
       "pieceNumRequired": "ID number required"
     }
   },
+  "demandeAcces": {
+    "title": "Join EduBridge",
+    "subtitle": "Institution access request",
+    "description": "Fill in the information below. Our team will review your request and send you an invitation to complete your registration.",
+    "fields": {
+      "nom": "Institution name *",
+      "nomPlaceholder": "E.g.: ESPRIT School of Engineering",
+      "email": "Contact email address *",
+      "emailPlaceholder": "contact@institution.tn",
+      "telephone": "Phone *",
+      "telephonePlaceholder": "+216 XX XXX XXX",
+      "presentation": "Briefly introduce your institution *",
+      "presentationPlaceholder": "E.g.: Private engineering school based in Sousse, specialising in computer science and telecommunications, founded in 2010. We offer integrated preparatory cycles and engineering cycles…"
+    },
+    "submit": "Send request",
+    "submitting": "Sending…",
+    "alreadyAccount": "Already have an account?",
+    "login": "Log in",
+    "backHome": "← Back to home",
+    "success": {
+      "title": "Request sent!",
+      "body": "Your request has been received.",
+      "delay": "Our team will contact you at the provided address within",
+      "delayBold": "48 business hours",
+      "backHome": "Back to home"
+    },
+    "validation": {
+      "nomRequired": "Institution name required (minimum 2 characters)",
+      "emailInvalid": "Invalid email address",
+      "telephoneInvalid": "Invalid phone number",
+      "presentationMin": "Description too short (minimum 20 characters)",
+      "presentationMax": "Description too long (maximum 500 characters)"
+    },
+    "toasts": {
+      "error": "An error occurred. Please try again."
+    }
+  },
   "firstLogin": {
     "loading": "Validating invitation link…",
     "tokenMissing": "Invitation link missing.",

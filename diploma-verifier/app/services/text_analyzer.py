@@ -61,12 +61,39 @@ _NAME_PATTERN = re.compile(
 )
 
 # V6: pattern Arabic — nom de personne après titre courant
+# Phase 3 — Fix 3 : ajout de `إلى` (vers / to) qui précède le nom du
+# titulaire dans les diplômes tunisiens type baccalauréat ("يسند شهادة
+# البكالوريا إلى <NOM>"). `الطالب`/`الطالبة` sont conservés.
+# Phase 3 (renforcé) : whitespace SAME-LINE entre titre et nom (et entre
+# parties du nom). Empêche les faux positifs sur templates vides où
+# "إلى" est à la fin de ligne et المولود/ولاية suit sur la ligne d'après.
 _ARABIC_NAME_PATTERN = re.compile(
-    r"(?:السيد|السيدة|الطالب|الطالبة|الآنسة|للسيد|للسيدة|"
-    r"يشهد\s+بأن|نشهد\s+بأن|تشهد\s+بأن)\s+"
-    r"([؀-ۿ]+(?:\s+[؀-ۿ]+){1,4})",
+    r"(?:إلى|السيد|السيدة|الطالب|الطالبة|الآنسة|للسيد|للسيدة|"
+    r"يشهد\s+بأن|نشهد\s+بأن|تشهد\s+بأن)"
+    r"[^\S\n]+"  # whitespace excluant \n — nom sur la même ligne
+    r"([؀-ۿ]+(?:[^\S\n]+[؀-ۿ]+){1,4})",
     re.UNICODE,
 )
+
+# Phase 3 — Fix 3 : normalisation tashkeel (diacritiques arabes).
+# Tashkeel chars (U+064B–U+0652) sont des diacritiques optionnels qui
+# brisent les matches regex literal. On les strippe AVANT matching mais
+# on garde le texte original pour l'affichage. Inclut aussi le tatweel
+# (U+0640) qui sert à allonger les mots sans changer le sens.
+_TASHKEEL_PATTERN = re.compile(r"[ً-ْٰـ]")
+
+
+def _strip_tashkeel(text: str) -> str:
+    """Retire les diacritiques arabes (tashkeel + tatweel) du texte.
+
+    Ne modifie PAS la chaîne d'entrée — retourne une nouvelle chaîne.
+    Préserve toutes les autres lettres (Latin, Arabe, ponctuation,
+    chiffres). Utilisé pour rendre les regex Arabic robustes face aux
+    OCR avec ou sans diacritiques.
+    """
+    if not text:
+        return text
+    return _TASHKEEL_PATTERN.sub("", text)
 
 # Patterns qui signalent une institution
 _INSTITUTION_KEYWORDS = [
@@ -207,8 +234,28 @@ def _detect_person_name(text: str, language: str) -> tuple[str | None, str]:
     Retourne (nom_détecté, source) où source ∈
     {"spacy", "regex_latin", "regex_arabic", "none"}.
     La source permet au validator V7 de doser la confiance attribuée.
+
+    Phase 3 — Fix 3 :
+      - Tashkeel (diacritiques arabes U+064B-U+0652, tatweel U+0640) sont
+        strippés avant matching regex. Le texte original n'est pas modifié.
+        Permet de matcher "مَرْوان" (avec diacritiques) via un simple "[؀-ۿ]+".
+      - Pour les documents détectés comme arabes, le regex structurel
+        Arabic est tenté AVANT spaCy. Raison : spaCy xx_ent_wiki_sm tend
+        à flag "الجمهورية التونسية" ou autres entités officielles comme
+        PER sur du texte OCR arabe bruité. Le regex `إلى/الطالب/السيد +
+        NOM` est un signal structurel plus fiable.
     """
-    # 1. spaCy
+    # Préparer une version sans tashkeel pour les regex
+    text_normalized = _strip_tashkeel(text)
+    is_arabic = language == "ar"
+
+    # Phase 3 — Fix 3 : prioriser regex_arabic pour les documents arabes
+    if is_arabic:
+        match = _ARABIC_NAME_PATTERN.search(text_normalized)
+        if match:
+            return match.group(1).strip(), "regex_arabic"
+
+    # 1. spaCy (sur le texte original, le NER gère ses propres normalisations)
     try:
         from app.services.ocr_service import _spacy_fr, _spacy_xx
         nlp = _spacy_fr if language == "fr" else _spacy_xx
@@ -220,15 +267,21 @@ def _detect_person_name(text: str, language: str) -> tuple[str | None, str]:
     except Exception:
         pass
 
-    # 2. Regex fallback (Latin)
-    match = _NAME_PATTERN.search(text)
-    if match:
-        return match.group(1).strip(), "regex_latin"
+    # 2. Regex fallback (Latin) — DÉSACTIVÉ pour les documents arabes :
+    # l'OCR arabe garble produit fréquemment du Latin parasitaire (ex:
+    # "Less Moss", "Layard") qui matche `[A-Z][a-z]+ [A-Z][a-z]+`. Ces
+    # faux positifs polluent l'identification sur les diplômes arabes.
+    if not is_arabic:
+        match = _NAME_PATTERN.search(text_normalized)
+        if match:
+            return match.group(1).strip(), "regex_latin"
 
-    # 3. V6: Regex fallback (Arabic)
-    match = _ARABIC_NAME_PATTERN.search(text)
-    if match:
-        return match.group(1).strip(), "regex_arabic"
+    # 3. Regex Arabic en dernier recours pour les docs non détectés "ar"
+    # (texte arabe minoritaire dans un doc détecté comme français p.ex.)
+    if not is_arabic:
+        match = _ARABIC_NAME_PATTERN.search(text_normalized)
+        if match:
+            return match.group(1).strip(), "regex_arabic"
 
     return None, "none"
 
