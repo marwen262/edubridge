@@ -664,6 +664,8 @@ from app.config import (
     V7_TEMPLATE_CAP,
     V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD,
     V7_TEMPLATE_FLAG_CAP,
+    V7_TEMPLATE_FLAG_MIN_OCR_CONFIDENCE,
+    V7_TEMPLATE_SEMANTIC_MIN,
     V7_TEMPLATE_VISUAL_THRESHOLD,
 )
 
@@ -742,9 +744,16 @@ def compute_subscores(
 
     # ── Visual authenticity : signature 40% + cachet 60% (cachet plus
     # important dans les documents officiels tunisiens). ──
+    # Fix : plancher signature quand aucun cachet détecté.
+    # stamp=0, sig=1.0 → visual=40 est trop punitif.
+    # Plancher = sig × 55 (< 60 = stamp seul → le cachet conserve la primauté).
     sig_conf = float(getattr(sig_result, "confidence", 0.0))
     stamp_conf = float(getattr(stamp_result, "confidence", 0.0))
     visual = (sig_conf * 0.4 + stamp_conf * 0.6) * 100.0
+    if stamp_conf == 0.0 and sig_conf >= 0.5:
+        floor_val = sig_conf * 55.0
+        if visual < floor_val:
+            visual = floor_val
     visual_authenticity_score = int(round(max(0.0, min(100.0, visual))))
 
     # ── Fraud (INVERSE de fraud_trust) : 0 = clean, 100 = très suspect ──
@@ -871,10 +880,14 @@ def _apply_safety_caps_v7(
         score = float(V7_SEMANTIC_CEILING_CAP)
         applied.append("semantic_ceiling")
 
-    # ── Cap 4 : template (visual fort + critical_fields faible) ──
+    # ── Cap 4 : template (visual fort + CF faible + sémantique cohérente) ──
+    # La condition sémantique discrimine l'IA (semantic ≥ 50 : contenu cohérent
+    # sans identité) de l'OCR raté sur vrai diplôme (semantic < 50 malgré
+    # confidence élevée, car le texte extrait est incomplet).
     if (
         subscores.visual_authenticity_score > V7_TEMPLATE_VISUAL_THRESHOLD
         and subscores.critical_fields_score < V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD
+        and subscores.semantic_score >= V7_TEMPLATE_SEMANTIC_MIN
     ):
         if score > V7_TEMPLATE_CAP:
             logger.info(
@@ -887,12 +900,23 @@ def _apply_safety_caps_v7(
             applied.append("template")
 
     # ── Cap 5 : template_flag (drapeau explicit du validator) ──
+    # Phase 3 — Fix 1 : sauter ce cap quand ocr_confidence_score < seuil.
+    # Sur un vrai diplôme avec OCR raté (ex: arabe rotaté, signature illisible),
+    # le validator peut flag is_template parce qu'aucun nom n'est extrait. Mais
+    # OCR raté n'est pas une preuve de template vide — c'est une preuve d'OCR raté.
+    # Sans ce guard, on plafonne à tort les diplômes que l'OCR n'a pas su lire.
     if is_template_without_identity:
-        if score > V7_TEMPLATE_FLAG_CAP:
+        if subscores.ocr_confidence_score < V7_TEMPLATE_FLAG_MIN_OCR_CONFIDENCE:
+            logger.info(
+                "V7 cap template_flag SKIPPED — ocr_confidence_score=%d < %d "
+                "(OCR raté n'est pas une preuve de template vide)",
+                subscores.ocr_confidence_score, V7_TEMPLATE_FLAG_MIN_OCR_CONFIDENCE,
+            )
+        elif score > V7_TEMPLATE_FLAG_CAP:
             logger.info(
                 "V7 cap template_flag : %.1f → %d "
-                "(critical_fields_validator a flag is_template)",
-                score, V7_TEMPLATE_FLAG_CAP,
+                "(critical_fields_validator a flag is_template, ocr_conf=%d)",
+                score, V7_TEMPLATE_FLAG_CAP, subscores.ocr_confidence_score,
             )
             score = float(V7_TEMPLATE_FLAG_CAP)
             applied.append("template_flag")

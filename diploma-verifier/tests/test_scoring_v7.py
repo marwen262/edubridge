@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -294,8 +295,8 @@ class TestGlobalTrustScore:
             b_low_cf, raw_text_len=200,
             has_degree_keyword=True, has_date=True,
         )
-        # Critical fields contribue 30 points (poids 0.30 × valeur 100/0)
-        assert score_high - score_low == pytest.approx(30, abs=2)
+        # Critical fields contribue 35 points (poids 0.35 × valeur 100/0)
+        assert score_high - score_low == pytest.approx(35, abs=2)
 
     def test_fraud_inverted_into_trust(self):
         """fraud_score=0 → fraud_trust=100 contribue positivement.
@@ -411,11 +412,11 @@ class TestSafetyCaps:
         assert score <= V7_SEMANTIC_CEILING_CAP
 
     def test_template_cap(self):
-        """visual>70 + critical_fields<30 → template cap."""
+        """visual>80 + critical_fields<40 + semantic>=50 → template cap."""
         b = SubscoreBundle(
-            structure_score=60, semantic_score=60,
-            critical_fields_score=20,        # < 30
-            visual_authenticity_score=85,    # > 70
+            structure_score=60, semantic_score=60,   # semantic=60 >= 50 ✓
+            critical_fields_score=20,                # < 40
+            visual_authenticity_score=85,            # > 80
             fraud_score=0, ocr_confidence_score=80,
         )
         score, caps, _ = compute_global_trust_score(
@@ -434,6 +435,38 @@ class TestSafetyCaps:
         )
         score, caps, _ = compute_global_trust_score(
             b, raw_text_len=300,
+            has_degree_keyword=True, has_date=True,
+            is_template_without_identity=True,
+        )
+        assert "template_flag" in caps
+        assert score <= V7_TEMPLATE_FLAG_CAP
+
+    def test_template_flag_skipped_when_ocr_low(self):
+        """Phase 3 Fix 1 — template_flag NE doit PAS être appliqué quand
+        ocr_confidence_score < 55. Cas réel : un vrai diplôme arabe avec
+        OCR raté à 46 ne doit pas être plafonné comme un template vide."""
+        b = SubscoreBundle(
+            structure_score=62, semantic_score=39,
+            critical_fields_score=31, visual_authenticity_score=84,
+            fraud_score=34, ocr_confidence_score=46,  # < 55
+        )
+        score, caps, _ = compute_global_trust_score(
+            b, raw_text_len=400,
+            has_degree_keyword=True, has_date=True,
+            is_template_without_identity=True,
+        )
+        # template_flag est sauté grâce au guard OCR-confidence
+        assert "template_flag" not in caps
+
+    def test_template_flag_applied_at_ocr_55_threshold(self):
+        """Phase 3 Fix 1 — au seuil exact (ocr=55), template_flag s'applique."""
+        b = SubscoreBundle(
+            structure_score=70, semantic_score=50,
+            critical_fields_score=20, visual_authenticity_score=60,
+            fraud_score=10, ocr_confidence_score=55,
+        )
+        score, caps, _ = compute_global_trust_score(
+            b, raw_text_len=400,
             has_degree_keyword=True, has_date=True,
             is_template_without_identity=True,
         )
@@ -634,3 +667,62 @@ class TestEndToEndPipeline:
         # Cap no_content OU hallucination
         assert score <= max(V7_NO_CONTENT_CAP, V7_HALLUCINATION_CAP)
         assert compute_risk_level(score) == "highly_suspicious"
+
+
+# ──────────────────────────────────────────────
+# EXIF analysis — _analyze_exif unit tests
+# ──────────────────────────────────────────────
+
+class TestEXIFAnalysis:
+    def test_photoshop_software_tag_detected(self):
+        """JPEG avec tag Software=Photoshop → exif_score = 1.0 (signal fort)."""
+        from app.services.tampering_detector import _analyze_exif
+
+        mock_img = MagicMock()
+        # Tag 305 = "Software" dans PIL ExifTags (EXIF standard IFD tag 0x0131)
+        # getexif() returns an Exif object (dict-like) — mock as plain dict.
+        mock_img.getexif.return_value = {305: "Adobe Photoshop 2024"}
+
+        with patch("app.services.tampering_detector.Image.open", return_value=mock_img):
+            score = _analyze_exif("/fake/test.jpg")
+
+        assert score == 1.0
+
+    def test_absent_exif_on_jpeg_is_minor_signal(self):
+        """JPEG sans aucun EXIF → exif_score = 0.3 (signal mineur)."""
+        from app.services.tampering_detector import _analyze_exif
+
+        mock_img = MagicMock()
+        # getexif() returns an empty Exif object (falsy) when no EXIF present.
+        mock_img.getexif.return_value = {}
+
+        with patch("app.services.tampering_detector.Image.open", return_value=mock_img):
+            score = _analyze_exif("/fake/test.jpg")
+
+        assert score == pytest.approx(0.3)
+
+
+# ──────────────────────────────────────────────
+# Cap template IA — diplôme généré visuellement parfait sans identité
+# ──────────────────────────────────────────────
+
+class TestAIDiplomaTemplateCap:
+    def test_ai_diploma_capped_at_50_and_suspicious(self):
+        """Diplôme IA : visual=90, CF=35, semantic=60 → cap template à 50 → suspicious.
+
+        Un document généré par IA a une structure parfaite (semantic élevée) mais
+        pas d'identité réelle (CF faible). Le cap détecte ce profil spécifique.
+        """
+        b = SubscoreBundle(
+            structure_score=85, semantic_score=60,   # IA : sémantique ≥ 50
+            critical_fields_score=35,                # < V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD (40)
+            visual_authenticity_score=90,            # > V7_TEMPLATE_VISUAL_THRESHOLD (80)
+            fraud_score=0, ocr_confidence_score=85,
+        )
+        score, caps, _ = compute_global_trust_score(
+            b, raw_text_len=400,
+            has_degree_keyword=True, has_date=True,
+        )
+        assert "template" in caps
+        assert score <= V7_TEMPLATE_CAP   # 50
+        assert compute_risk_level(score) == "suspicious"

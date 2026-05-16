@@ -8,7 +8,7 @@ import sys
 import tempfile
 import uuid
 
-import magic
+import puremagic
 
 from app.config import ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES, MAX_FILE_SIZE
 from app.utils.logger import logger
@@ -27,13 +27,21 @@ def _resolve_tempdir() -> str:
 
 
 def validate_mime_type(file_content: bytes) -> str:
-    """Vérifie le vrai type MIME du fichier via libmagic.
+    """Vérifie le vrai type MIME du fichier via puremagic.
 
-    Retourne le type MIME détecté.
-    Lève ValueError si le type n'est pas autorisé.
+    Pure-Python (pas de C bindings), insensible au contexte de chargement
+    du worker FastAPI — contourne les fragilités de libmagic en environnement
+    uvicorn. Retourne le type MIME détecté ; lève ValueError si non autorisé
+    ou si la signature est non reconnue.
     """
-    mime = magic.Magic(mime=True)
-    detected_mime: str = mime.from_buffer(file_content)
+    try:
+        detected_mime: str = puremagic.from_string(file_content, mime=True)
+    except puremagic.PureError as e:
+        raise ValueError(
+            f"Signature de fichier non reconnue : {e}. "
+            f"Types acceptés : {ALLOWED_MIME_TYPES}"
+        )
+
     logger.debug("Type MIME détecté : %s", detected_mime)
 
     if detected_mime not in ALLOWED_MIME_TYPES:

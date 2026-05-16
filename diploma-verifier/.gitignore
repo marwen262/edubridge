@@ -11,6 +11,9 @@ logs/*.log
 
 # Artefact de lancement local
 uvicorn
+uvicorn.out
+uvicorn.err
+uvicorn.log
 
 # Fichiers de test scratch (à la racine)
 /test.jpg
@@ -25,6 +28,9 @@ uvicorn
 .env.local
 venv/
 .venv/
+.venv2/
+.venv*/
+env/
 
 # IDE
 .vscode/

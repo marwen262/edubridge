@@ -15,8 +15,10 @@ V6 — Production OCR fix :
 from __future__ import annotations
 
 import hashlib
+import io
 import re
 import sys
+import threading
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -44,32 +46,67 @@ try:
 except Exception:
     logger.warning("Tesseract not found – OCR disabled")
 
+try:
+    from google.cloud import vision as _gvision
+    _VISION_AVAILABLE = True
+except ImportError:
+    _VISION_AVAILABLE = False
+
 # Optimized Tesseract config: LSTM engine + block-based PSM
 _TESSERACT_CONFIG = "--oem 3 --psm 6"
+
+# Phase 3 — Fix 4 : configs alternatives pour les passes Arabic.
+#   PSM 4  = single column of text of variable size (mieux pour diplômes
+#            tunisiens avec colonnes plutôt que bloc uniforme).
+#   PSM 11 = sparse text (pas d'ordre particulier) — capture des fragments
+#            isolés (noms en cellules séparées, signatures, marges).
+# Plusieurs passes Arabic complémentaires sont ajoutées aux 5 passes par
+# défaut ; le sélecteur sémantique garde la meilleure.
+_TESSERACT_CONFIG_PSM4 = "--oem 3 --psm 4"
+_TESSERACT_CONFIG_PSM11 = "--oem 3 --psm 11"
+
+# Pattern for the bottom-crop للسيد / للسيدة pass.
+# Allows \s+ (including \n) between the honorific and the name — PSM 6 on
+# a cropped region may output them on separate lines even when they are
+# physically on one line in the image.
+_BOTTOM_CROP_ALSAID_RE = re.compile(
+    r"للسيد[ة]?\s+([؀-ۿ]+(?:\s+[؀-ۿ]+){0,4})",
+    re.UNICODE,
+)
 
 # Languages to run OCR passes for.
 # V6: passes individuelles + passes combinées pour les diplômes
 # bilingues (typique tunisien fr/ar). La meilleure passe est
 # sélectionnée par scoring sémantique. (P2 reverté — la passe
 # combinée unique générait des faux positifs sur le bruit OCR.)
-_OCR_PASS_LANGS = ["ara", "fra", "eng", "ara+fra", "fra+eng"]
+# Phase 3 — Fix 4 : ajout de passes ("ara", psm=4) et ("ara", psm=11)
+# en plus des 5 passes par défaut (toutes en psm=6). Les tuples
+# (lang, psm) sont utilisés par _ocr_single_lang() pour configurer
+# Tesseract.
+_OCR_PASS_LANGS: list[str] = ["ara", "fra", "eng", "ara+fra", "fra+eng"]
+_OCR_EXTRA_PASSES: list[tuple[str, str]] = [
+    ("ara", _TESSERACT_CONFIG_PSM4),
+    ("ara", _TESSERACT_CONFIG_PSM11),
+]
 
 # Modèles spaCy chargés au démarrage (cf. main.py)
 _spacy_fr = None
 _spacy_xx = None
+_spacy_lock = threading.Lock()
 
 
 def load_spacy_models() -> None:
-    """Charge les modèles spaCy une seule fois en mémoire."""
+    """Charge les modèles spaCy une seule fois en mémoire (thread-safe)."""
     global _spacy_fr, _spacy_xx
     import spacy
 
-    if _spacy_fr is None:
-        logger.info("Chargement du modèle spaCy fr_core_news_sm...")
-        _spacy_fr = spacy.load("fr_core_news_sm")
-    if _spacy_xx is None:
-        logger.info("Chargement du modèle spaCy xx_ent_wiki_sm...")
-        _spacy_xx = spacy.load("xx_ent_wiki_sm")
+    with _spacy_lock:
+        if _spacy_fr is None:
+            logger.info("Chargement du modèle spaCy fr_core_news_sm...")
+            _spacy_fr = spacy.load("fr_core_news_sm")
+        if _spacy_xx is None:
+            logger.info("Chargement du modèle spaCy xx_ent_wiki_sm...")
+            _spacy_xx = spacy.load("xx_ent_wiki_sm")
 
 
 # ──────────────────────────────────────────────
@@ -292,8 +329,19 @@ def _correct_rotation(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
 
     Utilise image_to_osd pour détecter la rotation et auto-rotater.
     Retourne l'image corrigée ou l'originale si la détection échoue.
+
+    Portrait images (height > width) are returned as-is: OSD mis-rotates
+    them when Arabic script confuses the orientation detector.
     """
     if not TESSERACT_AVAILABLE:
+        return image
+
+    # Skip OSD for images that are already portrait — rotating a correctly
+    # oriented portrait diploma 90° destroys the two-column layout and
+    # makes the bottom-right name region unreachable for the crop pass.
+    h, w = image.shape[:2]
+    if h > w:
+        logger.debug("OSD skipped — portrait image (%dx%d)", w, h)
         return image
 
     try:
@@ -388,6 +436,7 @@ def _ocr_preprocess(image: NDArray[np.uint8]) -> NDArray[np.uint8]:
 def _ocr_single_lang(
     image: NDArray[np.uint8],
     lang: str,
+    config: str | None = None,
 ) -> dict[str, str | float]:
     """Run Tesseract OCR for a single language.
 
@@ -395,10 +444,16 @@ def _ocr_single_lang(
     reconstruit à partir des mots, et la confidence est calculée en
     même temps. Évite le doublon image_to_string + image_to_data.
 
-    Returns dict with 'text', 'confidence', and 'lang' keys.
+    Phase 3 — Fix 4 : `config` est optionnel. Par défaut `_TESSERACT_CONFIG`
+    (PSM 6). Permet à _extract_best_text() d'ajouter une passe Arabic
+    en PSM 4 (single column).
+
+    Returns dict with 'text', 'confidence', 'lang' and 'config' keys.
     """
+    effective_config = config or _TESSERACT_CONFIG
+
     if not TESSERACT_AVAILABLE:
-        return {"text": "", "confidence": 0.0, "lang": lang}
+        return {"text": "", "confidence": 0.0, "lang": lang, "config": effective_config}
 
     try:
         pil_img = Image.fromarray(image)
@@ -407,7 +462,7 @@ def _ocr_single_lang(
         data = pytesseract.image_to_data(
             pil_img,
             lang=lang,
-            config=_TESSERACT_CONFIG,
+            config=effective_config,
             output_type=pytesseract.Output.DICT,
         )
 
@@ -449,46 +504,60 @@ def _ocr_single_lang(
         )
 
         logger.debug(
-            "OCR pass [%s] — text_len=%d | confidence=%.3f",
-            lang, len(text), avg_confidence,
+            "OCR pass [%s | cfg=%s] — text_len=%d | confidence=%.3f",
+            lang, effective_config, len(text), avg_confidence,
         )
 
-        return {"text": text, "confidence": avg_confidence, "lang": lang}
+        return {
+            "text": text, "confidence": avg_confidence,
+            "lang": lang, "config": effective_config,
+        }
 
     except Exception as e:
         logger.error("Erreur Tesseract [%s] : %s", lang, e)
-        return {"text": "", "confidence": 0.0, "lang": lang}
+        return {
+            "text": "", "confidence": 0.0,
+            "lang": lang, "config": effective_config,
+        }
 
 
 def _extract_best_text(image: NDArray[np.uint8]) -> dict[str, str | float]:
-    """Run OCR in 3 languages separately, select BEST by semantic score.
+    """Run OCR in N languages separately, select BEST by semantic score.
 
     Pipeline:
       1. Preprocess image (grayscale + resize x2)
-      2. OCR with lang="ara"
-      3. OCR with lang="fra"
-      4. OCR with lang="eng"
-      5. Normalize each result
-      6. Score each result with _semantic_score()
-      7. Return the result with highest semantic score
-
-    This replaces the old combined-language + threshold multi-pass approach.
+      2. Parallel OCR passes: 5 langues × PSM 6 + 1 passe Arabic × PSM 4 (Fix 4)
+      3. Score each result with _semantic_score()
+      4. Return the result with highest semantic score
     """
     # Preprocess once
     preprocessed = _ocr_preprocess(image)
 
+    # Construire la liste des passes : (lang, config) tuples.
+    # Phase 3 — Fix 4 : la passe Arabic-PSM4 est ajoutée à la liste, parallélisée
+    # comme les autres. Le sélecteur sémantique en aval garde la meilleure.
+    passes: list[tuple[str, str]] = [
+        (lang, _TESSERACT_CONFIG) for lang in _OCR_PASS_LANGS
+    ] + list(_OCR_EXTRA_PASSES)
+
     # V6 perf: parallélisation des passes OCR via ThreadPoolExecutor.
     # Tesseract est invoqué en subprocess → libère le GIL → speedup ~5×
     # quand toutes les passes tournent en parallèle.
-    with ThreadPoolExecutor(max_workers=len(_OCR_PASS_LANGS)) as executor:
+    with ThreadPoolExecutor(max_workers=len(passes)) as executor:
         results: list[dict[str, str | float]] = list(executor.map(
-            lambda lang: _ocr_single_lang(preprocessed, lang),
-            _OCR_PASS_LANGS,
+            lambda p: _ocr_single_lang(preprocessed, p[0], p[1]),
+            passes,
         ))
 
-    # Score each result semantically
+    # Score each result semantically.
+    # Phase 3 : tie-breaker par confidence — quand deux passes ont le même
+    # semantic_score, on garde celle avec la confidence Tesseract la plus
+    # haute. Évite que la première passe itérée (souvent ara seul) écrase
+    # une passe combinée (ara+fra) qui a la même qualité sémantique mais
+    # une OCR plus propre. Critique pour Fix 1 (template_flag threshold).
     best_result = None
     best_score = -1
+    best_confidence = -1.0
 
     for res in results:
         text = str(res.get("text", ""))
@@ -501,8 +570,11 @@ def _extract_best_text(image: NDArray[np.uint8]) -> dict[str, str | float]:
             lang, score, confidence, len(text),
         )
 
-        if score > best_score:
+        if score > best_score or (
+            score == best_score and confidence > best_confidence
+        ):
             best_score = score
+            best_confidence = confidence
             best_result = res
 
     # 🔥 fallback when semantic is too weak
@@ -770,6 +842,123 @@ def _find_best_rotation(
     return best_image
 
 
+def _vision_api_extract(image: NDArray[np.uint8]) -> str:
+    """Google Vision API OCR fallback.
+
+    Called only when Tesseract confidence < 0.50. Encodes the image as
+    JPEG in memory and calls the Vision text_detection endpoint.
+
+    Requires google-cloud-vision package and valid credentials
+    (GOOGLE_APPLICATION_CREDENTIALS env var pointing to a service-account
+    JSON, or any Application Default Credentials flow). Returns "" when
+    the package is not installed, credentials are absent, or the API call
+    fails — the caller continues on Tesseract output without crashing.
+    """
+    if not _VISION_AVAILABLE:
+        return ""
+    try:
+        if len(image.shape) == 3:
+            pil_img = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        else:
+            pil_img = Image.fromarray(image)
+
+        buf = io.BytesIO()
+        pil_img.save(buf, format="JPEG", quality=95)
+        content = buf.getvalue()
+
+        client = _gvision.ImageAnnotatorClient()
+        vision_image = _gvision.Image(content=content)
+        response = client.text_detection(image=vision_image)
+
+        if response.error.message:
+            logger.warning("Vision API error: %s", response.error.message)
+            return ""
+
+        if response.text_annotations:
+            text = response.text_annotations[0].description
+            logger.info("Vision API success — text_len=%d", len(text))
+            return text
+
+        return ""
+    except Exception as e:
+        logger.warning("Vision API call failed: %s", e)
+        return ""
+
+
+# Patterns for extracting a name from Vision API text (critical fields only).
+_VISION_ARABIC_NAME_RE = re.compile(
+    r"(?:إلى|السيد|السيدة|الطالب|الطالبة|للسيد|للسيدة)\s+"
+    r"([؀-ۿ]+(?:\s+[؀-ۿ]+){1,4})",
+    re.UNICODE,
+)
+_VISION_LATIN_NAME_RE = re.compile(
+    r"(?:M\.|Mr\.?|Mrs\.?|Mme|Monsieur|Madame)\s+"
+    r"([A-ZÀ-ÖÙ-Ü][a-zà-öù-ü]+(?:\s+[A-ZÀ-ÖÙ-Ü][a-zà-öù-ü]+)+)",
+    re.UNICODE,
+)
+
+
+def _extract_critical_supplement_from_vision(
+    vision_text: str,
+    existing_text: str,
+) -> str:
+    """Extract a name from Vision text and return a synthetic supplement line.
+
+    Produces output only when Vision detects a name that is absent from the
+    Tesseract full_text. This keeps main text Tesseract-primary while letting
+    the critical_fields_validator see the Vision-detected identity. The whole
+    Vision text is never substituted — only the detected name token is injected.
+
+    Returns e.g. "للسيد حبيب عثمان" or "M. Jean Dupont", or "" if nothing new.
+    """
+    ar_match = _VISION_ARABIC_NAME_RE.search(vision_text)
+    if ar_match:
+        name = ar_match.group(1).strip().replace("\n", " ")
+        # Skip if any multi-char token already appears in Tesseract text.
+        tokens = [t for t in name.split() if len(t) > 2]
+        if tokens and not any(tok in existing_text for tok in tokens):
+            return f"للسيد {name}"
+
+    lat_match = _VISION_LATIN_NAME_RE.search(vision_text)
+    if lat_match:
+        name = lat_match.group(1).strip()
+        first_token = name.split()[0] if name.split() else ""
+        if first_token and first_token not in existing_text:
+            return f"M. {name}"
+
+    return ""
+
+
+def _extract_bottom_crop_text(image: NDArray[np.uint8]) -> str:
+    """Dedicated Arabic OCR pass on the bottom 35% of the image.
+
+    Tunisian diplomas in a two-column layout place the student name in the
+    bottom-right cell after للسيد (Mr.) or للسيدة (Ms.).  A full-page PSM 6
+    pass often skips this cell because the two-column structure confuses the
+    page segmenter.  Cropping to the bottom 35% isolates that region and
+    re-running PSM 6 gives Tesseract a clean, single-block target.
+
+    Returns raw OCR text from the crop, or "" on failure.
+    """
+    if not TESSERACT_AVAILABLE:
+        return ""
+    try:
+        h = image.shape[0]
+        crop_y = int(h * 0.65)
+        bottom_crop = image[crop_y:, :]
+        preprocessed = _ocr_preprocess(bottom_crop)
+        result = _ocr_single_lang(preprocessed, "ara", "--oem 3 --psm 6")
+        text = str(result.get("text", ""))
+        logger.debug(
+            "Bottom-crop Arabic OCR — crop_y=%d/%d | text_len=%d",
+            crop_y, h, len(text),
+        )
+        return text
+    except Exception as e:
+        logger.warning("Bottom-crop OCR failed: %s", e)
+        return ""
+
+
 def extract_text(image: NDArray[np.uint8]) -> OCRResult:
     """Pipeline complet d'extraction OCR.
 
@@ -790,6 +979,9 @@ def extract_text(image: NDArray[np.uint8]) -> OCRResult:
     try:
         # Étape 1 : Auto-rotation OSD
         corrected_image = _correct_rotation(image)
+        # Tracks the image that produced the best OCR result; updated by
+        # the 4-rotation fallback and 180° retry when they win.
+        final_image = corrected_image
 
         # Étape 2 : OCR initial (5-lang) sur image OSD-corrigée
         best = _extract_best_text(corrected_image)
@@ -805,11 +997,85 @@ def extract_text(image: NDArray[np.uint8]) -> OCRResult:
             if better_image is not corrected_image:
                 best = _extract_best_text(better_image)
                 full_text = str(best.get("text", ""))
+                primary_semantic = _semantic_score(full_text)
+                final_image = better_image
 
         confidence = float(best.get("confidence", 0.0))
 
+        # Phase 3 — Fix 2 : retry 180° explicite si OCR encore faible.
+        # Cas typique : diplomehbib.jpg est rotaté 180° et OSD ne le détecte
+        # pas (texte arabe + bord blanc). _find_best_rotation rate parfois
+        # quand l'image originale donne un semantic_score >= 5 par accident
+        # (un mot-clé matche du bruit OCR). Ce second guard force un essai
+        # 180° quand la confidence est franchement basse (<0.30) ou que la
+        # quantité de signal sémantique est trop faible.
+        if confidence < 0.30 or primary_semantic < 10:
+            try:
+                rotated_180 = cv2.rotate(image, cv2.ROTATE_180)
+                alt = _extract_best_text(rotated_180)
+                alt_text = str(alt.get("text", ""))
+                alt_semantic = _semantic_score(alt_text)
+                alt_confidence = float(alt.get("confidence", 0.0))
+                logger.info(
+                    "V7 Fix2 — retry 180° : current(sem=%d, conf=%.2f) vs "
+                    "rotated(sem=%d, conf=%.2f)",
+                    primary_semantic, confidence,
+                    alt_semantic, alt_confidence,
+                )
+                if alt_semantic > primary_semantic:
+                    logger.info(
+                        "V7 Fix2 — 180° rotation prise (sem %d > %d)",
+                        alt_semantic, primary_semantic,
+                    )
+                    best = alt
+                    full_text = alt_text
+                    confidence = alt_confidence
+                    primary_semantic = alt_semantic
+                    final_image = rotated_180
+            except Exception as e:
+                logger.debug("V7 Fix2 — 180° retry échoué : %s", e)
+
         result.full_text = full_text
         result.ocr_confidence = confidence
+
+        # Bottom-crop للسيد pass: scan the bottom 35% of the final image for
+        # the student name when the full-page OCR missed it.
+        # Activated only when للسيد is absent from the main OCR text — if the
+        # main passes already captured it there is nothing to add.
+        if "للسيد" not in full_text:
+            crop_text = _extract_bottom_crop_text(final_image)
+            if crop_text:
+                match = _BOTTOM_CROP_ALSAID_RE.search(crop_text)
+                if match:
+                    name_str = match.group(1).strip().replace("\n", " ")
+                    synthetic = f"للسيد {name_str}"
+                    logger.info(
+                        "Bottom-crop — للسيد found, injecting into full_text: %r",
+                        synthetic,
+                    )
+                    full_text = full_text + "\n" + synthetic
+                    result.full_text = full_text
+
+        # Google Vision API fallback — critical fields only, not main text replacement.
+        # Triggered when Tesseract confidence is below the reliability threshold.
+        # Only the name detected by Vision is injected as a synthetic line;
+        # the full Vision text never replaces full_text.
+        if confidence < 0.50:
+            vision_text = _vision_api_extract(final_image)
+            if vision_text:
+                supplement = _extract_critical_supplement_from_vision(
+                    vision_text, full_text,
+                )
+                if supplement:
+                    full_text = full_text + "\n" + supplement
+                    result.full_text = full_text
+                    logger.info(
+                        "Vision API — critical fields supplement injected: %r",
+                        supplement[:80],
+                    )
+                result.flags.append(
+                    "Vision API fallback activé (confiance OCR < 0.50)"
+                )
 
         # Étape 3 : Normalisation du texte + hash déterministe
         result.clean_text = normalize_ocr_text(full_text)

@@ -6,10 +6,6 @@ python-multipart==0.0.9
 # OCR
 pytesseract==0.3.10
 
-# PDF
-PyMuPDF==1.24.3
-pdf2image==1.17.0
-
 # Vision / Image
 opencv-python-headless==4.9.0.80
 scikit-image==0.23.2
@@ -24,11 +20,17 @@ langdetect==1.0.9
 pydantic==2.7.1
 
 # Utilitaires
-# python-magic = wrapper Linux/Mac (utilise libmagic system, installé via apt dans le Dockerfile)
-# python-magic-bin = wrapper Windows (inclut libmagic.dll)
-python-magic==0.4.27; sys_platform != 'win32'
-python-magic-bin==0.4.14; sys_platform == 'win32'
+# puremagic = pure-Python MIME detection (no C bindings, cross-platform).
+# Remplace python-magic/libmagic qui posait des problèmes de chargement
+# dans le worker FastAPI (cf. issue #1, V7 Phase 2).
+puremagic==1.28
 aiofiles==23.2.1
+
+# QR code detection (requires libzbar native library)
+pyzbar==0.1.9
+
+# Google Vision API OCR fallback (optional — needs GOOGLE_APPLICATION_CREDENTIALS)
+google-cloud-vision==3.7.2
 
 # Tests
 pytest==8.2.0

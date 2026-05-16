@@ -53,6 +53,8 @@ async def verify_diploma(
 
     try:
         content: bytes = await file.read()
+        if not content:
+            raise ValueError("Le fichier reçu est vide.")
         filename: str = file.filename or "unknown"
 
         logger.info("Requête de vérification reçue : %s", filename)
@@ -76,7 +78,7 @@ async def verify_diploma(
         raise HTTPException(status_code=400, detail=str(e))
 
     except Exception as e:
-        logger.error("Erreur inattendue : %s", e)
+        logger.exception("Erreur inattendue : %s (type=%s)", e, type(e).__name__)
         raise HTTPException(
             status_code=500,
             detail="Erreur interne lors de l'analyse.",
