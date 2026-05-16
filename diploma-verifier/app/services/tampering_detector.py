@@ -299,6 +299,81 @@ def _check_background_uniformity(image: NDArray[np.uint8]) -> tuple[float, list[
         return 0.0, []
 
 
+def _analyze_dct(image: NDArray[np.uint8]) -> float:
+    """Détecte les discontinuités de coefficients DCT entre blocs adjacents.
+
+    Un document modifié numériquement présente souvent des transitions
+    abruptes d'énergie haute-fréquence entre blocs 8×8 aux frontières
+    de la région éditée. Cette analyse mesure ces discontinuités.
+
+    Pipeline :
+      1. Conversion en niveaux de gris (float32)
+      2. Découpage en blocs 8×8 non-chevauchants
+      3. Pour chaque bloc : DCT → énergie haute-fréquence (coin bas-droite 4×4)
+      4. Comparaison de l'énergie entre blocs horizontalement et verticalement adjacents
+      5. Moyenne des discontinuités → normalisée en [0.0, 0.5]
+
+    Blocs avec std des pixels < 10 (fond uniforme) : ignorés.
+    """
+    try:
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).astype(np.float32)
+        else:
+            gray = image.astype(np.float32)
+
+        h, w = gray.shape
+        block_size = 8
+        hf_start = 4  # coin bas-droite 4×4 des coefficients DCT
+
+        # Calcul de l'énergie haute-fréquence par bloc
+        rows = h // block_size
+        cols = w // block_size
+        block_energies: dict[tuple[int, int], float] = {}
+
+        for r in range(rows):
+            for c in range(cols):
+                y0, x0 = r * block_size, c * block_size
+                block = gray[y0:y0 + block_size, x0:x0 + block_size]
+
+                # Ignorer les blocs de fond uniforme
+                if float(np.std(block)) < 10.0:
+                    continue
+
+                dct_block = cv2.dct(block)
+                hf_energy = float(np.sum(dct_block[hf_start:, hf_start:] ** 2))
+                block_energies[(r, c)] = hf_energy
+
+        if len(block_energies) < 4:
+            return 0.0
+
+        # Mesure des discontinuités entre blocs adjacents
+        discontinuities: list[float] = []
+        for (r, c), energy in block_energies.items():
+            if (r, c + 1) in block_energies:
+                discontinuities.append(abs(energy - block_energies[(r, c + 1)]))
+            if (r + 1, c) in block_energies:
+                discontinuities.append(abs(energy - block_energies[(r + 1, c)]))
+
+        if not discontinuities:
+            return 0.0
+
+        mean_disc = float(np.mean(discontinuities))
+
+        # Normalisation vers [0.0, 0.5]
+        # Seuil de 1 800 : en-dessous, la variance est naturelle (scan JPEG ou
+        # rendu PNG uniforme). Au-delà, un document numériquement altéré présente
+        # des discontinuités bien supérieures (typiquement 3 000–50 000+).
+        _DCT_THRESHOLD = 1_800.0
+        _DCT_RANGE = 20_000.0
+        if mean_disc <= _DCT_THRESHOLD:
+            return 0.0
+        return min(0.5, (mean_disc - _DCT_THRESHOLD) / _DCT_RANGE * 0.5)
+
+    except Exception as e:
+        logger.warning("Erreur analyse DCT : %s", e)
+        return 0.0
+
+
 def _png_laplacian_noise(file_path: str) -> float:
     """Laplacian variance signal for PNG files.
 
@@ -317,6 +392,60 @@ def _png_laplacian_noise(file_path: str) -> float:
         return 0.4 if lap_var > 800 else 0.0
     except Exception as e:
         logger.warning("PNG Laplacian noise check failed: %s", e)
+        return 0.0
+
+
+def _analyze_noise_pattern(image: NDArray[np.uint8]) -> float:
+    """Détecte les irrégularités de bruit spatiales (signal d'édition localisée).
+
+    Pipeline :
+      1. Conversion en niveaux de gris
+      2. Filtre médian 3×3 soustrait de l'original → carte de bruit
+      3. Découpage en grille 8×8 de blocs
+      4. Moyenne du bruit par bloc (les blocs avec std<3 sont ignorés —
+         fond uniforme sans contenu)
+      5. Écart-type des moyennes de blocs (mesure d'hétérogénéité spatiale)
+
+    Interprétation :
+      std > 15 → édition localisée → 0.4
+      std < 5  → document très uniforme → 0.0
+      sinon    → (std - 5) / 10 × 0.4 (proportionnel)
+    """
+    try:
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image.copy()
+
+        # Filtre médian 3×3 → carte de bruit absolue
+        median = cv2.medianBlur(gray, 3)
+        noise_map = np.abs(gray.astype(np.float32) - median.astype(np.float32))
+
+        h, w = noise_map.shape
+        block_size = 8
+        block_means: list[float] = []
+
+        for y in range(0, h - block_size + 1, block_size):
+            for x in range(0, w - block_size + 1, block_size):
+                block = noise_map[y:y + block_size, x:x + block_size]
+                # Ignorer les blocs de fond uniforme (bruit trop régulier)
+                if float(np.std(block)) < 3.0:
+                    continue
+                block_means.append(float(np.mean(block)))
+
+        if not block_means:
+            return 0.0
+
+        std = float(np.std(block_means))
+
+        if std > 15.0:
+            return 0.4
+        if std < 5.0:
+            return 0.0
+        return (std - 5.0) / 10.0 * 0.4
+
+    except Exception as e:
+        logger.warning("Erreur analyse pattern de bruit : %s", e)
         return 0.0
 
 
@@ -430,7 +559,8 @@ def detect_tampering(
     """Pipeline de détection de falsification sur image.
 
     Formule de base (somme = 1.0) :
-      ELA_effective × 0.30 + copier-coller × 0.35 + fond × 0.20 + EXIF × 0.15
+      ELA_effective × 0.25 + copier-coller × 0.28 + fond × 0.15
+      + EXIF × 0.15 + bruit × 0.17
 
     Ajustements post-formule (QR) :
       QR trouvé              → −0.10 (document vérifiable)
@@ -449,22 +579,32 @@ def detect_tampering(
 
         ela_effective = ela_score * ela_spatial_factor
 
-        # 2. Détection copier-coller
+        # 2. Analyse DCT (discontinuités haute-fréquence entre blocs adjacents)
+        dct_score = _analyze_dct(image)
+
+        # Combinaison ELA + DCT (ELA 60%, DCT 40%)
+        ela_dct_combined = ela_effective * 0.6 + dct_score * 0.4
+
+        # 3. Détection copier-coller
         copy_paste_score = _detect_copy_paste(image)
 
-        # 3. Uniformité du fond
+        # 4. Uniformité du fond
         bg_score, bg_flags = _check_background_uniformity(image)
         result.flags.extend(bg_flags)
 
-        # 4. Analyse EXIF (logiciel suspect / dates incohérentes / absent JPEG)
+        # 5. Analyse EXIF (logiciel suspect / dates incohérentes / absent JPEG)
         exif_score = _analyze_exif(file_path)
 
-        # Score global : ELA×0.30 + copier-coller×0.35 + fond×0.20 + EXIF×0.15 = 1.0
+        # 6. Analyse pattern de bruit spatial (détection d'édition localisée)
+        noise_score = _analyze_noise_pattern(image)
+
+        # Score global : ELA_DCT×0.25 + copier-coller×0.28 + fond×0.15 + EXIF×0.15 + bruit×0.17 = 1.0
         tampering_score: float = (
-            ela_effective * 0.30
-            + copy_paste_score * 0.35
-            + bg_score * 0.20
+            ela_dct_combined * 0.25
+            + copy_paste_score * 0.28
+            + bg_score * 0.15
             + exif_score * 0.15
+            + noise_score * 0.17
         )
         tampering_score = min(1.0, tampering_score)
 
@@ -505,16 +645,19 @@ def detect_tampering(
 
         logger.info(
             "Détection tampering — score=%.3f | ELA=%.3f (spatial=%.1f "
-            "effective=%.3f, %d régions) | copier-coller=%.3f | fond=%.3f | "
-            "exif=%.2f | qr=%s",
+            "effective=%.3f) | DCT=%.3f | ela_dct=%.3f | %d régions | "
+            "copier-coller=%.3f | fond=%.3f | exif=%.2f | bruit=%.3f | qr=%s",
             result.tampering_score,
             ela_score,
             ela_spatial_factor,
             ela_effective,
+            dct_score,
+            ela_dct_combined,
             ela_regions,
             copy_paste_score,
             bg_score,
             exif_score,
+            noise_score,
             "found" if qr_found else "absent",
         )
 

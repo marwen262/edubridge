@@ -276,7 +276,7 @@ class TestGlobalTrustScore:
         assert V7_SCORE_MIN <= score <= V7_SCORE_MAX
 
     def test_critical_fields_weight_dominant(self):
-        """critical_fields a le poids le plus élevé (0.30)."""
+        """critical_fields contribue significativement au score (poids 0.20)."""
         b_high_cf = SubscoreBundle(
             structure_score=50, semantic_score=50, critical_fields_score=100,
             visual_authenticity_score=50, fraud_score=0,
@@ -295,8 +295,8 @@ class TestGlobalTrustScore:
             b_low_cf, raw_text_len=200,
             has_degree_keyword=True, has_date=True,
         )
-        # Critical fields contribue 35 points (poids 0.35 × valeur 100/0)
-        assert score_high - score_low == pytest.approx(35, abs=2)
+        # Critical fields contribue 20 points (poids 0.20 × valeur 100/0)
+        assert score_high - score_low == pytest.approx(20, abs=2)
 
     def test_fraud_inverted_into_trust(self):
         """fraud_score=0 → fraud_trust=100 contribue positivement.
@@ -412,9 +412,9 @@ class TestSafetyCaps:
         assert score <= V7_SEMANTIC_CEILING_CAP
 
     def test_template_cap(self):
-        """visual>80 + critical_fields<40 + semantic>=50 → template cap."""
+        """visual>80 + critical_fields<40 + semantic>=40 + ocr>=60 → template cap."""
         b = SubscoreBundle(
-            structure_score=60, semantic_score=60,   # semantic=60 >= 50 ✓
+            structure_score=60, semantic_score=60,   # semantic=60 >= 40 ✓
             critical_fields_score=20,                # < 40
             visual_authenticity_score=85,            # > 80
             fraud_score=0, ocr_confidence_score=80,
@@ -714,7 +714,7 @@ class TestAIDiplomaTemplateCap:
         pas d'identité réelle (CF faible). Le cap détecte ce profil spécifique.
         """
         b = SubscoreBundle(
-            structure_score=85, semantic_score=60,   # IA : sémantique ≥ 50
+            structure_score=85, semantic_score=60,   # IA : sémantique ≥ 40
             critical_fields_score=35,                # < V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD (40)
             visual_authenticity_score=90,            # > V7_TEMPLATE_VISUAL_THRESHOLD (80)
             fraud_score=0, ocr_confidence_score=85,

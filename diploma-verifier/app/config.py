@@ -182,11 +182,11 @@ TAMPERING_GATE_DIPLOMA_CONFIDENCE: float = 0.2
 # Pondération du score de confiance global. La somme doit faire 1.0.
 # critical_fields a le poids le plus élevé (cœur du correctif V7).
 GLOBAL_SCORE_WEIGHTS: dict[str, float] = {
-    "structure":           0.15,
+    "structure":           0.14,
     "semantic":            0.10,
-    "critical_fields":     0.35,
+    "critical_fields":     0.20,
     "visual_authenticity": 0.10,
-    "fraud_trust":         0.20,   # = 100 - fraud_score
+    "fraud_trust":         0.36,   # = 100 - fraud_score
     "ocr_confidence":      0.10,
 }
 
@@ -224,8 +224,14 @@ V7_SEMANTIC_CEILING_CAP: int = 70
 # sur vrai diplôme (sémantique < 50 malgré confidence élevée).
 V7_TEMPLATE_VISUAL_THRESHOLD: int = 80
 V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD: int = 40
-V7_TEMPLATE_SEMANTIC_MIN: int = 50
+V7_TEMPLATE_SEMANTIC_MIN: int = 40
 V7_TEMPLATE_CAP: int = 50
+
+# Guard OCR pour le cap "template" (Cap 4) : on ne déclenche le cap que si
+# ocr_confidence_score >= V7_TEMPLATE_OCR_GUARD. Un diplôme réel dont l'OCR a
+# échoué (ex: arabe rotaté) peut avoir un visual fort et un CF faible sans être
+# un template IA. L'OCR raté est la cause, pas l'absence d'identité.
+V7_TEMPLATE_OCR_GUARD: int = 60
 
 # "fraud" : fraud_score très élevé → cap final
 V7_FRAUD_HARD_CAP_THRESHOLD: int = 80

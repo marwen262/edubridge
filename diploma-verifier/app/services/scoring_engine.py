@@ -665,6 +665,7 @@ from app.config import (
     V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD,
     V7_TEMPLATE_FLAG_CAP,
     V7_TEMPLATE_FLAG_MIN_OCR_CONFIDENCE,
+    V7_TEMPLATE_OCR_GUARD,
     V7_TEMPLATE_SEMANTIC_MIN,
     V7_TEMPLATE_VISUAL_THRESHOLD,
 )
@@ -881,13 +882,17 @@ def _apply_safety_caps_v7(
         applied.append("semantic_ceiling")
 
     # ── Cap 4 : template (visual fort + CF faible + sémantique cohérente) ──
-    # La condition sémantique discrimine l'IA (semantic ≥ 50 : contenu cohérent
-    # sans identité) de l'OCR raté sur vrai diplôme (semantic < 50 malgré
+    # La condition sémantique discrimine l'IA (semantic ≥ 40 : contenu cohérent
+    # sans identité) de l'OCR raté sur vrai diplôme (semantic < 40 malgré
     # confidence élevée, car le texte extrait est incomplet).
+    # Le guard OCR (ocr >= V7_TEMPLATE_OCR_GUARD) évite un faux positif sur un
+    # diplôme réel dont l'OCR a échoué : OCR raté → CF bas, mais ce n'est pas
+    # une preuve d'absence d'identité.
     if (
         subscores.visual_authenticity_score > V7_TEMPLATE_VISUAL_THRESHOLD
         and subscores.critical_fields_score < V7_TEMPLATE_CRITICAL_FIELDS_THRESHOLD
         and subscores.semantic_score >= V7_TEMPLATE_SEMANTIC_MIN
+        and subscores.ocr_confidence_score >= V7_TEMPLATE_OCR_GUARD
     ):
         if score > V7_TEMPLATE_CAP:
             logger.info(
