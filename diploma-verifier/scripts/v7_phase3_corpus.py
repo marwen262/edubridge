@@ -28,10 +28,12 @@ API = "http://127.0.0.1:8000/api/verify"
 
 # (score_min, score_max, cf_min, first_min, last_min, risk_levels, must_have_caps, max_score)
 TARGETS = {
-    # Limite architecturale OCR : Tesseract ne sort pas le nom arabe حبيب عثمان.
-    # Sans noms, CF ≤ 50 mathématiquement → score max théorique ~62.
+    # EasyOCR (JPEG-only fallback) détecte عثمان sur la même ligne que للسيد.
     "diplomehbib.jpg": {
-        "score_range": (55, 62),
+        "score_range": (75, 85),
+        "cf_min": 65,
+        "first_min": 1,
+        "last_min": 1,
     },
     "diplomemar.jpg": {
         "score_range": (80, 90),

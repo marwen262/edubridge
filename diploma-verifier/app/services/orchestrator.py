@@ -141,7 +141,7 @@ async def analyze_document(
         # Note : pas de preprocess() ici — le service OCR gère son
         # propre pipeline (rotation + grayscale + upscale x2). Une
         # binarisation préalable dégrade fortement Tesseract LSTM.
-        ocr_result = extract_text(cv_image)
+        ocr_result = extract_text(cv_image, file_path=file_path)
         raw_text = ocr_result.full_text
         ocr_confidence = ocr_result.ocr_confidence
         language = ocr_result.language_detected

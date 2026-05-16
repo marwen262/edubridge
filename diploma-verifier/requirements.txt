@@ -32,6 +32,9 @@ pyzbar==0.1.9
 # Google Vision API OCR fallback (optional — needs GOOGLE_APPLICATION_CREDENTIALS)
 google-cloud-vision==3.7.2
 
+# EasyOCR — local Arabic OCR fallback for bottom-crop name extraction (no API key)
+easyocr==1.7.2
+
 # Tests
 pytest==8.2.0
 pytest-asyncio==0.23.6

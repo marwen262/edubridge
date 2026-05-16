@@ -111,7 +111,7 @@ async def verify_diploma_debug(
 
         # OCR + signaux visuels (mêmes appels que l'orchestrator)
         _pil, cv_image = convert_file(temp_path, mime_type)
-        ocr_result = extract_text(cv_image)
+        ocr_result = extract_text(cv_image, file_path=temp_path)
         sig_result = detect_signature(cv_image)
         stamp_result = detect_stamp(cv_image)
 

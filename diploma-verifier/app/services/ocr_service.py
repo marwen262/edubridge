@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import os
 import re
 import sys
 import threading
@@ -52,6 +53,31 @@ try:
 except ImportError:
     _VISION_AVAILABLE = False
 
+try:
+    import easyocr as _easyocr
+    _EASYOCR_AVAILABLE = True
+except ImportError:
+    _EASYOCR_AVAILABLE = False
+
+_easyocr_reader: "object | None" = None
+_easyocr_lock = threading.Lock()
+
+
+def _get_easyocr_reader():
+    global _easyocr_reader
+    if _easyocr_reader is not None:
+        return _easyocr_reader
+    if not _EASYOCR_AVAILABLE:
+        return None
+    with _easyocr_lock:
+        if _easyocr_reader is None:
+            try:
+                _easyocr_reader = _easyocr.Reader(["ar"], gpu=False, verbose=False)
+                logger.info("EasyOCR Reader initialized (Arabic, CPU)")
+            except Exception as e:
+                logger.warning("EasyOCR Reader init failed: %s", e)
+    return _easyocr_reader
+
 # Optimized Tesseract config: LSTM engine + block-based PSM
 _TESSERACT_CONFIG = "--oem 3 --psm 6"
 
@@ -73,6 +99,9 @@ _BOTTOM_CROP_ALSAID_RE = re.compile(
     r"للسيد[ة]?\s+([؀-ۿ]+(?:\s+[؀-ۿ]+){0,4})",
     re.UNICODE,
 )
+
+# Validates that a string contains only Arabic script characters (+ whitespace).
+_ARABIC_ONLY_RE = re.compile(r"^[؀-ۿ\s]+$", re.UNICODE)
 
 # Languages to run OCR passes for.
 # V6: passes individuelles + passes combinées pour les diplômes
@@ -929,7 +958,42 @@ def _extract_critical_supplement_from_vision(
     return ""
 
 
-def _extract_bottom_crop_text(image: NDArray[np.uint8]) -> str:
+def _easyocr_extract_alsaid_name(results: list) -> str:
+    """Spatial extraction of the student name from EasyOCR detail=1 results.
+
+    Finds the للسيد block, then collects all Arabic-only blocks on the same
+    horizontal line (within 60 px vertically).  Returns a synthetic
+    'للسيد <name>' string ready to be appended to full_text, or "" if nothing
+    was found.
+
+    Using spatial grouping instead of joined-string search avoids false
+    matches caused by text from unrelated areas of the diploma being
+    concatenated adjacent to للسيد.
+    """
+    alsaid_y: int | None = None
+    for bbox, text, _conf in results:
+        if "للسيد" in text:
+            alsaid_y = int(bbox[0][1])
+            break
+    if alsaid_y is None:
+        return ""
+    name_tokens: list[str] = []
+    for bbox, text, _conf in results:
+        t = text.strip()
+        y = int(bbox[0][1])
+        if (
+            abs(y - alsaid_y) <= 60
+            and "للسيد" not in t
+            and _ARABIC_ONLY_RE.match(t)
+            and len(t) >= 2
+        ):
+            name_tokens.append(t)
+    if not name_tokens:
+        return ""
+    return f"للسيد {' '.join(name_tokens)}"
+
+
+def _extract_bottom_crop_text(image: NDArray[np.uint8], file_path: str = "") -> str:
     """Dedicated Arabic OCR pass on the bottom 35% of the image.
 
     Tunisian diplomas in a two-column layout place the student name in the
@@ -938,7 +1002,11 @@ def _extract_bottom_crop_text(image: NDArray[np.uint8]) -> str:
     page segmenter.  Cropping to the bottom 35% isolates that region and
     re-running PSM 6 gives Tesseract a clean, single-block target.
 
-    Returns raw OCR text from the crop, or "" on failure.
+    If للسيد is detected but the name regex fails, Vision API is called on the
+    crop image as a last-resort fallback (only when credentials are configured).
+
+    Returns raw OCR text from the crop (possibly augmented with a Vision-sourced
+    synthetic line), or "" on failure.
     """
     if not TESSERACT_AVAILABLE:
         return ""
@@ -953,13 +1021,38 @@ def _extract_bottom_crop_text(image: NDArray[np.uint8]) -> str:
             "Bottom-crop Arabic OCR — crop_y=%d/%d | text_len=%d",
             crop_y, h, len(text),
         )
+        # EasyOCR fallback: للسيد found but name regex failed to extract the name.
+        # JPEG-only: PNG = digital-native/template, JPEG = real scanned diploma.
+        _crop_is_jpeg = os.path.splitext(file_path)[1].lower() in (".jpg", ".jpeg")
+        if (
+            "للسيد" in text
+            and not _BOTTOM_CROP_ALSAID_RE.search(text)
+            and _EASYOCR_AVAILABLE
+            and _crop_is_jpeg
+        ):
+            try:
+                reader = _get_easyocr_reader()
+                if reader:
+                    rgb = cv2.cvtColor(bottom_crop, cv2.COLOR_BGR2RGB) if len(bottom_crop.shape) == 3 else bottom_crop
+                    easy_results = reader.readtext(rgb, detail=0, paragraph=False)
+                    easy_text = " ".join(easy_results)
+                    easy_match = _BOTTOM_CROP_ALSAID_RE.search(easy_text)
+                    if easy_match:
+                        name_str = easy_match.group(1).strip().replace("\n", " ")
+                        synthetic = f"للسيد {name_str}"
+                        text = text + "\n" + synthetic
+                        logger.info(
+                            "EasyOCR bottom-crop fallback — name injected: %r", synthetic
+                        )
+            except Exception as e:
+                logger.debug("EasyOCR bottom-crop fallback failed: %s", e)
         return text
     except Exception as e:
         logger.warning("Bottom-crop OCR failed: %s", e)
         return ""
 
 
-def extract_text(image: NDArray[np.uint8]) -> OCRResult:
+def extract_text(image: NDArray[np.uint8], file_path: str = "") -> OCRResult:
     """Pipeline complet d'extraction OCR.
 
     V6 — Pipeline robuste multi-langue :
@@ -1043,7 +1136,7 @@ def extract_text(image: NDArray[np.uint8]) -> OCRResult:
         # Activated only when للسيد is absent from the main OCR text — if the
         # main passes already captured it there is nothing to add.
         if "للسيد" not in full_text:
-            crop_text = _extract_bottom_crop_text(final_image)
+            crop_text = _extract_bottom_crop_text(final_image, file_path=file_path)
             if crop_text:
                 match = _BOTTOM_CROP_ALSAID_RE.search(crop_text)
                 if match:
@@ -1055,6 +1148,28 @@ def extract_text(image: NDArray[np.uint8]) -> OCRResult:
                     )
                     full_text = full_text + "\n" + synthetic
                     result.full_text = full_text
+
+        # EasyOCR full-image fallback — triggered when للسيد is still absent after
+        # all Tesseract passes and the bottom-crop pass.  Runs locally, no credentials.
+        # Uses spatial grouping (detail=1 bounding boxes) to avoid false matches
+        # caused by text from unrelated diploma areas being joined adjacent to للسيد.
+        _is_jpeg = os.path.splitext(file_path)[1].lower() in (".jpg", ".jpeg")
+        if "للسيد" not in full_text and _EASYOCR_AVAILABLE and _is_jpeg:
+            try:
+                reader = _get_easyocr_reader()
+                if reader:
+                    rgb = cv2.cvtColor(final_image, cv2.COLOR_BGR2RGB) if len(final_image.shape) == 3 else final_image
+                    easy_results = reader.readtext(rgb, detail=1, paragraph=False)
+                    synthetic = _easyocr_extract_alsaid_name(easy_results)
+                    if synthetic:
+                        full_text = full_text + "\n" + synthetic
+                        result.full_text = full_text
+                        logger.info(
+                            "EasyOCR full-image fallback — للسيد name injected: %r",
+                            synthetic,
+                        )
+            except Exception as e:
+                logger.debug("EasyOCR full-image fallback failed: %s", e)
 
         # Google Vision API fallback — critical fields only, not main text replacement.
         # Triggered when Tesseract confidence is below the reliability threshold.
