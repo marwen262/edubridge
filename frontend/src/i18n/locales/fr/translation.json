@@ -1641,5 +1641,27 @@
       "digit": "Un chiffre",
       "special": "Un caractère spécial (!@#$%^&*)"
     }
+  },
+  "chatbot": {
+    "title": "EduBridge Assistant",
+    "online": "En ligne • Répond instantanément",
+    "welcome": "Bonjour ! Je suis l’EduBridge Assistant 👋\n\nJe suis là pour vous guider dans votre parcours académique en Tunisie : candidatures, programmes, instituts, frais, logement et bien plus.\n\nComment puis-je vous aider aujourd’hui ?",
+    "placeholder_1": "Posez votre question...",
+    "placeholder_2": "Ex: Comment candidater ?",
+    "placeholder_3": "Ex: Coût de la vie à Tunis ?",
+    "placeholder_4": "Ex: Documents requis ?",
+    "error": "Je rencontre une difficulté technique momentanée. Veuillez réessayer dans quelques instants ou consulter directement notre guide.",
+    "error_suggestion": "Voir le guide",
+    "error_link": "Guide EduBridge",
+    "quick_apply": "Comment candidater ?",
+    "quick_docs": "Documents requis",
+    "quick_compare": "Comparer des programmes",
+    "quick_track": "Suivre ma candidature",
+    "quick_life": "Vie étudiante en Tunisie",
+    "quick_fees": "Frais & Bourses",
+    "welcome_s1": "Comment candidater ?",
+    "welcome_s2": "Programmes disponibles",
+    "welcome_s3": "Vie étudiante en Tunisie",
+    "welcome_s4": "Frais de scolarité"
   }
 }
