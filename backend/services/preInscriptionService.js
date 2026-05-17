@@ -178,7 +178,7 @@ function _construirePdf(pi) {
     // Logo de l'établissement (si disponible et accessible)
     let textStartX = margin;
     if (inst.logo) {
-      const logoAbsPath = path.join(__dirname, '..', inst.logo.replace(/^\//, ''));
+      const logoAbsPath = path.join(__dirname, '..', 'uploads', path.basename(inst.logo));
       if (fs.existsSync(logoAbsPath)) {
         try {
           doc.image(logoAbsPath, margin, 12, { fit: [76, 76] });

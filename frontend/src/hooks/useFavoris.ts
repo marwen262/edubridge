@@ -61,6 +61,8 @@ export function useToggleFavori() {
       const { data } = await favoriService.toggle(programmeId);
       // Le backend retourne { message, favori? } — favori présent = ajouté
       return !!data.favori;
+    } catch (error) {
+      throw error;
     } finally {
       setLoading(false);
     }
