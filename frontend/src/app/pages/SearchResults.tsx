@@ -48,6 +48,7 @@ export function SearchResults() {
   const [searchParams] = useSearchParams();
   const [view, setView] = React.useState<'grid' | 'list'>('list');
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [debouncedQuery, setDebouncedQuery] = React.useState('');
   const [selectedFields, setSelectedFields] = React.useState<string[]>(() => {
     const d = searchParams.get('domaine');
     return d && DOMAINE_TO_FIELD[d] ? [DOMAINE_TO_FIELD[d]] : [];
@@ -56,6 +57,12 @@ export function SearchResults() {
   const [tuitionRange, setTuitionRange] = React.useState([0, 100000]);
   const [sortBy, setSortBy] = React.useState<SortOption>('relevance');
   const [page, setPage] = React.useState(1);
+
+  // Debounce : attend 400 ms après la dernière frappe avant d'envoyer la requête
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     const d = searchParams.get('domaine');
@@ -75,17 +82,17 @@ export function SearchResults() {
     niveau: selectedLevels.length === 1
       ? (selectedLevels[0] as ProgrammeFilters['niveau'])
       : undefined,
-    titre: searchQuery.trim() || undefined,
+    titre: debouncedQuery.trim() || undefined,
     page,
     limit: PAGE_SIZE,
-  }), [selectedFields, selectedLevels, searchQuery, page]);
+  }), [selectedFields, selectedLevels, debouncedQuery, page]);
 
   const { programs, pagination, loading, error, refetch } = usePrograms(filters);
 
   // Reset page à 1 dès que les filtres "métier" changent (hors page elle-même).
   useEffect(() => {
     setPage(1);
-  }, [selectedFields, selectedLevels, searchQuery]);
+  }, [selectedFields, selectedLevels, debouncedQuery]);
 
   // Si la page courante dépasse `totalPages` (ex: filtres restreints),
   // on revient à la première page.

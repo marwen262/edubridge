@@ -21,7 +21,8 @@ const rateLimit = require('express-rate-limit');
 
 const MESSAGE_TROP_DE_REQUETES = { message: 'Trop de requêtes, réessayez plus tard.' };
 
-const DISABLED       = process.env.RATE_LIMIT_DISABLED === 'true';
+// Désactivé par défaut (démo PFE) — activer en prod via RATE_LIMIT_DISABLED=false
+const DISABLED       = process.env.RATE_LIMIT_DISABLED !== 'false';
 const WINDOW_MIN     = parseInt(process.env.RATE_LIMIT_WINDOW_MIN || '15', 10);
 const WINDOW_MS      = WINDOW_MIN * 60 * 1000;
 // Defaults généreux pour un SPA : un dashboard typique fait 5-10 requêtes au
@@ -86,9 +87,7 @@ const limiteurFormulairePublic = DISABLED ? noopMiddleware : rateLimit({
   handler: makeHandler('formulaire-public'),
 });
 
-if (DISABLED) {
-  console.warn('[RATE LIMIT] ⚠️  désactivé via RATE_LIMIT_DISABLED=true');
-} else {
+if (!DISABLED) {
   console.log(
     `[RATE LIMIT] global=${GLOBAL_MAX}/${WINDOW_MIN}min · login=${LOGIN_MAX}/${WINDOW_MIN}min · ` +
     `formulaire-public=${PUBLIC_FORM_MAX}/${WINDOW_MIN}min`

@@ -344,18 +344,29 @@ exports.soumettre = async ({ candidature_id, user_id, profil }) => {
       const resultatVerif = await verifierDiplome(cheminFichier, docDiplome.nom);
 
       if (resultatVerif.succes && resultatVerif.score !== null) {
-        const scoreTag = `[DiplomaVerifier] score=${resultatVerif.score}/100, niveau=${resultatVerif.niveau}`;
+        // Format enrichi V7 : score global + 3 sous-scores
+        const score = Math.round(resultatVerif.score);
+        let scoreTag = `[DiplomaVerifier] score=${score}/100, niveau=${resultatVerif.niveau}`;
+        if (resultatVerif.subscores) {
+          const { cf, struct, vis, fraud } = resultatVerif.subscores;
+          if (cf !== null && struct !== null && vis !== null) {
+            scoreTag += `, cf=${cf}, struct=${struct}, vis=${vis}`;
+            if (fraud !== null && fraud !== undefined) {
+              scoreTag += `, fraud=${fraud}`;
+            }
+          }
+        }
         const notesExistantes = candidature.notes_institut ?? '';
         candidature.notes_institut = notesExistantes
           ? `${notesExistantes}\n${scoreTag}`
           : scoreTag;
         candidature.changed('notes_institut', true);
 
-        if (resultatVerif.score < 50) {
+        if (score < 50) {
           console.warn(
             '[candidatureWorkflow] Score diplôme faible pour candidature %s : %d/100 — raisons : %s',
             candidature.id,
-            resultatVerif.score,
+            score,
             (resultatVerif.raisons ?? []).join(', ')
           );
         }

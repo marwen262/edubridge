@@ -18,6 +18,12 @@ const NOMS_DIPLOMES = [
 /**
  * Envoie un fichier diplôme au microservice de vérification.
  * Retourne toujours un objet — ne lève jamais d'exception.
+ *
+ * Réponse enrichie (V7) :
+ *   { succes, score, niveau, raisons, subscores: { cf, struct, vis } }
+ *   - cf     : critical_fields_score  (identité + données académiques)
+ *   - struct : structure_score         (mise en page officielle)
+ *   - vis    : visual_authenticity_score (signature, cachet)
  */
 async function verifierDiplome(cheminFichier, nomFichier) {
   try {
@@ -26,7 +32,7 @@ async function verifierDiplome(cheminFichier, nomFichier) {
         '[diplomaVerifier] Fichier introuvable, vérification ignorée :',
         cheminFichier
       );
-      return { succes: false, score: null, niveau: null, raisons: [] };
+      return { succes: false, score: null, niveau: null, raisons: [], subscores: null };
     }
 
     const form = new FormData();
@@ -43,18 +49,34 @@ async function verifierDiplome(cheminFichier, nomFichier) {
       }
     );
 
+    const data = reponse.data;
+    const v7 = data.v7 ?? null;
+
+    // Extraire les 4 sous-scores depuis le payload V7
+    let subscores = null;
+    if (v7 && v7.subscores) {
+      subscores = {
+        cf:     v7.subscores.critical_fields_score     ?? null,
+        struct: v7.subscores.structure_score            ?? null,
+        vis:    v7.subscores.visual_authenticity_score  ?? null,
+        // fraud_score depuis le module tampering (0=aucune anomalie, 100=très suspect)
+        fraud:  v7.tampering?.fraud_score               ?? null,
+      };
+    }
+
     return {
       succes: true,
-      score: reponse.data.score ?? null,
-      niveau: reponse.data.confidence_level ?? null,
-      raisons: reponse.data.reasons ?? [],
+      score:  data.score ?? null,
+      niveau: data.confidence_level ?? null,
+      raisons: data.reasons ?? [],
+      subscores,
     };
   } catch (erreur) {
     console.warn(
       '[diplomaVerifier] Microservice indisponible, vérification ignorée :',
       erreur.message
     );
-    return { succes: false, score: null, niveau: null, raisons: [] };
+    return { succes: false, score: null, niveau: null, raisons: [], subscores: null };
   }
 }
 
