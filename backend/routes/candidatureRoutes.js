@@ -32,11 +32,11 @@ router.put('/:id', auth, restrictTo('candidat'), verifierPropriete, candidatureU
 // Soumettre le dossier (candidat propriétaire)
 router.post('/:id/soumettre', auth, restrictTo('candidat'), verifierPropriete, ctrl.soumettreCandidature);
 
-// Transition de statut (institut ou admin)
-router.patch('/:id/statut', auth, restrictTo('admin', 'institut'), ctrl.changerStatut);
+// Transition de statut (institut ou admin) — verifierPropriete bloque les accès cross-institut
+router.patch('/:id/statut', auth, restrictTo('admin', 'institut'), verifierPropriete, ctrl.changerStatut);
 
-// Consultation
-router.get('/:id', auth, ctrl.getCandidatureById);
+// Consultation — verifierPropriete assure la défense en profondeur (controller filtre aussi)
+router.get('/:id', auth, verifierPropriete, ctrl.getCandidatureById);
 
 // Suppression — admin (toute candidature) ou candidat propriétaire (brouillon uniquement)
 router.delete('/:id', auth, restrictTo('admin', 'candidat'), ctrl.deleteCandidature);

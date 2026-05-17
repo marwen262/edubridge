@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, ExternalLink, Send, X } from 'lucide-react';
+import { API_URL } from '@/config';
 
 interface ChatMessage {
   id: string;
@@ -109,7 +110,7 @@ export function ChatbotPanel({ isOpen, onClose, onNewAssistantMessage }: Chatbot
 
     try {
       const lang = i18n.language === 'en' ? 'en' : 'fr';
-      const res = await fetch('http://localhost:5000/api/chatbot/message', {
+      const res = await fetch(`${API_URL}/chatbot/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: trimmed, lang }),

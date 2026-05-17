@@ -106,10 +106,17 @@ exports.getMesCandidatures = async (req, res) => {
     }
     const candidatures = await Candidature.findAll({
       where: { candidat_id: req.user.candidat_id },
-      include: [{
-        model: Programme, as: 'programme',
-        include: [{ model: Institut, as: 'institut', attributes: ['id', 'nom', 'sigle'] }],
-      }],
+      include: [
+        {
+          model: Programme, as: 'programme',
+          include: [{ model: Institut, as: 'institut', attributes: ['id', 'nom', 'sigle'] }],
+        },
+        {
+          model: Candidat, as: 'candidat',
+          attributes: ['id', 'prenom', 'nom', 'telephone', 'date_naissance', 'nationalite',
+                       'type_piece_identite', 'cin', 'numero_passeport', 'adresse'],
+        },
+      ],
       order: [['cree_le', 'DESC']],
     });
     return res.status(200).json({ candidatures });
