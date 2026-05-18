@@ -13,8 +13,9 @@ Le repo contient trois composants indépendants :
 - `frontend/` — SPA React / Vite (interface utilisateur)
 - `diploma-verifier/` — service Python / FastAPI de vérification
   documentaire de diplômes (OCR Tesseract + scoring heuristique pondéré, stateless).
-  Pas de machine learning entraîné, pas de détection de fraude par IA — uniquement
-  des heuristiques déterministes.
+  Pipeline principal déterministe (heuristiques, regex, OpenCV). Composant deep-learning
+  optionnel : **MantraNet** (`mantranet_detector.py`, PyTorch) désactivé par défaut
+  (`MANTRANET_ENABLED=False`) jusqu'à validation des poids sur corpus.
 
 ## Stack
 
@@ -45,16 +46,18 @@ Le repo contient trois composants indépendants :
 
 ### Diploma Verifier (`diploma-verifier/`)
 - **Python 3.11** + **FastAPI** (la fonction d'analyse est `async` mais le pipeline interne est synchrone — pas de `await` sur les modules internes)
-- Pipeline déterministe d'analyse heuristique **V7** (multi-score) — pas de machine learning entraîné, robuste au bruit OCR
+- Pipeline déterministe d'analyse heuristique **V7** (multi-score) — robuste au bruit OCR
 - **Tesseract OCR** (5 passes parallélisées via `ThreadPoolExecutor` : ara, fra, eng, ara+fra, fra+eng) + **spaCy** NER pré-entraîné (modèles `fr_core_news_sm`, `xx_ent_wiki_sm`)
 - **OpenCV** / **scikit-image** / **NumPy** : auto-rotation, signature_detector (contours), stamp_detector (Hough circles, downsample 1200px)
 - `text_analyzer` : classification de document (`classify_document`), cohérence sémantique (`check_coherence`), pénalité de densité de mots-clés (`keyword_density_penalty`), sélection du meilleur texte basé sur score sémantique ou longueur (fallback) — multilingue (fra, eng, ara, spa, deu)
 - `critical_fields_validator` (V7 Phase 1) : validation des champs critiques d'un diplôme (nom, prénom, date, institution, spécialisation) — score 0–100 par champ, agrégé pondéré via `CRITICAL_FIELDS_WEIGHTS` ; résout les faux positifs templates officiels sans identité étudiante
 - `scoring_engine` (V7 Phase 2) : moteur multi-score — 6 sous-scores indépendants (structure, semantic, critical_fields, signature, stamp, official_mention) + plafonds heuristiques (no-content, hallucination, safety ceiling 10 chars, `V7_FRAUD_HARD_CAP`)
+- `tampering_detector` : 5 (défaut) ou 6 (MantraNet activé) composants de détection — ELA×DCT, copier-coller, fond, EXIF, bruit, + MantraNet optionnel
+- **MantraNet** (`mantranet_detector.py`) : détecteur deep-learning pixel-level (PyTorch **2.12+cpu**, ResNet-50 fallback) — désactivé (`MANTRANET_ENABLED=False`). Quand désactivé : aucun import PyTorch, aucun téléchargement, retourne `0.0` immédiatement. Poids à placer dans `models/mantranet.pt` avant activation.
 - **PyMuPDF** + **python-magic** : utilisés pour l'import PDF (`utils/image_converter`)
 - Conteneurisé (Dockerfile + docker-compose), exposé sur port 8000
 - **Stateless** : aucune base de données, pas d'authentification, pas de rate limiting
-- ⚠️ Modules présents mais non câblés à l'orchestrator : `diploma_classifier`, `country_detector`, `preprocessing` — `tampering_detector` est câblé (intégré dans `scoring_engine` via `detect_tampering`)
+- ⚠️ Modules présents mais non câblés à l'orchestrator : `diploma_classifier`, `country_detector`, `preprocessing`, `mantranet_detector` (câblé dans `tampering_detector` uniquement, pas dans l'orchestrator)
 
 ## Commandes utiles
 
@@ -222,14 +225,17 @@ edubridge/
 └── diploma-verifier/
     ├── Dockerfile
     ├── docker-compose.yml        # Service exposé sur :8000
-    ├── requirements.txt
+    ├── requirements.txt          # torch>=2.12 + torchvision>=0.27 ajoutés (V7.5)
     ├── microservices.md          # Documentation architecturale détaillée
     ├── README.md
     ├── app/                      # Code FastAPI (routes, services, config)
     │   ├── api/routes/           # /api/verify, /api/health, …
     │   ├── services/             # OCR, signature, stamp, tampering, scoring…
+    │   │   └── mantranet_detector.py  # V7.5 — détecteur PyTorch (désactivé par défaut)
     │   ├── utils/logger.py
-    │   └── config.py             # Poids scoring, mots-clés, langues OCR
+    │   └── config.py             # Poids scoring, mots-clés, langues OCR, MANTRANET_ENABLED
+    ├── models/                   # Poids ML (gitignorés) — y déposer mantranet.pt pour activer
+    ├── diplomes/                 # Corpus local pour tests tampering (non versionné)
     ├── sample_docs/              # Exemples (volume monté)
     ├── logs/                     # Logs (volume monté)
     └── tests/
@@ -472,6 +478,17 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
           faux positifs templates officiels sans identité étudiante
         - Phase 2 — moteur multi-score `scoring_engine.py` : 6 sous-scores indépendants,
           plafonds V7 (`V7_FRAUD_HARD_CAP`, `critical_fields_low_cap`, tampering penalty)
+  - [x] Diploma Verifier V7.5 — MantraNet :
+        - `mantranet_detector.py` : détecteur pixel-level de manipulation (PyTorch 2.12+cpu,
+          ResNet-50 fallback ImageNet) ; interface `detect_mantranet(image_path) → float` ;
+          timeout 15 s ; dégradation gracieuse
+        - `tampering_detector.py` mis à jour : 6ème composant MantraNet (×0.15) dans la formule
+          quand `MANTRANET_ENABLED=True` ; formule originale 5-composants préservée par défaut
+        - `MANTRANET_ENABLED=False` dans `config.py` — aucun modèle HuggingFace disponible
+          localement ; zéro overhead à l'import ; à activer uniquement après dépôt de poids
+          calibrés dans `models/mantranet.pt`
+        - Corrections suites de tests pre-existing : assertion template-cap (score 50 → "suspicious"),
+          unpacking 3-tuple `_error_level_analysis`, champ `metadata_info` sur `TamperingResult`
   - [x] Pré-inscriptions post-acceptation :
         - Backend : modèle `PreInscription` (1:1 Candidature), migration `20260503`,
           route `/api/preinscriptions`, service `preInscriptionService.js`
@@ -521,11 +538,12 @@ pas retirer les plugins React/Tailwind et de ne pas ajouter `.ts/.tsx/.css` à
   - Clarifier le mapping slug → id pour la route `/institution/:slug`.
 
   **Diploma Verifier**
-  - Intégrer `diploma_classifier`, `country_detector` au pipeline orchestrator (modules présents mais non câblés — `tampering_detector` déjà intégré).
+  - Intégrer `diploma_classifier`, `country_detector` au pipeline orchestrator (modules présents mais non câblés).
   - Authentification + rate limiting (API publique actuellement).
   - Monitoring (Prometheus / métriques exportées) et tracing.
   - Calibrer les nouveaux seuils V7 (`CRITICAL_FIELDS_LOW_THRESHOLD`, poids multi-score) sur corpus réel.
   - Suivre la divergence Tesseract 5.4 (Windows local) vs 5.5 (Docker) — atténuée par les plafonds anti-hallucination dans `scoring_engine.py` (cf. `microservices.md`).
+  - **MantraNet** : obtenir et valider les poids officiels UTSA-ICS (ou fine-tune ResNet-50 sur CASIA) ; les placer dans `diploma-verifier/models/mantranet.pt` ; passer `MANTRANET_ENABLED=True` dans `config.py` ; vérifier les 6 cibles corpus (`diplomehbib.jpg` 75-85, `diplomemar.jpg` ≥80, `diplomevide.png` ≤35, `gbtdiplome.png` ≤55, `logoedubridge.png` ≤20, `maroc.jpg` ≥65).
 - **Priorité immédiate** : stabilisation, corrections de bugs.
 - Commits descriptifs en **français**, format court style :
   `feat(auth): ajouter endpoint /me` ou `fix(front): corriger navigation sidebar`.

@@ -19,6 +19,7 @@ from typing import Optional
 
 import numpy as np
 
+from app.config import MANTRANET_ENABLED
 from app.utils.logger import logger
 
 # ──────────────────────────────────────────────
@@ -87,8 +88,10 @@ def _load_model() -> None:
         _transform = None
 
 
-# Trigger load at import time (background — non-blocking for first call)
-_load_model()
+# Charger le modèle au démarrage uniquement si MantraNet est activé.
+# Quand MANTRANET_ENABLED=False : aucun import PyTorch, aucun téléchargement.
+if MANTRANET_ENABLED:
+    _load_model()
 
 
 # ──────────────────────────────────────────────

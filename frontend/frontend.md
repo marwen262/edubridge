@@ -128,6 +128,7 @@ src/
 │   │   ├── InstitutionCard.tsx       # Card institution
 │   │   ├── InstitutCard.tsx          # Card institut (listing public)
 │   │   ├── MultiStepDialog.tsx       # Dialog candidature 5 étapes — connecté candidatureService + Multer
+│   │   ├── ScoreDiplome.tsx          # Affichage du score V7 diploma-verifier (badge + détail sous-scores)
 │   │   ├── Stepper.tsx               # Composant stepper
 │   │   ├── StatCard.tsx              # Card de statistiques
 │   │   ├── StatusBadge.tsx           # Badge de statut
@@ -137,7 +138,8 @@ src/
 │   │   ├── admin/                    # Sections AdminDashboard (Overview, Users, Institutes, Programs, Candidatures, Notifications, Demandes)
 │   │   │   └── InstitutesSection.tsx   # + DetailDialog (vue complète), filtre `search` (nom ou sigle)
 │   │   ├── institution/              # Sections InstitutionDashboard + CreateProgramDialog
-│   │   │   └── InstitutionCandidaturesSection.tsx  # CandidatureDetailPanel (identité + parcours + lettre + docs)
+│   │   │   ├── InstitutionCandidaturesSection.tsx  # CandidatureDetailPanel (identité + parcours + lettre + docs)
+│   │   │   └── DiplomaScorePanel.tsx               # Panel score diploma-verifier V7 dans la vue détail candidature
 │   │   ├── figma/
 │   │   │   └── ImageWithFallback.tsx # Image avec fallback
 │   │   └── ui/                       # Design system (Radix UI — NE PAS ÉDITER)
