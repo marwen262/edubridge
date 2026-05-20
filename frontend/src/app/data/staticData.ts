@@ -406,8 +406,9 @@ export const guideData: GuideData = {
       deadline: '2026-05-31',
       documents: [
         'Compte EduBridge actif',
-        'Choix de programmes argumenté',
-        'Lettre de motivation par programme',
+        'Sélection du ou des programmes souhaités',
+        'Lettre de motivation rédigée dans le formulaire de candidature',
+        'Informations personnelles et académiques complétées',
       ],
       lien: 'https://www.mesrs.tn',
     },
@@ -418,10 +419,10 @@ export const guideData: GuideData = {
         'Téléversez les pièces officielles demandées : diplômes, relevés de notes, pièce d\'identité. Les originaux peuvent être vérifiés à un stade ultérieur.',
       deadline: '2026-06-30',
       documents: [
-        'Diplôme du baccalauréat ou équivalent',
+        'Diplôme du baccalauréat ou équivalent (scan PDF ou image)',
         'Relevés de notes des trois dernières années',
-        'Passeport en cours de validité',
-        'Photo d\'identité au format officiel',
+        'Passeport en cours de validité (numéro saisi dans le profil)',
+        'Lettre de recommandation (si demandée par le programme)',
       ],
     },
     {
@@ -711,7 +712,7 @@ export const guideData: GuideData = {
   ],
 
   contact: {
-    email: 'support.international@edubridge.tn',
+    email: 'Edubridge.admin@gmail.com',
     emailReponse: 'Réponse sous 24h ouvrées',
     whatsapp: '+216 70 000 000',
     whatsappReponse: 'Réponse en moins de 2h aux heures ouvrables',
