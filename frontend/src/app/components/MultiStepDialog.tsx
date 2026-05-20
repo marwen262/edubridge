@@ -193,6 +193,7 @@ export function MultiStepDialog({
   const { isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [profilLoading, setProfilLoading] = useState(false);
   const [fichiers, setFichiers] = useState<Record<string, File>>({});
 
@@ -292,10 +293,34 @@ export function MultiStepDialog({
     reset(VALEURS_VIDES);
   };
 
-  const handleClose = (next: boolean) => {
-    if (!next && currentStep > 0 && !submitting) {
-      const ok = confirm(t('candidate.application.closeConfirm', { defaultValue: 'Vos modifications ne seront pas conservées. Fermer ?' }));
-      if (!ok) return;
+  const sauvegarderBrouillon = async () => {
+    if (!isAuthenticated) return;
+    setSavingDraft(true);
+    try {
+      const motivation = watch('motivation');
+      if (candidatureIdProp) {
+        const fd = new FormData();
+        if (motivation) fd.append('lettre_motivation', motivation);
+        Object.entries(fichiers).forEach(([cle, file]) => fd.append(cle, file));
+        await candidatureService.update(candidatureIdProp, fd);
+      } else {
+        const fd = new FormData();
+        fd.append('programme_id', programme.id);
+        if (motivation) fd.append('lettre_motivation', motivation);
+        Object.entries(fichiers).forEach(([cle, file]) => fd.append(cle, file));
+        await candidatureService.create(fd);
+      }
+      toast.success(t('candidate.application.toasts.draftSaved', { defaultValue: 'Brouillon sauvegardé.' }));
+    } catch {
+      // Fermeture non bloquée en cas d'erreur
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const handleClose = async (next: boolean) => {
+    if (!next && currentStep > 0 && !submitting && isAuthenticated) {
+      await sauvegarderBrouillon();
     }
     onOpenChange(next);
     if (!next) reinitialiser();
@@ -314,6 +339,11 @@ export function MultiStepDialog({
   const handleFichier = (cle: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    if (!['image/jpeg', 'image/png'].includes(f.type)) {
+      toast.error(t('candidate.application.toasts.fileTypeInvalid', { defaultValue: 'Format non accepté. Utilisez JPG ou PNG uniquement.' }));
+      e.target.value = '';
+      return;
+    }
     if (f.size > 5 * 1024 * 1024) {
       toast.error(t('candidate.application.toasts.fileTooLarge', { defaultValue: 'Fichier trop volumineux (max 5 Mo)' }));
       return;
@@ -725,7 +755,7 @@ export function MultiStepDialog({
     return (
       <div className="space-y-4">
         <p className="text-sm text-[var(--edu-text-secondary)]">
-          {t('candidate.application.documents.help', { defaultValue: 'Téléversez les documents demandés (PDF, JPG ou PNG — 5 Mo max).' })}{' '}
+          {t('candidate.application.documents.help', { defaultValue: 'Téléversez les documents demandés (JPG ou PNG — 5 Mo max).' })}{' '}
           {t('candidate.application.documents.requiredHint', { defaultValue: 'Les pièces marquées' })} <span className="text-[var(--edu-danger)]">*</span> {t('candidate.application.documents.requiredTail', { defaultValue: 'sont obligatoires.' })}
         </p>
         {docsProgramme.map((doc) => {
@@ -759,7 +789,7 @@ export function MultiStepDialog({
                     </p>
                   ) : (
                     <p className="text-xs text-[var(--edu-text-secondary)] mt-1">
-                      {t('candidate.application.documents.acceptedFormats', { defaultValue: 'PDF, JPG ou PNG — 5 Mo max.' })}
+                      {t('candidate.application.documents.acceptedFormats', { defaultValue: 'JPG ou PNG — 5 Mo max.' })}
                     </p>
                   )}
                 </div>
@@ -783,7 +813,7 @@ export function MultiStepDialog({
               <input
                 id={inputId}
                 type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
+                accept=".jpg,.jpeg,.png"
                 onChange={handleFichier(cle)}
                 className="hidden"
               />
@@ -952,10 +982,11 @@ export function MultiStepDialog({
               <button
                 type="button"
                 onClick={() => handleClose(false)}
-                className="absolute top-6 right-6 p-2 hover:bg-[var(--edu-surface)] rounded-full transition-colors"
-                aria-label={t('common.close')}
+                disabled={savingDraft}
+                className="absolute top-6 right-6 p-2 hover:bg-[var(--edu-surface)] rounded-full transition-colors disabled:opacity-50"
+                aria-label={savingDraft ? t('candidate.application.toasts.savingDraft', { defaultValue: 'Sauvegarde...' }) : t('common.close')}
               >
-                <X className="w-5 h-5" />
+                {savingDraft ? <span className="w-5 h-5 block border-2 border-current border-t-transparent rounded-full animate-spin" /> : <X className="w-5 h-5" />}
               </button>
 
               <DialogTitle className="text-2xl font-bold text-[var(--edu-text-primary)] mb-2">

@@ -22,21 +22,21 @@ class TestErrorLevelAnalysis:
     def test_uniform_image(self):
         """Image uniforme : faible score ELA."""
         image = np.ones((500, 500, 3), dtype=np.uint8) * 200
-        score, regions = _error_level_analysis(image)
+        score, regions, _ = _error_level_analysis(image)
         assert score < 0.5
         assert regions >= 0
 
     def test_black_image(self):
         """Image noire : résultat cohérent."""
         image = np.zeros((500, 500, 3), dtype=np.uint8)
-        score, regions = _error_level_analysis(image)
+        score, regions, _ = _error_level_analysis(image)
         assert 0.0 <= score <= 1.0
 
     def test_noisy_image(self):
         """Image bruitée : score ELA potentiellement élevé."""
         rng = np.random.RandomState(42)
         image = rng.randint(0, 255, (500, 500, 3), dtype=np.uint8)
-        score, regions = _error_level_analysis(image)
+        score, regions, _ = _error_level_analysis(image)
         assert 0.0 <= score <= 1.0
 
 

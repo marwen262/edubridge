@@ -290,6 +290,20 @@ export interface Candidat {
   mis_a_jour_le?: string;
 }
 
+/** Scores DiplomaVerifier — champ virtuel retourné par le backend */
+export interface ScoresDiplome {
+  global: number;
+  niveau: 'low' | 'medium' | 'high' | null;
+  /** critical_fields_score — identité + données académiques */
+  cf: number | null;
+  /** structure_score — mise en page officielle */
+  struct: number | null;
+  /** visual_authenticity_score — signature + cachet */
+  vis: number | null;
+  /** tampering.fraud_score brut (0=aucune anomalie, 100=très suspect). Intégrité = 100 - fraud. */
+  fraud: number | null;
+}
+
 export interface Candidature {
   id: string;
   candidat_id: string;
@@ -298,8 +312,10 @@ export interface Candidature {
   documents_soumis?: DocumentSoumis[];
   lettre_motivation?: string;
   notes_institut?: string;
-  /** Score DiplomaVerifier (0-100), null si non vérifié. Champ virtuel backend. */
+  /** Score global DiplomaVerifier (0-100). Champ virtuel backend — alias de scores_diplome.global. */
   score_diplome?: number | null;
+  /** Tous les scores DiplomaVerifier. Champ virtuel backend. */
+  scores_diplome?: ScoresDiplome | null;
   soumise_le?: string;
   cree_le?: string;
   mis_a_jour_le?: string;

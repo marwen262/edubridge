@@ -509,10 +509,10 @@ class TestSafetyCaps:
 class TestRiskLevelMapping:
     @pytest.mark.parametrize("score,expected", [
         (98, "trusted"),
-        (80, "trusted"),
-        (79, "review_recommended"),
-        (60, "review_recommended"),
-        (59, "suspicious"),
+        (70, "trusted"),
+        (69, "review_recommended"),
+        (55, "review_recommended"),
+        (54, "suspicious"),
         (30, "suspicious"),
         (29, "highly_suspicious"),
         (3,  "highly_suspicious"),
@@ -707,11 +707,12 @@ class TestEXIFAnalysis:
 # ──────────────────────────────────────────────
 
 class TestAIDiplomaTemplateCap:
-    def test_ai_diploma_capped_at_50_and_suspicious(self):
+    def test_ai_diploma_capped_at_50_and_not_trusted(self):
         """Diplôme IA : visual=90, CF=35, semantic=60 → cap template à 50 → suspicious.
 
         Un document généré par IA a une structure parfaite (semantic élevée) mais
         pas d'identité réelle (CF faible). Le cap détecte ce profil spécifique.
+        Score plafonné à 50 → suspicious (review_recommended commence à 55).
         """
         b = SubscoreBundle(
             structure_score=85, semantic_score=60,   # IA : sémantique ≥ 40

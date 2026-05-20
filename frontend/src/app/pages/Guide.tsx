@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
 import { Trans, useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -50,7 +49,6 @@ import {
   TabsTrigger,
 } from '../components/ui/tabs';
 import { Separator } from '../components/ui/separator';
-import { useAuth } from '@/context/AuthContext';
 import {
   guideData,
   type Bourse,
@@ -1449,18 +1447,7 @@ function SectionCulture({ themes }: { themes: ThemeCulture[] }) {
 
 function SectionContact() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
   const { contact } = guideData;
-
-  const handleQuestion = useCallback(() => {
-    if (isAuthenticated) {
-      window.location.href = `mailto:${contact.email}?subject=Question%20guide%20%C3%A9tudiants%20%C3%A9trangers`;
-    } else {
-      toast.info(t('guide.contact.loginForAssistance'));
-      navigate('/login');
-    }
-  }, [isAuthenticated, navigate, contact.email]);
 
   return (
     <section id="contact" className="py-20 scroll-mt-24">
@@ -1587,16 +1574,6 @@ function SectionContact() {
           </div>
         </motion.div>
 
-        {/* CTA principal */}
-        <motion.div {...MOTION_FADE_IN_UP} className="flex justify-center">
-          <Button
-            onClick={handleQuestion}
-            size="lg"
-            className="bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white px-8"
-          >
-            {t('guide.contact.askQuestion')}
-          </Button>
-        </motion.div>
       </div>
     </section>
   );

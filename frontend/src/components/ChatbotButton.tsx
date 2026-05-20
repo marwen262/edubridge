@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { ChatbotPanel } from './ChatbotPanel';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ChatbotButton() {
+  const { user } = useAuth();
+
+  if (user?.role === 'admin' || user?.role === 'institut') return null;
   const [isOpen, setIsOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(1);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleOpen = () => {
     setIsOpen(true);

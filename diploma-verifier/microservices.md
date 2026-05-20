@@ -1,6 +1,56 @@
 # Architecture - Diploma Verifier
 
-> Outil de vérification documentaire de diplômes par OCR + scoring heuristique pondéré. Ce service n'utilise PAS de machine learning entraîné ni de détection de fraude par IA — il s'agit d'une analyse heuristique déterministe combinant Tesseract OCR, regex multilingues, spaCy (NER pré-entraîné), et détecteurs visuels OpenCV (Hough circles pour les cachets).
+> Outil de vérification documentaire de diplômes par OCR + scoring heuristique pondéré. Le pipeline principal est déterministe (Tesseract OCR, regex multilingues, spaCy NER pré-entraîné, détecteurs OpenCV). Un composant deep-learning optionnel existe — **MantraNet** (`mantranet_detector.py`, PyTorch) — mais est **désactivé par défaut** (`MANTRANET_ENABLED=False` dans `config.py`) jusqu'à la validation des poids sur corpus.
+
+## 0.1 Changelog V7.5 — MantraNet (mai 2026)
+
+Intégration de MantraNet comme 6ème composant du détecteur de falsification (`tampering_detector.py`), contrôlé par le flag `MANTRANET_ENABLED`.
+
+### Nouveaux fichiers
+| Fichier | Rôle |
+|---|---|
+| `app/services/mantranet_detector.py` | Détecteur de manipulation pixel-level (PyTorch ResNet-50 fallback) |
+| `models/mantranet.pt` *(à fournir)* | Poids officiels MantraNet (UTSA-ICS) — si absent, ResNet-50 préentraîné ImageNet est utilisé |
+
+### Modifications
+| Fichier | Changement |
+|---|---|
+| `app/config.py` | `MANTRANET_ENABLED: bool = False` ajouté dans la section Tampering Detection |
+| `app/services/tampering_detector.py` | 6ème composant MantraNet ; formule révisée quand activé ; champ `metadata_info: dict` ajouté à `TamperingResult` |
+| `requirements.txt` | `torch>=2.12.0` + `torchvision>=0.27.0` (install CPU séparé) |
+| `tests/test_scoring_v7.py` | Correction assertion pre-existing : `compute_risk_level(50)` → `"suspicious"` (cap=50 < seuil review_recommended=55) |
+| `tests/test_tampering.py` | Correction unpacking 3-tuple `_error_level_analysis` ; `metadata_info` sur `TamperingResult` |
+
+### Formule tampering
+
+**Sans MantraNet (défaut, `MANTRANET_ENABLED=False`) — formule inchangée :**
+```
+ELA_effective × 0.25 + copy_paste × 0.28 + bg × 0.15 + exif × 0.15 + noise × 0.17  = 1.0
+```
+
+**Avec MantraNet (`MANTRANET_ENABLED=True`) :**
+```
+ELA_effective × 0.20 + copy_paste × 0.25 + bg × 0.12 + exif × 0.13 + noise × 0.15 + mantranet × 0.15 = 1.0
+```
+
+### Rapport d'inférence (corpus diplomes/)
+| Image | MantraNet (ResNet-50 fallback) | Temps |
+|---|---|---|
+| diplomehbib.jpg | 0.751 | ~1.5 s |
+| diplomemar.jpg | 0.835 | ~1.5 s |
+| diplomevide.png | 0.847 | ~1.5 s |
+| gbtdiplome.png | 0.748 | ~1.5 s |
+| logoedubridge.png | 0.913 | ~1.2 s |
+| maroc.jpg | 0.853 | ~1.4 s |
+
+> ⚠️ Le fallback ResNet-50 ImageNet n'est pas discriminant (tous les scores convergent vers 0.75–0.91). `MANTRANET_ENABLED` reste `False` : aucun modèle HuggingFace n'est disponible localement et aucun téléchargement ne se produit. À activer uniquement après dépôt de poids calibrés dans `models/mantranet.pt`.
+
+### PyTorch install (CPU)
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+```
+
+---
 
 ## 0. Changelog V6 (mai 2026)
 
@@ -86,12 +136,12 @@ Le pipeline réellement exécuté (orchestrator.py) :
 ```
 
 ### Modules présents mais non intégrés au pipeline
-Trois modules existent dans `app/services/` mais ne sont **pas** importés par `orchestrator.py` :
+Quatre modules existent dans `app/services/` mais ne sont **pas** importés par `orchestrator.py` :
 
 - ❌ `preprocessing.py` — `preprocess()` n'est plus appelé (V6 : binarisait l'image, dégradait Tesseract LSTM). Le module reste pour référence.
-- ❌ `tampering_detector.py` — implémenté mais non câblé au pipeline.
 - ❌ `diploma_classifier.py` — implémenté mais non câblé. La classification effective est faite par `text_analyzer.classify_document()`.
 - ❌ `country_detector.py` — implémenté mais non câblé. `country` est forcé à `"unknown"` dans les logs.
+- ⚙️ `mantranet_detector.py` — implémenté mais **désactivé** via `MANTRANET_ENABLED=False`. Quand désactivé : aucun import PyTorch, aucun téléchargement de modèle, `detect_mantranet()` retourne `0.0` immédiatement. Activé uniquement dans `tampering_detector.py` quand le flag est `True`.
 
 ### Vue d’ensemble des services
 L'application traite des documents (PDF/images) pour produire un score d'authenticité heuristique. Le pipeline est synchrone (un seul `await` au niveau FastAPI), exécuté dans un seul processus Python. La parallélisation est limitée aux 5 passes Tesseract via `ThreadPoolExecutor` à l'intérieur de `extract_text()`.
@@ -150,9 +200,37 @@ L'application traite des documents (PDF/images) pour produire un score d'authent
 - **V6 — `_YEAR_PATTERN` plus tolérant** : utilise lookbehind/lookahead `(?<!\d)...(?!\d)` au lieu de `\b` qui échoue dans les contextes Unicode (Arabic, accents).
 - **V6 — `has_institution` retiré du scoring** : `structure_count` réduit de 4 à 3 champs (name, degree, date) ; seuils boost/penalty abaissés à 2/1 ; poids redistribués dans `_compute_semantic_score`.
 
-### Tampering Detector ❌ non intégré
-- **Responsabilité prévue** : Détection de falsifications via analyse des métadonnées PDF et anomalies visuelles.
-- **État** : module présent (`services/tampering_detector.py`) mais **jamais importé** par l'orchestrator. Aucun signal de tampering ne remonte au scoring.
+### Tampering Detector ✅ intégré dans le scoring_engine
+- **Responsabilité** : Détection de falsifications visuelles (ELA, copier-coller, bruit, EXIF, DCT) + MantraNet optionnel.
+- **État** : câblé dans `scoring_engine.py` via `detect_tampering()` — le `tampering_score` alimente le sous-score `fraud_score` du moteur V7 Phase 2.
+- **Pipeline 5 composants (défaut, `MANTRANET_ENABLED=False`) :**
+  `ELA_effective×0.25 + copy_paste×0.28 + bg×0.15 + exif×0.15 + noise×0.17`
+- **Pipeline 6 composants (`MANTRANET_ENABLED=True`) :**
+  `ELA_effective×0.20 + copy_paste×0.25 + bg×0.12 + exif×0.13 + noise×0.15 + mantranet×0.15`
+- **V7.5 — MantraNet comme 6ème composant** : `app/services/mantranet_detector.py`, désactivé par défaut (`config.MANTRANET_ENABLED=False`). Quand activé, contribue 15% au score de falsification ; timeout 15 s ; dégradation gracieuse (`0.0` si erreur ou modèle absent).
+- **V7.5 — `metadata_info: dict` ajouté** à `TamperingResult` (compatibilité tests).
+- **V5/V7 — Composants existants** :
+  - `_error_level_analysis` : ELA + facteur spatial (concentré=1.0 / distribué=0.2)
+  - `_analyze_dct` : discontinuités haute-fréquence 8×8 blocs DCT
+  - `_detect_copy_paste` : blocs-hash avec filtre de variance (évite faux positifs fond uniforme)
+  - `_check_background_uniformity` : fond non-uniforme = signe d'insertion suspecte
+  - `_analyze_exif` : logiciel éditeur (Photoshop/GIMP/Canva) ou PNG Laplacian sharp
+  - `_analyze_noise_pattern` : hétérogénéité spatiale du bruit (édition localisée)
+  - Ajustements post-formule : QR trouvé → −0.10 ; PNG haute-rés sans QR → +0.20
+
+### MantraNet Detector ⚙️ désactivé par défaut
+- **Responsabilité** : Détection pixel-level de manipulation via réseau convolutif PyTorch.
+- **Fichier** : `app/services/mantranet_detector.py`
+- **API publique** : `detect_mantranet(image_path: str) → float` (probabilité de manipulation 0.0–1.0)
+- **Algorithme** :
+  1. Redimensionnement ≤ 512 px côté long
+  2. Découpage en patches 64×64 (stride 32)
+  3. Extraction de features par le modèle (ResNet-50 couches 0–6)
+  4. Score par patch = norme L2 des features aplaties
+  5. Normalisation [0, 1] → moyenne du top-10% patches les plus anormaux
+- **Chargement** : `_load_model()` appelé au niveau module **uniquement si `MANTRANET_ENABLED=True`**. Quand désactivé, aucun import PyTorch ni téléchargement — le module s'importe à coût nul. Quand activé : tentative de chargement de `models/mantranet.pt` puis fallback ResNet-50 ImageNet préentraîné.
+- **Timeout** : 15 s → retourne `0.0` ; exceptions → `0.0` (dégradation gracieuse).
+- **Activation** : `MANTRANET_ENABLED=True` dans `config.py` et poids calibrés dans `models/mantranet.pt`.
 
 ### Diploma Classifier ❌ non intégré
 - **État** : module présent (`services/diploma_classifier.py`) mais **jamais importé** par l'orchestrator. La classification effective (diplôme vs autre document) est réalisée par `text_analyzer.classify_document()`, qui consomme `DIPLOMA_TYPES` de `config.py` et applique un seuil ≥ 1 occurrence pour déclencher `doc_type="diploma"`.
@@ -223,10 +301,11 @@ L'application traite des documents (PDF/images) pour produire un score d'authent
 ### Gestion des configs
 - **Fichier central** : `app/config.py` avec toutes les constantes :
   - Limites fichiers (10 Mo, types autorisés)
-  - Poids scoring (dictionnaire WEIGHTS)
+  - Poids scoring V7 (`GLOBAL_SCORE_WEIGHTS`, `CRITICAL_FIELDS_WEIGHTS`)
   - Mots-clés diplômes multilingues (DIPLOMA_KEYWORDS)
   - Langues OCR supportées (OCR_LANGUAGES)
   - Types diplômes (DIPLOMA_TYPES)
+  - **V7.5** : `MANTRANET_ENABLED: bool = False` — active/désactive le 6ème composant de tampering
 - **Chargement** : Import direct du module config.
 
 ## 9. Déploiement
@@ -280,4 +359,5 @@ L'application traite des documents (PDF/images) pour produire un score d'authent
 - Monitoring (pas de Prometheus, pas de métriques exportées).
 - Tracing distribué.
 - Persistance des résultats (stateless par design).
-- Modules `tampering_detector`, `diploma_classifier`, `country_detector`, `preprocessing` : présents en code mais non câblés au pipeline orchestrator.
+- Modules non câblés au pipeline orchestrator : `diploma_classifier`, `country_detector`, `preprocessing`.
+- **MantraNet** : module implémenté (`mantranet_detector.py`) mais désactivé (`MANTRANET_ENABLED=False`). Quand désactivé : zéro overhead (aucun import PyTorch, aucun modèle chargé). Poids officiels requis dans `models/mantranet.pt` avant toute activation.

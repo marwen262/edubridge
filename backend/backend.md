@@ -1804,9 +1804,11 @@ async function verifierDoublon(candidat_id, programme_id, exclude_id) {
 - Messages d'erreur clairs
 - Filtres de recherche standards
 
-✅ **Microservice Diploma-Verifier (V7)**
+✅ **Microservice Diploma-Verifier (V7.5)**
 - Pipeline multi-score (6 sous-scores) : structure, semantic, critical_fields, signature, stamp, official_mention
 - `critical_fields_validator` V7 Phase 1 + `scoring_engine` V7 Phase 2 avec plafonds anti-hallucination
+- `tampering_detector` : 5 composants (ELA, copier-coller, fond, EXIF, bruit) + 6ème MantraNet optionnel (`MANTRANET_ENABLED=False` par défaut)
+- `mantranet_detector` : détecteur PyTorch pixel-level désactivé jusqu'à calibration des poids
 - Totalement découplé (REST stateless)
 
 ✅ **Pré-inscriptions post-acceptation**

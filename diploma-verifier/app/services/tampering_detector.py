@@ -18,6 +18,7 @@ from numpy.typing import NDArray
 from PIL import Image
 from PIL.ExifTags import TAGS
 
+from app.config import MANTRANET_ENABLED
 from app.utils.logger import logger
 
 try:
@@ -25,6 +26,12 @@ try:
     _PYZBAR_AVAILABLE = True
 except ImportError:
     _PYZBAR_AVAILABLE = False
+
+if MANTRANET_ENABLED:
+    from app.services.mantranet_detector import detect_mantranet as _detect_mantranet
+else:
+    def _detect_mantranet(image_path: str) -> float:  # type: ignore[misc]
+        return 0.0
 
 # Logiciels d'édition d'image dont la présence en EXIF est un signal de fraude.
 _SUSPICIOUS_EXIF_SOFTWARE: list[str] = [
@@ -41,6 +48,7 @@ class TamperingResult:
     tampering_score: float = 0.0
     ela_suspicious_regions: int = 0
     flags: list[str] = field(default_factory=list)
+    metadata_info: dict = field(default_factory=dict)
 
 
 def _compute_ela_spatial_factor(
@@ -558,7 +566,11 @@ def detect_tampering(
 ) -> TamperingResult:
     """Pipeline de détection de falsification sur image.
 
-    Formule de base (somme = 1.0) :
+    Formule avec MantraNet activé (MANTRANET_ENABLED=True, somme = 1.0) :
+      ELA_effective × 0.20 + copier-coller × 0.25 + fond × 0.12
+      + EXIF × 0.13 + bruit × 0.15 + MantraNet × 0.15
+
+    Formule sans MantraNet (MANTRANET_ENABLED=False, somme = 1.0) :
       ELA_effective × 0.25 + copier-coller × 0.28 + fond × 0.15
       + EXIF × 0.15 + bruit × 0.17
 
@@ -598,25 +610,38 @@ def detect_tampering(
         # 6. Analyse pattern de bruit spatial (détection d'édition localisée)
         noise_score = _analyze_noise_pattern(image)
 
-        # Score global : ELA_DCT×0.25 + copier-coller×0.28 + fond×0.15 + EXIF×0.15 + bruit×0.17 = 1.0
-        tampering_score: float = (
-            ela_dct_combined * 0.25
-            + copy_paste_score * 0.28
-            + bg_score * 0.15
-            + exif_score * 0.15
-            + noise_score * 0.17
-        )
+        # 7. MantraNet (6e composant — pixel-level manipulation map)
+        mantranet_score = _detect_mantranet(file_path)
+
+        # Score global
+        if MANTRANET_ENABLED:
+            # Nouvelle formule 6 composants (somme = 1.0)
+            tampering_score: float = (
+                ela_dct_combined  * 0.20
+                + copy_paste_score * 0.25
+                + bg_score         * 0.12
+                + exif_score       * 0.13
+                + noise_score      * 0.15
+                + mantranet_score  * 0.15
+            )
+        else:
+            # Formule originale 5 composants (somme = 1.0)
+            tampering_score = (
+                ela_dct_combined  * 0.25
+                + copy_paste_score * 0.28
+                + bg_score         * 0.15
+                + exif_score       * 0.15
+                + noise_score      * 0.17
+            )
         tampering_score = min(1.0, tampering_score)
 
-        # 5. QR code detection — post-formula adjustment.
+        # QR code detection — post-formula adjustment.
         qr_found, qr_data = _detect_qr_code(image)
         if qr_found:
-            # Verifiable document: QR URL/data present → reduce fraud signal.
             tampering_score = max(0.0, tampering_score - 0.1)
             data_preview = qr_data[0][:60] if qr_data else ""
             result.flags.append(f"QR vérifiable détecté : {data_preview}")
         elif _is_high_res_clean_diploma(image, bg_score, file_path):
-            # High-res clean PNG diploma without QR — minor fraud signal.
             tampering_score = min(1.0, tampering_score + 0.2)
             result.flags.append("Diplôme haute résolution sans QR de vérification")
 
@@ -646,7 +671,8 @@ def detect_tampering(
         logger.info(
             "Détection tampering — score=%.3f | ELA=%.3f (spatial=%.1f "
             "effective=%.3f) | DCT=%.3f | ela_dct=%.3f | %d régions | "
-            "copier-coller=%.3f | fond=%.3f | exif=%.2f | bruit=%.3f | qr=%s",
+            "copier-coller=%.3f | fond=%.3f | exif=%.2f | bruit=%.3f | "
+            "mantranet=%.3f (enabled=%s) | qr=%s",
             result.tampering_score,
             ela_score,
             ela_spatial_factor,
@@ -658,6 +684,8 @@ def detect_tampering(
             bg_score,
             exif_score,
             noise_score,
+            mantranet_score,
+            MANTRANET_ENABLED,
             "found" if qr_found else "absent",
         )
 

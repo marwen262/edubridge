@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { BarChart3, Search, ChevronLeft, ChevronRight, ChevronDown, Phone, MapPin, Globe, IdCard, GraduationCap, Calendar, User, BookOpen, FileText, Download, File } from 'lucide-react';
 import { Button } from '../ui/button';
+import { ScoreBadgeInline } from './DiplomaScorePanel';
 import { useInstitutCandidatures } from '@/hooks/useCandidatures';
 import { candidatureService } from '@/services/api';
 import { trouverLabelNationalite, estTunisien } from '@/app/data/nationalites';
@@ -141,7 +142,9 @@ export function InstitutionCandidaturesSection() {
                             {t(`status.${c.statut}`)}
                           </span>
                         </td>
-                        <td className="px-6 py-4"><ScoreBadge score={c.score_diplome} /></td>
+                        <td className="px-6 py-4">
+                          <ScoreBadgeInline scores={c.scores_diplome} />
+                        </td>
                         <td className="px-6 py-4 text-sm text-[var(--edu-text-secondary)]">{(c.soumise_le ?? c.cree_le) ? new Date((c.soumise_le ?? c.cree_le)!).toLocaleDateString(i18n.language) : '—'}</td>
                         <td className="px-6 py-4">
                           {transitions.length > 0 && (
@@ -156,6 +159,7 @@ export function InstitutionCandidaturesSection() {
                           )}
                         </td>
                       </tr>
+                      {/* Panneau détail candidature */}
                       <AnimatePresence>
                         {isExpanded && (
                           <tr key={`${c.id}-detail`} className="bg-[var(--edu-surface)]/40">
@@ -193,21 +197,6 @@ export function InstitutionCandidaturesSection() {
         </motion.div>
       </div>
     </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Badge score DiplomaVerifier
-// ─────────────────────────────────────────────────────────────
-
-function ScoreBadge({ score }: { score?: number | null }) {
-  if (score == null) return <span className="text-sm text-[var(--edu-text-tertiary)]">—</span>;
-  const color = score >= 70 ? 'var(--edu-success)' : score >= 50 ? 'var(--edu-warning)' : 'var(--edu-danger)';
-  const bg    = score >= 70 ? 'rgba(52,199,89,0.1)' : score >= 50 ? 'rgba(255,159,10,0.1)' : 'rgba(255,59,48,0.1)';
-  return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style={{ color, backgroundColor: bg }}>
-      {score}/100
-    </span>
   );
 }
 

@@ -421,6 +421,7 @@ export function InstitutesSection() {
   const [statusFilter, setStatusFilter] = React.useState<string>('tous');
   const [page, setPage] = React.useState(1);
   const [actionMenu, setActionMenu] = React.useState<string | null>(null);
+  const [menuPos, setMenuPos] = React.useState<{ top: number; right: number } | null>(null);
   const [processing, setProcessing] = React.useState<string | null>(null);
 
   const [motifDialog, setMotifDialog] = React.useState<{ type: 'suspendre' | 'rejeter'; id: string } | null>(null);
@@ -556,26 +557,25 @@ export function InstitutesSection() {
 
         {/* Tableau */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.35 }}
-          className="bg-white dark:bg-[#1D1D1F] rounded-2xl border border-[var(--edu-border)] overflow-hidden">
-          <div className="overflow-x-auto">
+          className="bg-white dark:bg-[#1D1D1F] rounded-2xl border border-[var(--edu-border)]">
+          <div>
             <table className="w-full">
               <thead className="bg-[var(--edu-surface)]">
                 <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.institut')}</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.status')}</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.verification')}</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.programs')}</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.registeredAt')}</th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.actions')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.institut')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.status')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.programs')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.registeredAt')}</th>
+                  <th className="sticky right-0 bg-[var(--edu-surface)] text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.instituts.columns.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--edu-divider)]">
                 {loading ? (
                   Array.from({ length: 4 }).map((_, i) => (
-                    <tr key={i}>{Array.from({ length: 6 }).map((_, j) => <td key={j} className="px-6 py-4"><div className="h-4 bg-[var(--edu-surface)] rounded animate-pulse" /></td>)}</tr>
+                    <tr key={i}>{Array.from({ length: 5 }).map((_, j) => <td key={j} className="px-4 py-3"><div className="h-4 bg-[var(--edu-surface)] rounded animate-pulse" /></td>)}</tr>
                   ))
                 ) : paginated.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-12 text-center"><Building2 className="w-8 h-8 mx-auto mb-2 text-[var(--edu-text-tertiary)]" /><p className="text-sm text-[var(--edu-text-secondary)]">{t('admin.instituts.empty')}</p></td></tr>
+                  <tr><td colSpan={5} className="px-4 py-12 text-center"><Building2 className="w-8 h-8 mx-auto mb-2 text-[var(--edu-text-tertiary)]" /><p className="text-sm text-[var(--edu-text-secondary)]">{t('admin.instituts.empty')}</p></td></tr>
                 ) : paginated.map((inst) => {
                   const stKey = inst.validation_status ?? 'invited';
                   const stCfg = STATUS_CONFIG[stKey] ?? STATUS_CONFIG.invited;
@@ -587,44 +587,44 @@ export function InstitutesSection() {
                       onClick={() => setDetailTarget(inst)}
                       className="hover:bg-[var(--edu-surface)] transition-colors cursor-pointer"
                     >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--edu-indigo)] to-[var(--edu-blue)] flex items-center justify-center text-white text-sm font-bold shrink-0">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--edu-indigo)] to-[var(--edu-blue)] flex items-center justify-center text-white text-sm font-bold shrink-0">
                             {(inst.sigle ?? inst.nom ?? 'I').charAt(0).toUpperCase()}
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm text-[var(--edu-text-primary)] truncate">
-                              {inst.nom ?? <span className="italic text-[var(--edu-text-tertiary)]">{t('admin.instituts.noName')}</span>}
-                              {inst.sigle && <span className="text-[var(--edu-text-tertiary)] ml-1">({inst.sigle})</span>}
+                          <div className="min-w-0 max-w-[220px]">
+                            <p className="font-semibold text-sm text-[var(--edu-text-primary)] truncate">
+                              {inst.sigle ?? inst.nom ?? <span className="italic text-[var(--edu-text-tertiary)]">{t('admin.instituts.noName')}</span>}
                             </p>
+                            {inst.nom && (
+                              <p className="text-xs text-[var(--edu-text-tertiary)] truncate">{inst.nom}</p>
+                            )}
                             <p className="text-xs text-[var(--edu-text-tertiary)] truncate flex items-center gap-1"><Mail className="w-3 h-3" />{inst.utilisateur?.email ?? '—'}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4"><span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: stCfg.bg, color: stCfg.color }}>{stLabel}</span></td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${inst.est_verifie ? 'text-[var(--edu-success)]' : 'text-[var(--edu-text-tertiary)]'}`}>
-                          {inst.est_verifie ? <><CheckCircle className="w-3.5 h-3.5" /> {t('admin.instituts.verified')}</> : <><Clock className="w-3.5 h-3.5" /> {t('admin.instituts.notVerified')}</>}
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: stCfg.bg, color: stCfg.color }}>
+                          {inst.est_verifie && <CheckCircle className="w-3 h-3" />}
+                          {stLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4"><span className="text-sm font-semibold text-[var(--edu-text-primary)]">{inst.programmes?.length ?? 0}</span></td>
-                      <td className="px-6 py-4"><span className="text-sm text-[var(--edu-text-secondary)]">{inst.cree_le ? new Date(inst.cree_le).toLocaleDateString(i18n.language) : '—'}</span></td>
-                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-4 py-3"><span className="text-sm font-semibold text-[var(--edu-text-primary)]">{inst.programmes?.length ?? 0}</span></td>
+                      <td className="px-4 py-3"><span className="text-sm text-[var(--edu-text-secondary)]">{inst.cree_le ? new Date(inst.cree_le).toLocaleDateString(i18n.language) : '—'}</span></td>
+                      <td className="sticky right-0 bg-white dark:bg-[#1D1D1F] px-4 py-3 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)]" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end relative">
                           {actions.length > 0 && (
                             <>
-                              <Button variant="ghost" size="sm" onClick={() => setActionMenu(actionMenu === inst.id ? null : inst.id)} disabled={processing === inst.id}>
+                              <Button variant="ghost" size="sm" disabled={processing === inst.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (actionMenu === inst.id) { setActionMenu(null); setMenuPos(null); return; }
+                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                  setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                                  setActionMenu(inst.id);
+                                }}>
                                 <MoreHorizontal className="w-4 h-4" />
                               </Button>
-                              {actionMenu === inst.id && (
-                                <div className="absolute right-0 top-full mt-1 z-50 w-48 bg-white dark:bg-[#2D2D2F] rounded-xl shadow-xl border border-[var(--edu-border)] py-1 animate-in fade-in slide-in-from-top-1">
-                                  {actions.map((a) => { const Icon = a.icon; return (
-                                    <button key={a.label} onClick={a.handler} className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-[var(--edu-surface)]" style={{ color: a.color }}>
-                                      <Icon className="w-4 h-4" />{a.label}
-                                    </button>
-                                  ); })}
-                                </div>
-                              )}
                             </>
                           )}
                           {inst.site_web && (
@@ -649,6 +649,29 @@ export function InstitutesSection() {
           )}
         </motion.div>
       </div>
+
+      {/* Dropdown actions (fixed — échappe overflow table) */}
+      {actionMenu !== null && menuPos !== null && (() => {
+        const inst = paginated.find((i) => i.id === actionMenu);
+        if (!inst) return null;
+        const actions = getActions(inst);
+        return (
+          <>
+            <div className="fixed inset-0 z-[90]" onClick={() => { setActionMenu(null); setMenuPos(null); }} />
+            <div
+              className="fixed z-[100] bg-white dark:bg-[#2D2D2F] rounded-xl shadow-xl border border-[var(--edu-border)] py-1 animate-in fade-in slide-in-from-top-1"
+              style={{ top: menuPos.top, right: menuPos.right, minWidth: 180 }}
+            >
+              {actions.map((a) => { const Icon = a.icon; return (
+                <button key={a.label} onClick={(e) => { e.stopPropagation(); a.handler(); setActionMenu(null); setMenuPos(null); }}
+                  className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 whitespace-nowrap hover:bg-[var(--edu-surface)]" style={{ color: a.color }}>
+                  <Icon className="w-4 h-4" />{a.label}
+                </button>
+              ); })}
+            </div>
+          </>
+        );
+      })()}
 
       {/* Motif Dialog */}
       <MotifDialog

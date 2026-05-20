@@ -1020,9 +1020,9 @@ def compute_risk_level(score: int | float) -> str:
     Returns: "trusted" | "review_recommended" | "suspicious" | "highly_suspicious"
     """
     s = float(score)
-    if s >= 80:
+    if s >= 70:
         return "trusted"
-    if s >= 60:
+    if s >= 55:
         return "review_recommended"
     if s >= 30:
         return "suspicious"

@@ -8,6 +8,9 @@ MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 Mo
 ALLOWED_MIME_TYPES: list[str] = ["image/jpeg", "image/png", "image/webp", "image/tiff"]
 ALLOWED_EXTENSIONS: list[str] = [".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"]
 
+# --- Seuils de risque ---
+TRUSTED_SCORE_THRESHOLD: int = 70
+
 # --- Poids et seuils de scoring gérés dans scoring_engine.py ---
 
 # --- Mots-clés universels de diplômes (multi-langues) ---
@@ -156,6 +159,11 @@ OCR_PENALTY_MULTIPLIER: float = 0.5
 # ──────────────────────────────────────────────
 # Active le détecteur de tampering dans le pipeline.
 TAMPERING_ENABLED: bool = True
+
+# Active le détecteur MantraNet (6e composant du score de tampering).
+# Désactivé par défaut jusqu'à confirmation que les poids fonctionnent
+# correctement sur le corpus cible.
+MANTRANET_ENABLED: bool = False
 
 # Seuil de fraud_score (0–100) en-dessous duquel aucune pénalité n'est
 # appliquée au score final.
