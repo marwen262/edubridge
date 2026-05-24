@@ -52,6 +52,7 @@
       "dashboard": "Tableau de bord",
       "applications": "Mes candidatures",
       "programs": "Programmes",
+      "notifications": "Notifications",
       "favorites": "Mes favoris",
       "documents": "Documents",
       "settings": "Paramètres",
@@ -385,9 +386,14 @@
       },
       "pagination": "programme",
       "paginationPlural": "programmes",
+      "deactivate": "Désactiver",
+      "activate": "Activer",
       "toasts": {
         "deleted": "Programme supprimé.",
-        "deleteError": "Erreur lors de la suppression."
+        "deleteError": "Erreur lors de la suppression.",
+        "deactivated": "Programme désactivé.",
+        "activated": "Programme activé.",
+        "toggleError": "Erreur lors du changement de statut."
       }
     },
     "candidatures": {

@@ -338,7 +338,10 @@ export function CandidateDashboard() {
                       </p>
                     </div>
                   ) : (
-                    notifications.slice(0, 4).map((n) => (
+                    [...notifications]
+                      .sort((a, b) => (a.est_lue === b.est_lue ? 0 : a.est_lue ? 1 : -1))
+                      .slice(0, 4)
+                      .map((n) => (
                       <div
                         key={n.id}
                         className={cn('px-4 py-3', !n.est_lue && 'bg-[var(--edu-blue)]/5')}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
-import { FileText, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CreateProgramDialog } from './CreateProgramDialog';
 import { EditProgramDialog } from './EditProgramDialog';
@@ -26,6 +26,7 @@ export function InstitutionProgramsSection() {
   const [editingProgram, setEditingProgram] = useState<Programme | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; titre: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [toggling, setToggling] = useState<string | null>(null);
 
   const filtered = React.useMemo(() => {
     if (!search.trim()) return programmes;
@@ -38,6 +39,16 @@ export function InstitutionProgramsSection() {
   React.useEffect(() => { setPage(1); }, [search]);
 
   const candCount = (pid: string) => candidatures.filter((c) => c.programme_id === pid).length;
+
+  const handleToggleActif = async (p: Programme) => {
+    setToggling(p.id);
+    try {
+      await programmeService.update(p.id, { est_actif: !p.est_actif } as never);
+      toast.success(p.est_actif ? t('institution.programs.toasts.deactivated') : t('institution.programs.toasts.activated'));
+      refetch();
+    } catch { toast.error(t('institution.programs.toasts.toggleError')); }
+    finally { setToggling(null); }
+  };
 
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
@@ -115,6 +126,16 @@ export function InstitutionProgramsSection() {
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" onClick={() => setEditingProgram(p)} title={t('common.edit')}>
                           <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={() => handleToggleActif(p)}
+                          disabled={toggling === p.id}
+                          title={p.est_actif ? t('institution.programs.deactivate') : t('institution.programs.activate')}
+                        >
+                          {p.est_actif
+                            ? <EyeOff className="w-4 h-4 text-[var(--edu-warning)]" />
+                            : <Eye className="w-4 h-4 text-[var(--edu-success)]" />}
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm({ id: p.id, titre: p.titre })}>
                           <Trash2 className="w-4 h-4 text-[var(--edu-danger)]" />

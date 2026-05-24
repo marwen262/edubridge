@@ -368,12 +368,19 @@ exports.suspendreInstitut = async (req, res) => {
       return res.status(400).json({ message: 'Cet institut est déjà suspendu.' });
     }
 
-    await institut.update({
-      validation_status: 'suspended',
-      est_verifie: false,
-      suspension_reason: motif,
-      suspended_at: new Date(),
-      suspended_by: req.user.id,
+    await sequelize.transaction(async (t) => {
+      await institut.update({
+        validation_status: 'suspended',
+        est_verifie: false,
+        suspension_reason: motif,
+        suspended_at: new Date(),
+        suspended_by: req.user.id,
+      }, { transaction: t });
+
+      await Utilisateur.update(
+        { est_actif: false },
+        { where: { id: institut.utilisateur_id }, transaction: t }
+      );
     });
 
     // Notifier l'institut de la suspension avec le motif
@@ -410,12 +417,19 @@ exports.reactiverInstitut = async (req, res) => {
       return res.status(400).json({ message: 'Cet institut n\'est pas suspendu.' });
     }
 
-    await institut.update({
-      validation_status: 'approved',
-      est_verifie: true,
-      suspension_reason: null,
-      suspended_at: null,
-      suspended_by: null,
+    await sequelize.transaction(async (t) => {
+      await institut.update({
+        validation_status: 'approved',
+        est_verifie: true,
+        suspension_reason: null,
+        suspended_at: null,
+        suspended_by: null,
+      }, { transaction: t });
+
+      await Utilisateur.update(
+        { est_actif: true },
+        { where: { id: institut.utilisateur_id }, transaction: t }
+      );
     });
 
     return res.status(200).json({

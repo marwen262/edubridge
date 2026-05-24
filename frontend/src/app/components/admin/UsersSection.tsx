@@ -217,89 +217,94 @@ export function UsersSection() {
         {/* Tableau */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.35 }}
           className="bg-white dark:bg-[#1D1D1F] rounded-2xl border border-[var(--edu-border)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[var(--edu-surface)]">
-                <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.user')}</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.role')}</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.status')}</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.registeredAt')}</th>
-                  <th className="text-right px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.actions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--edu-divider)]">
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>{Array.from({ length: 5 }).map((_, j) => <td key={j} className="px-6 py-4"><div className="h-4 bg-[var(--edu-surface)] rounded animate-pulse" /></td>)}</tr>
-                  ))
-                ) : paginated.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center"><Users className="w-8 h-8 mx-auto mb-2 text-[var(--edu-text-tertiary)]" /><p className="text-sm text-[var(--edu-text-secondary)]">{t('admin.users.empty')}</p></td></tr>
-                ) : paginated.map((u) => {
-                  const nom = getNom(u);
-                  const initial = nom.charAt(0).toUpperCase();
-                  const roleCfg = ROLES_CONFIG[u.role] ?? { color: 'var(--edu-text-secondary)', icon: Users };
-                  const roleLabel = t(`admin.users.roleLabels.${u.role}`, { defaultValue: u.role });
-                  const RoleIcon = roleCfg.icon;
-                  const statut = getStatut(u);
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col className="w-[45%]" />
+              <col className="w-[15%]" />
+              <col className="w-[15%]" />
+              <col className="w-[15%]" />
+              <col className="w-[10%]" />
+            </colgroup>
+            <thead className="bg-[var(--edu-surface)]">
+              <tr>
+                <th className="text-left px-4 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.user')}</th>
+                <th className="text-left px-4 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.role')}</th>
+                <th className="text-left px-4 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.status')}</th>
+                <th className="text-left px-4 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.registeredAt')}</th>
+                <th className="text-right px-4 py-4 text-xs font-semibold uppercase tracking-wider text-[var(--edu-text-tertiary)]">{t('admin.users.columns.actions')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--edu-divider)]">
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>{Array.from({ length: 5 }).map((_, j) => <td key={j} className="px-4 py-4"><div className="h-4 bg-[var(--edu-surface)] rounded animate-pulse" /></td>)}</tr>
+                ))
+              ) : paginated.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-12 text-center"><Users className="w-8 h-8 mx-auto mb-2 text-[var(--edu-text-tertiary)]" /><p className="text-sm text-[var(--edu-text-secondary)]">{t('admin.users.empty')}</p></td></tr>
+              ) : paginated.map((u) => {
+                const nom = getNom(u);
+                const initial = nom.charAt(0).toUpperCase();
+                const roleCfg = ROLES_CONFIG[u.role] ?? { color: 'var(--edu-text-secondary)', icon: Users };
+                const roleLabel = t(`admin.users.roleLabels.${u.role}`, { defaultValue: u.role });
+                const RoleIcon = roleCfg.icon;
+                const statut = getStatut(u);
 
-                  return (
-                    <tr key={u.id} className="hover:bg-[var(--edu-surface)] transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
-                            style={{ background: `linear-gradient(135deg, ${roleCfg.color}, var(--edu-indigo))` }}>{initial}</div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm text-[var(--edu-text-primary)] truncate">{nom}</p>
-                            <p className="text-xs text-[var(--edu-text-tertiary)] truncate flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
+                return (
+                  <tr key={u.id} className="hover:bg-[var(--edu-surface)] transition-colors">
+                    <td className="px-4 py-4 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
+                          style={{ background: `linear-gradient(135deg, ${roleCfg.color}, var(--edu-indigo))` }}>{initial}</div>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <p className="font-medium text-sm text-[var(--edu-text-primary)] truncate">{nom}</p>
+                          <p className="text-xs text-[var(--edu-text-tertiary)] truncate flex items-center gap-1"><Mail className="w-3 h-3 shrink-0" /><span className="truncate">{u.email}</span></p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold"
+                        style={{ backgroundColor: `${roleCfg.color}15`, color: roleCfg.color }}>
+                        <RoleIcon className="w-3 h-3 shrink-0" />{roleLabel}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${statut.cls}`}>
+                        {statut.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="text-sm text-[var(--edu-text-secondary)]">{u.cree_le ? new Date(u.cree_le).toLocaleDateString(i18n.language) : '—'}</span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-end relative">
+                        {u.role !== 'admin' && (
+                        <Button variant="ghost" size="sm" onClick={() => setActionMenu(actionMenu === u.id ? null : u.id)} disabled={processing === u.id}>
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                        )}
+                        {u.role !== 'admin' && actionMenu === u.id && (
+                          <div className="absolute right-0 top-full mt-1 z-50 w-48 bg-white dark:bg-[#2D2D2F] rounded-xl shadow-xl border border-[var(--edu-border)] py-1 animate-in fade-in slide-in-from-top-1">
+                            <button onClick={() => handleToggleActif(u)}
+                              className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-[var(--edu-surface)] text-[var(--edu-text-primary)]">
+                              {u.est_actif !== false ? (
+                                <><UserX className="w-4 h-4 text-[var(--edu-warning)]" /> {t('admin.users.actions.deactivate')}</>
+                              ) : (
+                                <><UserCheck className="w-4 h-4 text-[var(--edu-success)]" /> {t('admin.users.actions.reactivate')}</>
+                              )}
+                            </button>
+                            <button onClick={() => handleSupprimer(u)}
+                              className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-[var(--edu-surface)] text-[var(--edu-danger)]">
+                              <Trash2 className="w-4 h-4" /> {t('admin.users.actions.delete')}
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-                          style={{ backgroundColor: `${roleCfg.color}15`, color: roleCfg.color }}>
-                          <RoleIcon className="w-3 h-3" />{roleLabel}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statut.cls}`}>
-                          {statut.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-[var(--edu-text-secondary)]">{u.cree_le ? new Date(u.cree_le).toLocaleDateString(i18n.language) : '—'}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end relative">
-                          {u.role !== 'admin' && (
-                          <Button variant="ghost" size="sm" onClick={() => setActionMenu(actionMenu === u.id ? null : u.id)} disabled={processing === u.id}>
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                          )}
-                          {u.role !== 'admin' && actionMenu === u.id && (
-                            <div className="absolute right-0 top-full mt-1 z-50 w-48 bg-white dark:bg-[#2D2D2F] rounded-xl shadow-xl border border-[var(--edu-border)] py-1 animate-in fade-in slide-in-from-top-1">
-                              <button onClick={() => handleToggleActif(u)}
-                                className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-[var(--edu-surface)] text-[var(--edu-text-primary)]">
-                                {u.est_actif !== false ? (
-                                  <><UserX className="w-4 h-4 text-[var(--edu-warning)]" /> {t('admin.users.actions.deactivate')}</>
-                                ) : (
-                                  <><UserCheck className="w-4 h-4 text-[var(--edu-success)]" /> {t('admin.users.actions.reactivate')}</>
-                                )}
-                              </button>
-                              <button onClick={() => handleSupprimer(u)}
-                                className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-[var(--edu-surface)] text-[var(--edu-danger)]">
-                                <Trash2 className="w-4 h-4" /> {t('admin.users.actions.delete')}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
 
           {/* Pagination */}
           {totalPages > 1 && (
