@@ -28,7 +28,11 @@ exports.getAllProgrammes = async (req, res) => {
     if (niveau)      where.niveau      = niveau;
     if (mode)        where.mode        = mode;
     if (institut_id) where.institut_id = institut_id;
-    if (est_actif !== undefined) where.est_actif = est_actif === 'true';
+    // Par défaut on n'expose que les programmes actifs ; l'institut peut passer
+    // est_actif=false ou est_actif=all pour voir ses brouillons.
+    if (est_actif === 'all') { /* pas de filtre */ }
+    else if (est_actif !== undefined) where.est_actif = est_actif === 'true';
+    else where.est_actif = true;
     if (titre)       where.titre       = { [Op.iLike]: `%${titre}%` };
 
     const { page, limit, offset } = lirePagination(req.query);

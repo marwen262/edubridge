@@ -164,7 +164,7 @@ export interface ProgrammeFilters extends PaginationFilters {
   niveau?: 'cycle_preparatoire' | 'licence' | 'master' | 'ingenieur';
   mode?: 'cours_du_jour' | 'cours_du_soir' | 'alternance' | 'formation_continue';
   institut_id?: string;
-  est_actif?: boolean;
+  est_actif?: boolean | 'all';
   titre?: string;
 }
 

@@ -1251,6 +1251,7 @@
       "toasts": {
         "approved": "Institut approuvé.",
         "rejected": "Institut rejeté.",
+        "correctionRequested": "Demande de correction envoyée à l'institut.",
         "suspended": "Institut suspendu.",
         "reactivated": "Institut réactivé.",
         "deleted": "Institut supprimé.",
@@ -1260,10 +1261,13 @@
         "motifLabel": "Motif",
         "suspendTitle": "Suspendre l'institut",
         "rejectTitle": "Rejeter l'institut",
+        "correctionTitle": "Demander une correction",
         "suspendPlaceholder": "Décrivez la raison de la suspension…",
         "rejectPlaceholder": "Décrivez la raison du rejet…",
+        "correctionPlaceholder": "Décrivez les corrections à apporter…",
         "suspendConfirm": "Suspendre",
-        "rejectConfirm": "Rejeter"
+        "rejectConfirm": "Rejeter",
+        "correctionConfirm": "Envoyer"
       },
       "deleteDialog": {
         "title": "Supprimer l'institut",

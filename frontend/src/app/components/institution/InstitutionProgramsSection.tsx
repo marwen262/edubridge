@@ -18,7 +18,7 @@ const PAGE_SIZE = 10;
 export function InstitutionProgramsSection() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { programs: programmes, loading, refetch } = usePrograms({ institut_id: user?.institut_id });
+  const { programs: programmes, loading, refetch } = usePrograms({ institut_id: user?.institut_id, est_actif: 'all' });
   const { candidatures } = useInstitutCandidatures();
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
@@ -70,7 +70,11 @@ export function InstitutionProgramsSection() {
             <h1 className="text-3xl font-bold text-[var(--edu-text-primary)]">{t('institution.programs.title')}</h1>
             <p className="text-sm text-[var(--edu-text-secondary)] mt-1">{t('institution.programs.subtitle')}</p>
           </div>
-          <Button onClick={() => setShowCreate(true)} className="rounded-full bg-[var(--edu-blue)] hover:bg-[var(--edu-blue-hover)] text-white">
+          <Button
+            onClick={() => setShowCreate(true)}
+            className="rounded-full text-white hover:bg-[var(--edu-blue-hover)]"
+            style={{ backgroundColor: 'var(--edu-blue)' }}
+          >
             <Plus className="w-5 h-5 mr-2" /> {t('institution.programs.createProgram')}
           </Button>
         </div>
