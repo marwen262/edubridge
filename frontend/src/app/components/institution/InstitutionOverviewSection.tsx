@@ -91,7 +91,7 @@ export function InstitutionOverviewSection({ institut }: Props) {
     }
   };
 
-  const { programs: programmes, refetch: refetchProgrammes } = usePrograms({ institut_id: user?.institut_id });
+  const { programs: programmes, refetch: refetchProgrammes } = usePrograms({ institut_id: user?.institut_id, est_actif: 'all' });
   const { candidatures, loading: loadingCandidatures, refetch: refetchCandidatures } = useInstitutCandidatures();
   const { notifications, unreadCount, loading: loadingNotifications, refetch: refetchNotifications } = useNotifications();
 
@@ -144,15 +144,9 @@ export function InstitutionOverviewSection({ institut }: Props) {
             <p className="text-[var(--edu-text-secondary)]">{currentDate}</p>
           </div>
           <Button
-            onClick={() => {
-              if (validationStatus && validationStatus !== 'approved') {
-                toast.error(t('institution.dashboard.notValidated'));
-                return;
-              }
-              setShowCreateDialog(true);
-            }}
-            className={`rounded-full text-white ${validationStatus && validationStatus !== 'approved' ? 'opacity-50 hover:opacity-50 cursor-not-allowed' : 'hover:bg-[var(--edu-blue-hover)]'}`}
-            style={{ backgroundColor: validationStatus && validationStatus !== 'approved' ? 'var(--edu-text-tertiary)' : 'var(--edu-blue)' }}
+            onClick={() => setShowCreateDialog(true)}
+            className="rounded-full text-white hover:bg-[var(--edu-blue-hover)]"
+            style={{ backgroundColor: 'var(--edu-blue)' }}
           >
             <Plus className="w-5 h-5 mr-2" />
             {t('institution.dashboard.createProgram')}

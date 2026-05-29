@@ -23,6 +23,7 @@ import { CandidateDashboard } from './pages/CandidateDashboard';
 import { MesCandidatures } from './pages/MesCandidatures';
 import { MesFavoris } from './pages/MesFavoris';
 import { MesDocuments } from './pages/MesDocuments';
+import { MesNotifications } from './pages/MesNotifications';
 import { Parametres } from './pages/Parametres';
 import { InstitutionDashboard } from './pages/InstitutionDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -107,6 +108,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute requiredRole="candidat">
         <MesDocuments />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/notifications',
+    element: (
+      <ProtectedRoute requiredRole="candidat">
+        <MesNotifications />
       </ProtectedRoute>
     ),
   },

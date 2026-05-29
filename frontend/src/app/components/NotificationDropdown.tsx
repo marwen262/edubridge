@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Notification } from '@/types/api';
@@ -6,6 +7,7 @@ interface NotificationDropdownProps {
   notifications: Notification[];
   onMarkAsRead: (id: string) => void;
   onClose: () => void;
+  notificationsHref: string;
 }
 
 // Icône selon le type de notification
@@ -24,6 +26,7 @@ export function NotificationDropdown({
   notifications,
   onMarkAsRead,
   onClose,
+  notificationsHref,
 }: NotificationDropdownProps) {
   const { t, i18n } = useTranslation();
 
@@ -99,12 +102,13 @@ export function NotificationDropdown({
 
       {/* Pied */}
       <div className="px-4 py-3 border-t border-[var(--edu-divider)]">
-        <button
+        <Link
+          to={notificationsHref}
           onClick={onClose}
-          className="text-sm text-[var(--edu-blue)] hover:underline w-full text-center"
+          className="text-sm text-[var(--edu-blue)] hover:underline w-full text-center block"
         >
           {t('common.seeAll')} {t('common.notifications').toLowerCase()}
-        </button>
+        </Link>
       </div>
     </div>
   );

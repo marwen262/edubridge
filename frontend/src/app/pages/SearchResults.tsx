@@ -277,7 +277,6 @@ export function SearchResults() {
                       >
                         {field.name}
                       </label>
-                      <span className="text-xs text-[var(--edu-text-tertiary)]">{field.count}</span>
                     </div>
                   ))}
                 </div>

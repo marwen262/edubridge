@@ -32,6 +32,13 @@ export function Navbar({ transparent = false }: NavbarProps) {
         ? '/dashboard/institution'
         : '/dashboard/admin';
 
+  const notificationsPath =
+    user?.role === 'candidat'
+      ? '/dashboard/notifications'
+      : user?.role === 'institut'
+        ? '/dashboard/institution/notifications'
+        : '/dashboard/admin/notifications';
+
   /**
    * Navigue vers l'ancre #id sur la page d'accueil.
    * Si l'utilisateur est déjà sur /, scroll directement.
@@ -202,6 +209,7 @@ export function Navbar({ transparent = false }: NavbarProps) {
                       notifications={notifications.slice(0, 5)}
                       onMarkAsRead={handleMarkAsRead}
                       onClose={() => setNotifOpen(false)}
+                      notificationsHref={notificationsPath}
                     />
                   </div>
                 )}

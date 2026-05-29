@@ -52,6 +52,7 @@
       "dashboard": "Dashboard",
       "applications": "My applications",
       "programs": "Programs",
+      "notifications": "Notifications",
       "favorites": "My favorites",
       "documents": "Documents",
       "settings": "Settings",
@@ -385,9 +386,14 @@
       },
       "pagination": "program",
       "paginationPlural": "programs",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
       "toasts": {
         "deleted": "Program deleted.",
-        "deleteError": "Error while deleting."
+        "deleteError": "Error while deleting.",
+        "deactivated": "Program deactivated.",
+        "activated": "Program activated.",
+        "toggleError": "Error while changing status."
       }
     },
     "candidatures": {
@@ -1245,6 +1251,7 @@
       "toasts": {
         "approved": "Institute approved.",
         "rejected": "Institute rejected.",
+        "correctionRequested": "Correction request sent to the institute.",
         "suspended": "Institute suspended.",
         "reactivated": "Institute reactivated.",
         "deleted": "Institute deleted.",
@@ -1254,10 +1261,13 @@
         "motifLabel": "Reason",
         "suspendTitle": "Suspend institute",
         "rejectTitle": "Reject institute",
+        "correctionTitle": "Request a correction",
         "suspendPlaceholder": "Describe the reason for suspension…",
         "rejectPlaceholder": "Describe the reason for rejection…",
+        "correctionPlaceholder": "Describe the corrections needed…",
         "suspendConfirm": "Suspend",
-        "rejectConfirm": "Reject"
+        "rejectConfirm": "Reject",
+        "correctionConfirm": "Send"
       },
       "deleteDialog": {
         "title": "Delete institute",

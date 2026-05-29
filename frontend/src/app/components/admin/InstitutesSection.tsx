@@ -56,7 +56,7 @@ function MotifDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative w-full max-w-md bg-white dark:bg-[#1D1D1F] rounded-2xl shadow-2xl border border-[var(--edu-border)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="px-6 py-5 border-b border-[var(--edu-border)] flex items-center justify-between">
@@ -424,7 +424,7 @@ export function InstitutesSection() {
   const [menuPos, setMenuPos] = React.useState<{ top: number; right: number } | null>(null);
   const [processing, setProcessing] = React.useState<string | null>(null);
 
-  const [motifDialog, setMotifDialog] = React.useState<{ type: 'suspendre' | 'rejeter'; id: string } | null>(null);
+  const [motifDialog, setMotifDialog] = React.useState<{ type: 'suspendre' | 'rejeter' | 'correction'; id: string } | null>(null);
   const [showInviter, setShowInviter] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<Institut | null>(null);
   const [detailTarget, setDetailTarget] = React.useState<Institut | null>(null);
@@ -462,7 +462,7 @@ export function InstitutesSection() {
     const { type, id } = motifDialog;
     setProcessing(id);
     try {
-      if (type === 'rejeter') { await institutService.rejeter(id, motif); toast.success(t('admin.instituts.toasts.rejected')); }
+      if (type === 'rejeter' || type === 'correction') { await institutService.rejeter(id, motif); toast.success(type === 'correction' ? t('admin.instituts.toasts.correctionRequested') : t('admin.instituts.toasts.rejected')); }
       else { await institutService.suspendre(id, motif); toast.success(t('admin.instituts.toasts.suspended')); }
       refetch();
     } catch (err: unknown) {
@@ -676,10 +676,10 @@ export function InstitutesSection() {
       {/* Motif Dialog */}
       <MotifDialog
         open={motifDialog !== null}
-        title={motifDialog?.type === 'suspendre' ? t('admin.instituts.motifDialog.suspendTitle') : t('admin.instituts.motifDialog.rejectTitle')}
-        placeholder={motifDialog?.type === 'suspendre' ? t('admin.instituts.motifDialog.suspendPlaceholder') : t('admin.instituts.motifDialog.rejectPlaceholder')}
-        confirmLabel={motifDialog?.type === 'suspendre' ? t('admin.instituts.motifDialog.suspendConfirm') : t('admin.instituts.motifDialog.rejectConfirm')}
-        confirmColor={motifDialog?.type === 'suspendre' ? 'var(--edu-warning)' : 'var(--edu-danger)'}
+        title={motifDialog?.type === 'suspendre' ? t('admin.instituts.motifDialog.suspendTitle') : motifDialog?.type === 'correction' ? t('admin.instituts.motifDialog.correctionTitle') : t('admin.instituts.motifDialog.rejectTitle')}
+        placeholder={motifDialog?.type === 'suspendre' ? t('admin.instituts.motifDialog.suspendPlaceholder') : motifDialog?.type === 'correction' ? t('admin.instituts.motifDialog.correctionPlaceholder') : t('admin.instituts.motifDialog.rejectPlaceholder')}
+        confirmLabel={motifDialog?.type === 'suspendre' ? t('admin.instituts.motifDialog.suspendConfirm') : motifDialog?.type === 'correction' ? t('admin.instituts.motifDialog.correctionConfirm') : t('admin.instituts.motifDialog.rejectConfirm')}
+        confirmColor={motifDialog?.type === 'suspendre' ? 'var(--edu-warning)' : motifDialog?.type === 'correction' ? 'var(--edu-blue)' : 'var(--edu-danger)'}
         onConfirm={handleMotifConfirm}
         onCancel={() => setMotifDialog(null)}
       />
@@ -697,7 +697,7 @@ export function InstitutesSection() {
         institut={detailTarget}
         onClose={() => setDetailTarget(null)}
         onApprouver={handleApprouver}
-        onDemanderCorrection={(id) => setMotifDialog({ type: 'rejeter', id })}
+        onDemanderCorrection={(id) => setMotifDialog({ type: 'correction', id })}
         onRefuser={(id) => setMotifDialog({ type: 'suspendre', id })}
         processing={processing === detailTarget?.id}
       />
