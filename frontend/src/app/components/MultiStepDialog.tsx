@@ -633,6 +633,7 @@ export function MultiStepDialog({
                   <SelectItem value="economie">{t('candidate.application.academic.bac.economie', { defaultValue: 'Économie' })}</SelectItem>
                   <SelectItem value="lettres">{t('candidate.application.academic.bac.lettres', { defaultValue: 'Lettres' })}</SelectItem>
                   <SelectItem value="sport">{t('candidate.application.academic.bac.sport', { defaultValue: 'Sport' })}</SelectItem>
+                  <SelectItem value="informatique">{t('candidate.application.academic.bac.informatique', { defaultValue: 'Informatique' })}</SelectItem>
                 </SelectContent>
               </Select>
             )}

@@ -45,7 +45,7 @@ async function verifierDiplome(cheminFichier, nomFichier) {
       form,
       {
         headers: form.getHeaders(),
-        timeout: 60000,
+        timeout: 150000,
       }
     );
 

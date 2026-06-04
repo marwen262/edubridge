@@ -94,10 +94,17 @@ exports.createProgramme = async (req, res) => {
       return res.status(403).json({ message: 'Accès refusé.' });
     }
 
-    const programme = await Programme.create({
-      institut_id,
-      ...pick(req.body, CHAMPS_EDITABLES),
-    });
+    const data = pick(req.body, CHAMPS_EDITABLES);
+
+    // Institut non encore approuvé → programme forcé inactif jusqu'à l'approbation
+    if (req.user.role === 'institut') {
+      const institutRow = await Institut.findByPk(institut_id, { attributes: ['validation_status'] });
+      if (!institutRow || institutRow.validation_status !== 'approved') {
+        data.est_actif = false;
+      }
+    }
+
+    const programme = await Programme.create({ institut_id, ...data });
     return res.status(201).json({ message: 'Programme créé.', programme });
   } catch (error) {
     console.error(error);

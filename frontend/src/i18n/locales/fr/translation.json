@@ -185,17 +185,18 @@
           "technique": "Technique",
           "economie": "Économie",
           "lettres": "Lettres",
-          "sport": "Sport"
+          "sport": "Sport",
+          "informatique": "Informatique"
         }
       },
       "documents": {
         "noneRequired": "Ce programme ne demande aucun document.",
         "noneRequiredShort": "Aucun document requis.",
-        "help": "Téléversez les documents demandés (PDF, JPG ou PNG — 5 Mo max).",
+        "help": "Téléversez les documents demandés (JPG ou PNG — 5 Mo max).",
         "requiredHint": "Les pièces marquées",
         "requiredTail": "sont obligatoires.",
         "alreadyUploadedReplace": "Déjà déposé — cliquez pour remplacer",
-        "acceptedFormats": "PDF, JPG ou PNG — 5 Mo max.",
+        "acceptedFormats": "JPG ou PNG — 5 Mo max.",
         "uploaded": "Téléversé",
         "alreadyUploaded": "Déposé",
         "alreadyUploadedCheck": "✓ Déjà déposé",

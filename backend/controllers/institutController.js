@@ -235,16 +235,24 @@ exports.approuverInstitut = async (req, res) => {
       });
     }
 
-    await institut.update({
-      validation_status: 'approved',
-      est_verifie: true,
-      suspension_reason: null,
-      suspended_at: null,
-      suspended_by: null,
+    await sequelize.transaction(async (t) => {
+      await institut.update({
+        validation_status: 'approved',
+        est_verifie: true,
+        suspension_reason: null,
+        suspended_at: null,
+        suspended_by: null,
+      }, { transaction: t });
+
+      // Publier automatiquement tous les programmes préparés pendant l'attente
+      await Programme.update(
+        { est_actif: true },
+        { where: { institut_id: institut.id }, transaction: t }
+      );
     });
 
     return res.status(200).json({
-      message: 'Institut approuvé et rendu visible dans le catalogue.',
+      message: 'Institut approuvé. Tous ses programmes sont maintenant visibles.',
       institut,
     });
   } catch (error) {
@@ -270,10 +278,17 @@ exports.rejeterInstitut = async (req, res) => {
       });
     }
 
-    await institut.update({
-      validation_status: 'rejected',
-      est_verifie: false,
-      suspension_reason: motif,
+    await sequelize.transaction(async (t) => {
+      await institut.update({
+        validation_status: 'rejected',
+        est_verifie: false,
+        suspension_reason: motif,
+      }, { transaction: t });
+
+      await Programme.update(
+        { est_actif: false },
+        { where: { institut_id: institut.id }, transaction: t }
+      );
     });
 
     // Notifier l'institut du motif pour qu'il puisse corriger
@@ -381,6 +396,11 @@ exports.suspendreInstitut = async (req, res) => {
         { est_actif: false },
         { where: { id: institut.utilisateur_id }, transaction: t }
       );
+
+      await Programme.update(
+        { est_actif: false },
+        { where: { institut_id: institut.id }, transaction: t }
+      );
     });
 
     // Notifier l'institut de la suspension avec le motif
@@ -430,10 +450,15 @@ exports.reactiverInstitut = async (req, res) => {
         { est_actif: true },
         { where: { id: institut.utilisateur_id }, transaction: t }
       );
+
+      await Programme.update(
+        { est_actif: true },
+        { where: { institut_id: institut.id }, transaction: t }
+      );
     });
 
     return res.status(200).json({
-      message: 'Institut réactivé et remis dans le catalogue.',
+      message: 'Institut réactivé. Tous ses programmes sont de nouveau visibles.',
       institut,
     });
   } catch (error) {

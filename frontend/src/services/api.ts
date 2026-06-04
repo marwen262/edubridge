@@ -205,6 +205,9 @@ export const notificationService = {
 
   markAsRead: (id: string) =>
     api.patch(`/notifications/${id}/lire`),
+
+  markAllAsRead: () =>
+    api.patch('/notifications/lire-tout'),
 };
 
 // --- Service utilisateurs ---
