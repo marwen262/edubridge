@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/app/components/ui/utils';
-import { demandeAccesService, institutService } from '@/services/api';
-import type { Institut } from '@/types/api';
+import { candidatureService, demandeAccesService, institutService, notificationService } from '@/services/api';
+import type { Candidature, Institut } from '@/types/api';
 import {
   LayoutDashboard,
   FileText,
@@ -50,9 +50,33 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const { logout, user: authUser } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, refetch: refetchNotifs } = useNotifications();
   const [nbDemandes, setNbDemandes] = React.useState(0);
   const [nbInstitutsEnAttente, setNbInstitutsEnAttente] = React.useState(0);
+  const [nbCandidaturesSoumises, setNbCandidaturesSoumises] = React.useState(0);
+
+  React.useEffect(() => {
+    if (authUser?.role !== 'institut') return;
+    candidatureService
+      .getInstituteList()
+      .then((r) => {
+        const payload = r.data as { candidatures?: Candidature[] };
+        const soumises = (payload.candidatures ?? []).filter(
+          (c) => c.statut === 'soumise'
+        );
+        setNbCandidaturesSoumises(soumises.length);
+      })
+      .catch(() => {});
+  }, [authUser]);
+
+  React.useEffect(() => {
+    if (location.pathname.includes('/candidatures')) {
+      setNbCandidaturesSoumises(0);
+    }
+    if (location.pathname.includes('/notifications')) {
+      notificationService.markAllAsRead().then(() => refetchNotifs()).catch(() => {});
+    }
+  }, [location.pathname]);
 
   React.useEffect(() => {
     if (authUser?.role !== 'admin') return;
@@ -134,7 +158,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
       items: [
         { label: t('sidebar.institution.dashboard'), icon: <LayoutDashboard className="w-5 h-5" />, href: '/dashboard/institution' },
         { label: t('sidebar.institution.programs'), icon: <FileText className="w-5 h-5" />, href: '/dashboard/institution/programmes' },
-        { label: t('sidebar.institution.applications'), icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/institution/candidatures' },
+        { label: t('sidebar.institution.applications'), icon: <BarChart3 className="w-5 h-5" />, href: '/dashboard/institution/candidatures', badge: nbCandidaturesSoumises },
         { label: t('sidebar.institution.candidates'), icon: <User className="w-5 h-5" />, href: '/dashboard/institution/candidats' },
         { label: t('sidebar.institution.notifications'), icon: <Bell className="w-5 h-5" />, href: '/dashboard/institution/notifications', badge: unreadCount },
         { label: t('sidebar.institution.reports'), icon: <PieChart className="w-5 h-5" />, href: '/dashboard/institution/rapports' },

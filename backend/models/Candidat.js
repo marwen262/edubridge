@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
     type_bac: {
       type: DataTypes.ENUM(
         'mathematiques', 'sciences', 'technique',
-        'economie', 'lettres', 'sport'
+        'economie', 'lettres', 'sport', 'informatique'
       ),
       allowNull: true,
     },

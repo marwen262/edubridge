@@ -158,7 +158,7 @@ function buildInvitationTemplate(nomAffiche, lien) {
   <div class="container">
     <div class="header">
       <h1>EduBridge</h1>
-      <p>Plateforme de mise en relation — Instituts d'ingénieurs</p>
+      <p>Plateforme de mise en relation — Instituts privées</p>
     </div>
     <div class="body">
       <h2>Bienvenue sur EduBridge !</h2>

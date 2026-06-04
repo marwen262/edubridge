@@ -260,7 +260,12 @@ exports.mettreAJourBrouillon = async ({ candidature_id, lettre_motivation, files
 
     const nouveaux = await _fichiersEnDocuments(files, user_id, t);
     if (nouveaux.length > 0) {
-      maj.documents_soumis = [...(candidature.documents_soumis || []), ...nouveaux];
+      // Remplacer les documents existants du même nom (évite la duplication en mode brouillon)
+      const nomsNouveaux = new Set(nouveaux.map((d) => d.nom));
+      const existants = (candidature.documents_soumis || []).filter(
+        (d) => !nomsNouveaux.has(d.nom)
+      );
+      maj.documents_soumis = [...existants, ...nouveaux];
     }
     if (Object.keys(maj).length > 0) {
       await candidature.update(maj, { transaction: t });
@@ -269,11 +274,57 @@ exports.mettreAJourBrouillon = async ({ candidature_id, lettre_motivation, files
   });
 };
 
+// Vérification diplôme asynchrone — lancée après le commit, met à jour notes_institut seule.
+async function _verifierEtScorerDiplome(candidature) {
+  const docDiplome = (candidature.documents_soumis ?? []).find(
+    (d) => d && d.nom && NOMS_DIPLOMES.includes(d.nom)
+  );
+  if (!docDiplome || !docDiplome.url) return;
+
+  const cheminFichier = path.resolve(__dirname, '../uploads', path.basename(docDiplome.url));
+  const nomFichierReel = path.basename(docDiplome.url);
+  const resultatVerif = await verifierDiplome(cheminFichier, nomFichierReel);
+
+  if (!resultatVerif.succes || resultatVerif.score === null) return;
+
+  const score = Math.round(resultatVerif.score);
+  let scoreTag = `[DiplomaVerifier] score=${score}/100, niveau=${resultatVerif.niveau}`;
+  if (resultatVerif.subscores) {
+    const { cf, struct, vis, fraud } = resultatVerif.subscores;
+    if (cf !== null && struct !== null && vis !== null) {
+      scoreTag += `, cf=${cf}, struct=${struct}, vis=${vis}`;
+      if (fraud !== null && fraud !== undefined) scoreTag += `, fraud=${fraud}`;
+    }
+  }
+
+  // Recharger depuis la DB pour éviter d'écraser une valeur mise à jour entre-temps
+  const candidatureFraiche = await Candidature.findByPk(candidature.id);
+  if (!candidatureFraiche) return;
+
+  const notesExistantes = candidatureFraiche.notes_institut ?? '';
+  await candidatureFraiche.update({
+    notes_institut: notesExistantes ? `${notesExistantes}\n${scoreTag}` : scoreTag,
+  });
+
+  if (score < 50) {
+    console.warn(
+      '[candidatureWorkflow] Score diplôme faible pour candidature %s : %d/100',
+      candidature.id, score
+    );
+  } else {
+    console.info(
+      '[candidatureWorkflow] Score diplôme candidature %s : %d/100',
+      candidature.id, score
+    );
+  }
+}
+
 // Soumet le brouillon. Pipeline en 3 étapes (toutes dans la même transaction) :
 //   1. Si `profil` fourni, met à jour le Candidat (whitelist + hook identité)
 //   2. Vérifie la complétude du profil (verifierProfilComplet)
 //   3. Vérifie la complétude documentaire (verifierCompletude)
 // Puis bascule statut → 'soumise' et déclenche les notifications.
+// La vérification diplôme est lancée en arrière-plan après le commit.
 //
 // Source de vérité : Candidat. Aucune duplication d'identité dans Candidature.
 exports.soumettre = async ({ candidature_id, user_id, profil }) => {
@@ -284,13 +335,12 @@ exports.soumettre = async ({ candidature_id, user_id, profil }) => {
 
   const ancien_statut = candidature.statut;
 
-  return sequelize.transaction(async (t) => {
+  await sequelize.transaction(async (t) => {
     // ── 1. Auto-update du profil Candidat (avant validation) ──
     const candidat = await Candidat.findByPk(candidature.candidat_id, { transaction: t });
     if (!candidat) throw { status: 404, message: 'Profil candidat introuvable.' };
 
     if (profil && typeof profil === 'object') {
-      // Whitelist stricte : ignore silencieusement les champs hors liste
       const maj = {};
       for (const champ of CHAMPS_PROFIL_AUTORISES) {
         if (profil[champ] !== undefined) maj[champ] = profil[champ];
@@ -299,8 +349,6 @@ exports.soumettre = async ({ candidature_id, user_id, profil }) => {
         try {
           await candidat.update(maj, { transaction: t });
         } catch (err) {
-          // Le hook beforeValidate jette des Error ("CIN obligatoire…") :
-          // on les normalise au format API (status 400) sans masquer le message.
           if (err.status) throw err;
           throw { status: 400, message: err.message || 'Profil invalide.' };
         }
@@ -329,63 +377,22 @@ exports.soumettre = async ({ candidature_id, user_id, profil }) => {
       };
     }
 
-    // ── 4. Vérification authenticité diplôme (non-bloquante) ──────────────
-    const docDiplome = (candidature.documents_soumis ?? []).find(
-      (d) => d && d.nom && NOMS_DIPLOMES.includes(d.nom)
-    );
-
-    if (docDiplome && docDiplome.url) {
-      const cheminFichier = path.resolve(
-        __dirname,
-        '../uploads',
-        path.basename(docDiplome.url)
-      );
-
-      const resultatVerif = await verifierDiplome(cheminFichier, docDiplome.nom);
-
-      if (resultatVerif.succes && resultatVerif.score !== null) {
-        // Format enrichi V7 : score global + 3 sous-scores
-        const score = Math.round(resultatVerif.score);
-        let scoreTag = `[DiplomaVerifier] score=${score}/100, niveau=${resultatVerif.niveau}`;
-        if (resultatVerif.subscores) {
-          const { cf, struct, vis, fraud } = resultatVerif.subscores;
-          if (cf !== null && struct !== null && vis !== null) {
-            scoreTag += `, cf=${cf}, struct=${struct}, vis=${vis}`;
-            if (fraud !== null && fraud !== undefined) {
-              scoreTag += `, fraud=${fraud}`;
-            }
-          }
-        }
-        const notesExistantes = candidature.notes_institut ?? '';
-        candidature.notes_institut = notesExistantes
-          ? `${notesExistantes}\n${scoreTag}`
-          : scoreTag;
-        candidature.changed('notes_institut', true);
-
-        if (score < 50) {
-          console.warn(
-            '[candidatureWorkflow] Score diplôme faible pour candidature %s : %d/100 — raisons : %s',
-            candidature.id,
-            score,
-            (resultatVerif.raisons ?? []).join(', ')
-          );
-        }
-      }
-    }
-    // ────────────────────────────────────────────────────────────────────────
-
-    // ── 5. Bascule de statut + notifications ──
+    // ── 4. Bascule de statut + notifications ──
     await candidature.update({
       statut: 'soumise',
       soumise_le: new Date(),
-      notes_institut: candidature.notes_institut,
     }, { transaction: t });
 
     await notif.notifierChangementStatut(candidature, ancien_statut, 'soumise', t);
     await notif.notifierNouvelleCandidate(candidature, t);
-
-    return candidature;
   });
+
+  // ── 5. Vérification diplôme asynchrone (après commit, non-bloquante) ──
+  _verifierEtScorerDiplome(candidature).catch((err) => {
+    console.warn('[candidatureWorkflow] Erreur vérification diplôme async:', err.message);
+  });
+
+  return candidature;
 };
 
 // Transition de statut demandée par l'institut ou l'admin

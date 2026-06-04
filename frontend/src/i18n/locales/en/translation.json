@@ -185,17 +185,18 @@
           "technique": "Technical",
           "economie": "Economics",
           "lettres": "Arts & Literature",
-          "sport": "Sports"
+          "sport": "Sports",
+          "informatique": "Computer Science"
         }
       },
       "documents": {
         "noneRequired": "This program does not require any documents.",
         "noneRequiredShort": "No documents required.",
-        "help": "Upload the requested documents (PDF, JPG or PNG — 5 MB max).",
+        "help": "Upload the requested documents (JPG or PNG — 5 MB max).",
         "requiredHint": "Items marked",
         "requiredTail": "are mandatory.",
         "alreadyUploadedReplace": "Already uploaded — click to replace",
-        "acceptedFormats": "PDF, JPG or PNG — 5 MB max.",
+        "acceptedFormats": "JPG or PNG — 5 MB max.",
         "uploaded": "Uploaded",
         "alreadyUploaded": "Uploaded",
         "alreadyUploadedCheck": "✓ Already uploaded",
