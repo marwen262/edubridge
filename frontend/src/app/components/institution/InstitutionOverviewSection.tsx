@@ -218,8 +218,8 @@ export function InstitutionOverviewSection({ institut }: Props) {
                               </div>
                               <p className="text-sm font-semibold text-[var(--edu-text-primary)] truncate">{nomComplet}</p>
                             </div>
-                            {c.score_diplome != null && (
-                              <PipelineScoreChip score={c.score_diplome} />
+                            {(c.scores_diplome?.global ?? c.score_diplome) != null && (
+                              <PipelineScoreChip score={(c.scores_diplome?.global ?? c.score_diplome)!} />
                             )}
                             <p className="text-xs text-[var(--edu-text-secondary)] mb-1 line-clamp-1 mt-1">{c.programme?.titre ?? 'Programme'}</p>
                             <p className="text-xs text-[var(--edu-text-tertiary)] mb-2">{(c.soumise_le ?? c.cree_le) ? new Date((c.soumise_le ?? c.cree_le)!).toLocaleDateString() : '—'}</p>
@@ -353,7 +353,7 @@ function CandidatDetailDialog({ candidature }: { candidature: Candidature }) {
   const date = (candidature.soumise_le ?? candidature.cree_le)
     ? new Date((candidature.soumise_le ?? candidature.cree_le)!).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' })
     : '—';
-  const score = candidature.score_diplome;
+  const score = candidature.scores_diplome?.global ?? candidature.score_diplome;
 
   return (
     <>
